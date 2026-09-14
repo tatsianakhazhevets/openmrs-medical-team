@@ -1,5 +1,6 @@
 package apiParts.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class LoginAdminRequest extends BaseModel {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class User {
+    private String uuid;
+    private String display;
     private String username;
-    private String password;
+    private String systemId;
 }
