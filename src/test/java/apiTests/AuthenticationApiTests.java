@@ -9,7 +9,7 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import org.junit.jupiter.api.Test;
 
-public class AuthenticationApiTests {
+public class AuthenticationApiTests extends BaseTest {
 
     @Test
     public void adminCanLogin() {
