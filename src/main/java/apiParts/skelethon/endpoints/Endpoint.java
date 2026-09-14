@@ -1,8 +1,8 @@
 package apiParts.skelethon.endpoints;
 
 import apiParts.models.BaseModel;
-import apiParts.models.LoginAdminRequest;
-import apiParts.models.LoginAdminResponse;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.models.auth.LoginAdminResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

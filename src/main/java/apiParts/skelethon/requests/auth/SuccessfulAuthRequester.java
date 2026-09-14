@@ -1,8 +1,8 @@
 package apiParts.skelethon.requests.auth;
 
 import apiParts.models.BaseModel;
-import apiParts.models.LoginAdminRequest;
-import apiParts.models.LoginAdminResponse;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.models.auth.LoginAdminResponse;
 import apiParts.skelethon.base_request.HttpRequest;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.interfaces.AuthEndpoint;

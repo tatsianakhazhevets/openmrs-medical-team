@@ -1,7 +1,7 @@
 package apiTests;
 
-import apiParts.models.LoginAdminRequest;
-import apiParts.models.LoginAdminResponse;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.models.auth.LoginAdminResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.AuthRequester;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;

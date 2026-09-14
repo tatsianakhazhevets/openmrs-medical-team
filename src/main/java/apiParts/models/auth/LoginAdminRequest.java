@@ -1,5 +1,6 @@
-package apiParts.models;
+package apiParts.models.auth;
 
+import apiParts.models.BaseModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
