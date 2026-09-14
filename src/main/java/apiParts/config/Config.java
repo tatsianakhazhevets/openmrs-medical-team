@@ -9,13 +9,13 @@ public class Config {
     private final Properties properties = new Properties();
 
     private Config() {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("config-hw.properties")) {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
-                throw new RuntimeException("config-hw.properties file not found in resources");
+                throw new RuntimeException("config.properties file not found in resources");
             }
             properties.load(input);
         } catch (IOException e) {
-            throw new RuntimeException("Fail to load config-hw.properties file");
+            throw new RuntimeException("Fail to load config.properties file");
         }
     }
 

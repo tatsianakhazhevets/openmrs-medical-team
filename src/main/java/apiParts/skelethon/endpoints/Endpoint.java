@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum Endpoint {
-    LOGIN_POST(
+    LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
             LoginAdminResponse.class),
