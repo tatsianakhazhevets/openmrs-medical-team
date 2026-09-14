@@ -17,4 +17,5 @@ public class LoginAdminResponse extends BaseModel {
     private String sessionId;
     private boolean authenticated;
     private User user;
+    private String person;
 }
