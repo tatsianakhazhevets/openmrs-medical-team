@@ -1,7 +1,5 @@
-package apiParts.models;
+package apiParts.models.patient;
 
-import apiParts.models.auth.Person;
-import apiParts.models.auth.Role;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,13 +13,14 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class User {
+public class PersonResponse {
     private String uuid;
     private String display;
-    private String username;
-    private String systemId;
-    private UserProperties userProperties;
-    private Person person;
-    private List<Role> roles;
-    private List<String> privileges;
+    private String gender;
+    private Integer age;
+    private String birthdate;
+    private Boolean birthdateEstimated;
+    private Boolean dead;
+    private List<PersonName> names;
+    private List<PersonAddress> addresses;
 }
