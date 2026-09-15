@@ -1,7 +1,12 @@
 package apiParts.steps;
 
+import apiParts.models.EncounterType;
+import apiParts.models.Location;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
+import apiParts.models.encounter.CreateEncounterRequest;
+import apiParts.models.encounter.CreateEncounterRequest.Obs;
+import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
@@ -12,6 +17,8 @@ import net.datafaker.Faker;
 
 import java.util.List;
 import java.util.Locale;
+
+import static apiParts.models.VitalsConcept.*;
 
 public class AdminSteps {
 
@@ -65,6 +72,32 @@ public class AdminSteps {
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createPatientRequest);
+    }
+
+    public static CreateEncounterResponse createVitalsEncounter(String patientUUID) {
+        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.VITALS)
+                .location(Location.OUTPATIENT_CLINIC)
+                .obs(List.of(
+                        Obs.of(SYSTOLIC_BP, 100),
+                        Obs.of(DIASTOLIC_BP, 70),
+                        Obs.of(RESPIRATORY_RATE, 14),
+                        Obs.of(OXYGEN_SATURATION, 95),
+                        Obs.of(PULSE, 68),
+                        Obs.of(TEMPERATURE, 37),
+                        Obs.of(GENERAL_NOTE, "Some note"),
+                        Obs.of(WEIGHT, 90.2),
+                        Obs.of(HEIGHT, 177.3),
+                        Obs.of(MID_UPPER_ARM_CIRC, 14),
+                        Obs.of(BMI, 28.7)))
+                .build();
+
+        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(createEncounterRequest);
     }
 
     // ======== HELPERS ========

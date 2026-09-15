@@ -53,4 +53,9 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     public ValidatableResponse delete(int id) {
         return (ValidatableResponse) crudRequester.delete(id);
     }
+
+    @Override
+    public ValidatableResponse delete(String uuid) {
+        return crudRequester.delete(uuid);
+    }
 }

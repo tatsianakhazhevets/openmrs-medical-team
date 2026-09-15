@@ -26,6 +26,26 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsNoContent() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_NO_CONTENT)
+                .build();
+    }
+
+    // OpenMRS: ObjectNotFoundException -> 404
+    public static ResponseSpecification requestReturnsNotFound() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_NOT_FOUND)
+                .build();
+    }
+
+    // OpenMRS: APIAuthenticationException for not logged in user -> 401 (logged in without privilege -> 403)
+    public static ResponseSpecification requestReturnsUnauthorized() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_UNAUTHORIZED)
+                .build();
+    }
+
     // OpenMRS validation error: 400 + {"error": {"code": "webservices.rest.error.invalid.submission", "fieldErrors": {field: [{code}]}}}
     public static ResponseSpecification requestReturnsInvalidSubmission(String field, String errorCode) {
         return defaultResponseSpec()
