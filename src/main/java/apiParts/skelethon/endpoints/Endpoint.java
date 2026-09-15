@@ -22,6 +22,11 @@ public enum Endpoint {
             LoginAdminRequest.class,
             LoginAdminResponse.class),
 
+    LOGOUT_DELETE(
+            "/session",
+            BaseModel.class,
+            BaseModel.class),
+
     PATIENT_POST(
             "/patient",
             CreatePatientRequest.class,

@@ -38,6 +38,13 @@ public class RequestSpecs {
                 .build();
     }
 
+    public static RequestSpecification authenticatedSpec(String sessionId) {
+        return defaultRequestSpec()
+                .addCookie("JSESSIONID", sessionId)
+                .build();
+    }
+
+
     /*
     public static RequestSpecification authUserSpec(String username, String password) {
         return defaultRequestSpec()
