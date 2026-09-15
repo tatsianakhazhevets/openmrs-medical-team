@@ -28,7 +28,7 @@ public enum Endpoint {
             CreatePatientRequest.class,
             CreatePatientResponse.class),
     LIST_ORDERS_GET(
-            "/openmrs/ws/rest/v1/order",
+            "/order",
             BaseModel.class,
             ListOrdersResponse.class),
     IDENTIFIER_GET(
