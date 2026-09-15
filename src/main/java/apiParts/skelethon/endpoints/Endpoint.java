@@ -21,10 +21,8 @@ public enum Endpoint {
     LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
-    LOGIN_GET(
-            "/session",
-            LoginAdminRequest.class,
-            LoginAdminResponse.class),
+            LoginAdminResponse.class
+    ),
 
     LOGOUT_DELETE(
             "/session",
@@ -35,7 +33,7 @@ public enum Endpoint {
             CreatePatientRequest.class,
             CreatePatientResponse.class),
     LIST_ORDERS_GET(
-            "/order",
+            "/openmrs/ws/rest/v1/order",
             BaseModel.class,
             ListOrdersResponse.class),
 
