@@ -1,5 +1,6 @@
 package apiTests;
 
+import apiParts.models.Location;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.patient.*;
@@ -58,16 +59,17 @@ public class PatientManagementApiTests extends BaseTest {
                         PatientIdentifierRequest.builder()
                                 .identifier(getId())
                                 .identifierType("05a29f94-c0ed-11e2-94be-8c13b969e334") //MRS ID GET /openmrs/ws/rest/v1/patientidentifiertype?v=custom:(uuid,name,required,uniquenessBehavior,locationBehavior)
-                                .location("dbdaabf6-a326-4804-aba7-062073e05cd1") //Outpatient Clinic DOTO - move to ENUM?
+                                .location(Location.OUTPATIENT_CLINIC.getUuid())
                                 .preferred(true)
                                 .build()))
                 .build();
 
-        new SuccessfulCrudRequester<CreatePatientRequest>(
+        new SuccessfulCrudRequester<CreatePatientResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createPatientRequest);
+
     }
 
     // ======== HELPERS ========

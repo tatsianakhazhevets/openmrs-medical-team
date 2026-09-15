@@ -17,7 +17,7 @@ public class AdminSteps {
 
     static Faker faker = new Faker(new Locale("en", "US"));
 
-    public static void createPatient() {
+    public static CreatePatientResponse createPatient() {
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
                 .username("admin")
                 .password("Admin123")
@@ -60,7 +60,7 @@ public class AdminSteps {
                                 .build()))
                 .build();
 
-        new SuccessfulCrudRequester<CreatePatientRequest>(
+        return new SuccessfulCrudRequester<CreatePatientResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
