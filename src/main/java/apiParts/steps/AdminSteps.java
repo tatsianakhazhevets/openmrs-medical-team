@@ -14,6 +14,7 @@ import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import net.datafaker.Faker;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -54,7 +55,7 @@ public class AdminSteps {
                                 PersonAddress.builder()
                                         .address1(faker.address().streetAddress())
                                         .cityVillage(faker.address().city())
-                                        .country(faker.address().country())
+                                        .country(StringUtils.left(faker.address().country(), 50))  //was flaky because of "country": "British Indian Ocean Territory (Chagos Archipelago)"
                                         .postalCode(faker.address().postcode())
                                         .build()))
                         .build())
