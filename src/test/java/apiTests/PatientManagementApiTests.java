@@ -39,6 +39,19 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCanCreatePatient() {
+        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+                .username("admin")
+                .password("Admin123")
+                .build();
+
+        new SuccessfulAuthRequester<LoginAdminResponse>(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk())
+                .login(loginAdminRequest);
+
+        String gender = faker.gender().binaryTypes(); // "Male" / "Female"
+        String shortGender = gender.equals("Male") ? "M" : "F";
         CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
                 .person(PersonRequest.builder()
                         .gender(shortGender)
