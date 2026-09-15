@@ -4,6 +4,7 @@ import apiParts.models.BaseModel;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
+import apiParts.models.order.DrugOrder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
@@ -17,8 +18,11 @@ import java.util.List;
 public class CreateEncounterRequest extends BaseModel {
     private String patient;  // patient uuid, created in test setup
     private EncounterType encounterType;
+    private String visit;              // visit uuid, optional
+    private String encounterDatetime;  // ISO-8601, must have if visit is present
     private Location location;
     private List<Obs> obs;
+    private List<DrugOrder> orders;
 
     @Data
     @NoArgsConstructor

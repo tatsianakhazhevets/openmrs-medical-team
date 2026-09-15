@@ -6,6 +6,7 @@ import apiParts.models.EmptyResponse;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
+import apiParts.models.order.GetOrderResponse;
 import apiParts.models.patient.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -47,6 +48,12 @@ public enum Endpoint {
             "/obs",
             GetObsRequest.class,
             GetObsResponse.class
+    ),
+
+    ORDER_GET(
+            "/order",
+            EmptyRequest.class,
+            GetOrderResponse.class
     );
 
     private final String url;

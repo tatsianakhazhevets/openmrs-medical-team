@@ -19,4 +19,10 @@ public class ObsResponse {
     private Ref encounter;
     private Object value;       // Double for NUMERIC, String for TEXT
     private Boolean voided;
+
+    // Server writes numeric value inconsistently: 100.0 but 0 -> Jackson reads Double or Integer.
+    // Normalize any number to Double on deserialization, so 0 and 0.0 are equal in comparison.
+    public void setValue(Object value) {
+        this.value = value instanceof Number number ? number.doubleValue() : value;
+    }
 }

@@ -1,6 +1,7 @@
 package apiParts.models.encounter;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,8 +20,15 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Ref {
     private String uuid;    // resource identifier used in REST API
     private String display; // human-readable name, e.g. "Vitals", "Pulse: 68"
+
+    // Reference for expected models: only uuid is checked, display stays null
+    // and is skipped by ModelAssertions (ignoringExpectedNullFields)
+    public static Ref of(String uuid) {
+        return new Ref(uuid, null);
+    }
 }

@@ -6,36 +6,34 @@ import apiParts.models.encounter.GetObsResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.encounter.Ref;
 
-import java.math.BigDecimal;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
- * Brings obs from request / POST response / GET response to a common form,
- * so they can be compared with a single AssertJ isEqualTo().
+ * Builds expected obs from request (for {@link ModelAssertions#assertListMatchesExpected})
+ * and extracts obs uuids from POST / GET responses.
  */
 public class ObsAssertions {
 
     private ObsAssertions() {
     }
 
-    // concept uuid -> value, from what was sent
-    public static Map<String, String> valuesOf(CreateEncounterRequest request) {
-        return toValueMap(request.getObs().stream(),
-                obs -> obs.getConcept().getUuid(),
-                CreateEncounterRequest.Obs::getValue);
+    // what GET /obs?patient={uuid}&v=full should return for obs sent in POST /encounter
+    public static List<ObsResponse> expectedObsOf(CreateEncounterRequest request) {
+        return request.getObs().stream()
+                .map(obs -> ObsResponse.builder()
+                        .person(Ref.of(request.getPatient()))   // patient uuid == person uuid
+                        .concept(Ref.of(obs.getConcept().getUuid()))
+                        .value(expectedValue(obs.getValue()))
+                        .build())
+                .toList();
     }
 
-    // concept uuid -> value, from what was saved (GET /obs?v=full)
-    public static Map<String, String> valuesOf(GetObsResponse response) {
-        return toValueMap(response.getResults().stream(),
-                obs -> obs.getConcept().getUuid(),
-                ObsResponse::getValue);
+    // sort key for ModelAssertions.assertListMatchesExpected
+    public static String conceptUuidOf(ObsResponse obs) {
+        return obs.getConcept() == null ? null : obs.getConcept().getUuid();
     }
 
     // obs uuids returned by POST /encounter
@@ -53,21 +51,9 @@ public class ObsAssertions {
     }
 
     // ======== HELPERS ========
-    private static <T> Map<String, String> toValueMap(Stream<T> obs,
-                                                      Function<T, String> concept,
-                                                      Function<T, Object> value) {
-        return obs.collect(Collectors.toMap(
-                concept,
-                o -> normalize(value.apply(o)),
-                (a, b) -> { throw new IllegalStateException("Duplicate concept in obs: " + a + " / " + b); },
-                TreeMap::new));
-    }
-
-    // 100, 100.0 -> "100"; 28.70 -> "28.7"; text stays as is
-    private static String normalize(Object value) {
-        if (value instanceof Number number) {
-            return new BigDecimal(number.toString()).stripTrailingZeros().toPlainString();
-        }
-        return String.valueOf(value);
+    // Actual numeric value is always Double (see ObsResponse.setValue), builder bypasses the setter,
+    // so expected is converted here: Integer 100 and Double 100.0 are not equal in recursive comparison.
+    private static Object expectedValue(Object value) {
+        return value instanceof Number number ? number.doubleValue() : value;
     }
 }
