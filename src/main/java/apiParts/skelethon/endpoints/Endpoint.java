@@ -5,6 +5,8 @@ import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.patient.CreatePatientRequest;
 import apiParts.models.patient.CreatePatientResponse;
+import apiParts.models.patient.GetIdentifierRequest;
+import apiParts.models.patient.GetIdentifierResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -21,7 +23,11 @@ public enum Endpoint {
             CreatePatientRequest.class,
             CreatePatientResponse.class),
 
-
+    IDENTIFIER_GET(
+            "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
+            GetIdentifierRequest.class,
+            GetIdentifierResponse.class
+    )
     ;
 
     private final String url;

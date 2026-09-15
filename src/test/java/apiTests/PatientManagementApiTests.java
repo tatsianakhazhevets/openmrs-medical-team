@@ -8,12 +8,15 @@ import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
+import java.util.Locale;
 
 public class PatientManagementApiTests extends BaseTest {
+
+    Faker faker = new Faker(new Locale("en", "US"));
 
     @Test
     public void adminCanCreatePatient() {
@@ -29,30 +32,33 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
+        String gender = faker.gender().binaryTypes(); // "Male" / "Female"
+        String shortGender = gender.equals("Male") ? "M" : "F";
+
         CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
                 .person(PersonRequest.builder()
-                        .gender("F")
-                        .birthdate("1990-01-01")
+                        .gender(shortGender)
+                        .birthdate(faker.timeAndDate().birthday(18, 65, "yyyy-MM-dd"))
                         .birthdateEstimated(false)
                         .dead(false)
                         .names(List.of(
                                 PersonName.builder()
-                                        .givenName("Olga")
-                                        .familyName("Smitt")
+                                        .givenName(faker.name().firstName())
+                                        .familyName(faker.name().lastName())
                                         .build()))
                         .addresses(List.of(
                                 PersonAddress.builder()
-                                        .address1("15 Main Street")
-                                        .cityVillage("Valencia")
-                                        .country("Spain")
-                                        .postalCode("46001")
+                                        .address1(faker.address().streetAddress())
+                                        .cityVillage(faker.address().city())
+                                        .country(faker.address().country())
+                                        .postalCode(faker.address().postcode())
                                         .build()))
                         .build())
                 .identifiers(List.of(
                         PatientIdentifierRequest.builder()
-                                .identifier("GVUMLE")
-                                .identifierType("05a29f94-c0ed-11e2-94be-8c13b969e334")
-                                .location("1ce1b7d4-c865-4178-82b0-5932e51503d6")
+                                .identifier(getId())
+                                .identifierType("05a29f94-c0ed-11e2-94be-8c13b969e334") //MRS ID GET /openmrs/ws/rest/v1/patientidentifiertype?v=custom:(uuid,name,required,uniquenessBehavior,locationBehavior)
+                                .location("dbdaabf6-a326-4804-aba7-062073e05cd1") //Outpatient Clinic DOTO - move to ENUM?
                                 .preferred(true)
                                 .build()))
                 .build();
@@ -62,5 +68,16 @@ public class PatientManagementApiTests extends BaseTest {
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createPatientRequest);
+    }
+
+    // ======== HELPERS ========
+    private String getId() {
+        var response = new SuccessfulCrudRequester<GetIdentifierResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.IDENTIFIER_GET,
+                ResponseSpecs.requestReturnsCreated())
+                .create();
+
+        return response.getIdentifier();
     }
 }

@@ -23,6 +23,11 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     }
 
     @Override
+    public T create() {
+        return (T) crudRequester.create().extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
     public T get(int id) {
         return (T) crudRequester.get(id).extract().as(endpoint.getResponseModel());
     }
