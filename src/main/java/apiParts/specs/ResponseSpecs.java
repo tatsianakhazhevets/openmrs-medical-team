@@ -26,6 +26,15 @@ public class ResponseSpecs {
                 .build();
     }
 
+    // OpenMRS validation error: 400 + {"error": {"code": "webservices.rest.error.invalid.submission", "fieldErrors": {field: [{code}]}}}
+    public static ResponseSpecification requestReturnsInvalidSubmission(String field, String errorCode) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
+                .expectBody("error.fieldErrors." + field + ".code", Matchers.hasItem(errorCode))
+                .build();
+    }
+
     public static ResponseSpecification requestReturnsBadRequest(String errorMessage) {
         return defaultResponseSpec()
                 .expectStatusCode(HttpStatus.SC_UNAUTHORIZED)

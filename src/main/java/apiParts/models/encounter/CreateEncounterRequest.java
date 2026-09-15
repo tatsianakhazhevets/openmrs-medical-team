@@ -1,4 +1,4 @@
-package apiParts.models.patient;
+package apiParts.models.encounter;
 
 import apiParts.models.BaseModel;
 import apiParts.models.EncounterType;

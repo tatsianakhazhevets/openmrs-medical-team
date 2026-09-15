@@ -3,6 +3,7 @@ package apiParts.skelethon.endpoints;
 import apiParts.models.BaseModel;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
+import apiParts.models.encounter.*;
 import apiParts.models.patient.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,7 +29,12 @@ public enum Endpoint {
     ENCOUNTER_POST(
             "/encounter",
             CreateEncounterRequest.class,
-            CreateEncounterResponse.class
+            CreateEncounterResponse.class),
+
+    OBS_GET(
+            "/obs",
+            GetObsRequest.class,
+            GetObsResponse.class
     );
 
     private final String url;

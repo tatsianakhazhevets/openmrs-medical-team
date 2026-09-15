@@ -1,4 +1,4 @@
-package apiParts.models.patient;
+package apiParts.models.encounter;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
