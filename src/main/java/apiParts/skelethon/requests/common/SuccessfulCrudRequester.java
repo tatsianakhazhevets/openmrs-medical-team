@@ -8,6 +8,8 @@ import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 
+import java.util.Map;
+
 public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest implements CrudEndpoint {
 
     private CrudRequester crudRequester;
@@ -35,6 +37,11 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     @Override
     public T get() {
         return (T) crudRequester.get().extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public T get(Map<String, ?> queryParams) {
+        return (T) crudRequester.get(queryParams).extract().as(endpoint.getResponseModel());
     }
 
     @Override
