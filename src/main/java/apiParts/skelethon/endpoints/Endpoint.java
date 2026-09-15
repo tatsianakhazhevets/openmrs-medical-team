@@ -8,6 +8,9 @@ import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
 import apiParts.models.order.GetOrderResponse;
 import apiParts.models.patient.*;
+import apiParts.models.visit.CreateVisitRequest;
+import apiParts.models.visit.CreateVisitResponse;
+import apiParts.models.visit.GetVisitByUuidResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -54,6 +57,17 @@ public enum Endpoint {
             "/order",
             EmptyRequest.class,
             GetOrderResponse.class
+    ),
+
+    VISIT_POST(
+            "/visit",
+            CreateVisitRequest.class,
+            CreateVisitResponse.class),
+
+    VISIT_GET(
+        "/visit",
+            EmptyRequest.class,
+            GetVisitByUuidResponse.class
     );
 
     private final String url;
