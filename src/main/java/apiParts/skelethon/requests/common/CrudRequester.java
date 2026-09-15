@@ -91,4 +91,14 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
                 .assertThat()
                 .spec(responseSpecification);
     }
+
+    @Override
+    public ValidatableResponse delete(String uuid) {
+        return given()
+                .spec(requestSpecification)
+                .delete(endpoint.getUrl() + "/" + uuid)
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
 }

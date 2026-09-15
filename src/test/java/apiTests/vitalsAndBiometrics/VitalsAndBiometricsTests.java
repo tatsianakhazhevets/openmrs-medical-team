@@ -16,17 +16,23 @@ import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static apiParts.models.VitalsConcept.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class VitalsAndBiometricsTests extends BaseTest {
+    private static final int VITALS_OBS_COUNT = 11; // obs in AdminSteps.createVitalsEncounter()
     private String patientUUID;
 
     @BeforeEach
@@ -138,7 +144,97 @@ public class VitalsAndBiometricsTests extends BaseTest {
                 .create(request);
     }
 
+    @Test
+    public void adminCanDeleteVitalsEncounter() {
+        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        assertPatientHasObsOf(encounter);
+
+        new CrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_DELETE,
+                ResponseSpecs.requestReturnsNoContent()
+        )
+                .delete(encounter.getUuid());
+
+        softly.assertThat(getPatientObs().getResults())
+                .as("obs of deleted encounter are not returned for patient")
+                .isEmpty();
+    }
+
+    @Test
+    public void adminCannotDeleteNonExistentEncounter() {
+        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        assertPatientHasObsOf(encounter);
+
+        new CrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_DELETE,
+                ResponseSpecs.requestReturnsNotFound()
+        )
+                .delete(UUID.randomUUID().toString());
+
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+                .as("patient obs are not affected")
+                .isEqualTo(ObsAssertions.uuidsOf(encounter));
+    }
+
+    @Test
+    public void unauthorizedUserCannotDeleteEncounter() {
+        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        assertPatientHasObsOf(encounter);
+
+        new CrudRequester(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.ENCOUNTER_DELETE,
+                ResponseSpecs.requestReturnsUnauthorized()
+        )
+                .delete(encounter.getUuid());
+
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+                .as("obs are still returned after unauthorized delete")
+                .isEqualTo(ObsAssertions.uuidsOf(encounter));
+    }
+
+    @Test
+    public void adminCanDeleteSingleObs() {
+        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        assertPatientHasObsOf(encounter);
+
+        String deletedObsUUID = encounter.getObs().get(0).getUuid();
+
+        new CrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.OBS_DELETE,
+                ResponseSpecs.requestReturnsNoContent()
+        )
+                .delete(deletedObsUUID);
+
+        Set<String> expectedObsUUIDs = new TreeSet<>(ObsAssertions.uuidsOf(encounter));
+        expectedObsUUIDs.remove(deletedObsUUID);
+
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+                .as("only deleted obs is gone, other obs remain")
+                .isEqualTo(expectedObsUUIDs);
+    }
+
     // ======== HELPERS ========
+    private GetObsResponse getPatientObs() {
+        return new SuccessfulCrudRequester<GetObsResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.OBS_GET,
+                ResponseSpecs.requestReturnsOk()
+        )
+                .get(Map.of("patient", patientUUID, "v", "full"));
+    }
+
+    // Precondition (hard assert): all obs of created encounter are saved for patient
+    private void assertPatientHasObsOf(CreateEncounterResponse encounter) {
+        assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+                .as("precondition: patient has " + VITALS_OBS_COUNT + " obs of created encounter")
+                .hasSize(VITALS_OBS_COUNT)
+                .isEqualTo(ObsAssertions.uuidsOf(encounter));
+    }
+
     private static Stream<Arguments> outOfRange(VitalsConcept concept, int lowAbsolute, int hiAbsolute) {
         return Stream.of(
                 Arguments.of(concept, lowAbsolute - 1, "error.value.outOfRange.low"),

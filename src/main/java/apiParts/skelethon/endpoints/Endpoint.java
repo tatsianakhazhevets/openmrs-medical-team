@@ -1,6 +1,8 @@
 package apiParts.skelethon.endpoints;
 
 import apiParts.models.BaseModel;
+import apiParts.models.EmptyRequest;
+import apiParts.models.EmptyResponse;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
@@ -30,6 +32,16 @@ public enum Endpoint {
             "/encounter",
             CreateEncounterRequest.class,
             CreateEncounterResponse.class),
+
+    ENCOUNTER_DELETE(
+            "/encounter",
+            EmptyRequest.class,
+            EmptyResponse.class),
+
+    OBS_DELETE(
+            "/obs",
+            EmptyRequest.class,
+            EmptyResponse.class),
 
     OBS_GET(
             "/obs",
