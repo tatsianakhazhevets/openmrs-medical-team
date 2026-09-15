@@ -22,7 +22,6 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCanCreatePatient() {
-
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
                 .username("admin")
                 .password("Admin123")

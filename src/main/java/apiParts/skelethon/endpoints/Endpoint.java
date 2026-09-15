@@ -7,6 +7,7 @@ import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
 import apiParts.models.order.GetOrderResponse;
+import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.patient.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
@@ -20,13 +21,16 @@ public enum Endpoint {
     LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
-            LoginAdminResponse.class),
-
+            LoginAdminResponse.class
+    ),
     PATIENT_POST(
             "/patient",
             CreatePatientRequest.class,
             CreatePatientResponse.class),
-
+    LIST_ORDERS_GET(
+            "/openmrs/ws/rest/v1/order",
+            BaseModel.class,
+            ListOrdersResponse.class),
     IDENTIFIER_GET(
             "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
             GetIdentifierRequest.class,

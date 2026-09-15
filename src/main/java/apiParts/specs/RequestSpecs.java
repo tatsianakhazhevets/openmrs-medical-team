@@ -38,36 +38,5 @@ public class RequestSpecs {
                 .build();
     }
 
-    /*
-    public static RequestSpecification authUserSpec(String username, String password) {
-        return defaultRequestSpec()
-                .addHeader(Headers.AUTHORIZATION.getHeader(),
-                        getUserAuthHeader(username, password))
-                .build();
-    }
-
-    public static String getUserAuthHeader(String username, String password) {
-
-       String userAuthHeader;
-
-        if (!authUserTokens.containsKey(username)) {
-            userAuthHeader = new CrudRequester(
-                    RequestSpecs.unAuthSpec(),
-                    Endpoint.LOGIN_POST,
-                    ResponseSpecs.requestReturnsOk())
-                    .post(LoginUserRequest.builder()
-                            .username(username)
-                            .password(password)
-                            .build())
-                    .extract()
-                    .header("Authorization");
-
-            authUserTokens.put(username, userAuthHeader);
-        } else {
-            userAuthHeader = authUserTokens.get(username);
-        }
-
-        return userAuthHeader;
-    }*/
 
 }
