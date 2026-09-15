@@ -21,6 +21,9 @@ public enum Endpoint {
     LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
+    LOGIN_GET(
+            "/session",
+            LoginAdminRequest.class,
             LoginAdminResponse.class),
 
     LOGOUT_DELETE(
@@ -95,6 +98,12 @@ public enum Endpoint {
             EmptyRequest.class,
             GetOrderResponse.class),
 
+    LIST_ORDERS_GET(
+            "/openmrs/ws/rest/v1/order",
+            BaseModel.class,
+            ListOrdersResponse.class
+    ),
+
     VISIT_POST(
             "/visit",
             CreateVisitRequest.class,
@@ -109,6 +118,7 @@ public enum Endpoint {
         "/visit",
         EmptyRequest.class,
         GetVisitByUuidResponse.class
+    );
     );
 
     private final String url;

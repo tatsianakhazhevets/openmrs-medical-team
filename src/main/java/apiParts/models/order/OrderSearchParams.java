@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import lombok.Builder;
 
 @Data
 @Builder
@@ -40,4 +41,5 @@ public class OrderSearchParams {
             queryParams.put(name, value);
         }
     }
+
 }

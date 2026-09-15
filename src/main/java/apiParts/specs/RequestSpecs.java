@@ -64,7 +64,7 @@ public class RequestSpecs {
                     ResponseSpecs.requestReturnsOk())
                     .post(LoginUserRequest.builder()
                             .username(username)
-                            .password(password)
+                            .password(username)
                             .build())
                     .extract()
                     .header("Authorization");
