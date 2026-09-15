@@ -7,10 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Drug order from GET /order?t=drugorder&v=full.
- * Nested resources are full objects in v=full, but only uuid + display are mapped (see {@link Ref}).
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

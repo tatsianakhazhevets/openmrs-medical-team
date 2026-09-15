@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * Response of GET /ws/rest/v1/order?patient={patientUuid}&t=drugorder&v=full.
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
