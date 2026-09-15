@@ -1,5 +1,6 @@
 package apiTests.vitalsAndBiometrics;
 
+import apiParts.assertions.ModelAssertions;
 import apiParts.assertions.ObsAssertions;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
@@ -8,6 +9,7 @@ import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.GetObsResponse;
+import apiParts.models.errors.ObsFieldError;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
@@ -117,9 +119,11 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .get(Map.of("patient", patientUUID, "v", "full"));
 
-        softly.assertThat(ObsAssertions.valuesOf(patientObs))
-                .as("obs values saved for patient")
-                .isEqualTo(ObsAssertions.valuesOf(request));
+        ModelAssertions.assertListMatchesExpected(softly,
+                patientObs.getResults(),
+                ObsAssertions.expectedObsOf(request),
+                ObsAssertions::conceptUuidOf,
+                "obs saved for patient");
         softly.assertThat(ObsAssertions.uuidsOf(patientObs))
                 .as("obs uuids from GET match POST /encounter")
                 .isEqualTo(ObsAssertions.uuidsOf(encounter));
@@ -127,7 +131,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
     @ParameterizedTest(name = "{0} = {1} -> {2}")
     @MethodSource("outOfRangeVitals")
-    public void adminCannotAddVitalsOutOfRange(VitalsConcept concept, Number value, String errorCode) {
+    public void adminCannotAddVitalsOutOfRange(VitalsConcept concept, Number value, ObsFieldError error) {
 
         var request = CreateEncounterRequest.builder()
                 .patient(patientUUID)
@@ -139,7 +143,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsInvalidSubmission("valueNumeric", errorCode)
+                ResponseSpecs.requestReturnsInvalidSubmission(error)
         )
                 .create(request);
     }
@@ -237,8 +241,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
     private static Stream<Arguments> outOfRange(VitalsConcept concept, int lowAbsolute, int hiAbsolute) {
         return Stream.of(
-                Arguments.of(concept, lowAbsolute - 1, "error.value.outOfRange.low"),
-                Arguments.of(concept, hiAbsolute + 1, "error.value.outOfRange.high")
+                Arguments.of(concept, lowAbsolute - 1, ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
+                Arguments.of(concept, hiAbsolute + 1, ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
         );
     }
 

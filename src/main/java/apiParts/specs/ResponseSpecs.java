@@ -1,5 +1,7 @@
 package apiParts.specs;
 
+import apiParts.models.errors.FieldError;
+import apiParts.models.errors.OrderErrorMessage;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.specification.ResponseSpecification;
 import org.apache.http.HttpStatus;
@@ -53,6 +55,35 @@ public class ResponseSpecs {
                 .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
                 .expectBody("error.fieldErrors." + field + ".code", Matchers.hasItem(errorCode))
                 .build();
+    }
+
+    // Error code from enum; code = null (known issue) -> only field presence is checked
+    public static ResponseSpecification requestReturnsInvalidSubmission(FieldError error) {
+        return error.getCode() == null
+                ? requestReturnsInvalidSubmission(error.getField())
+                : requestReturnsInvalidSubmission(error.getField(), error.getCode());
+    }
+
+    // Same as above when error code is not known (e.g. server does not validate the field yet):
+    // only 400 and presence of the field in fieldErrors are checked
+    public static ResponseSpecification requestReturnsInvalidSubmission(String field) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
+                .expectBody("error.fieldErrors." + field, Matchers.notNullValue())
+                .build();
+    }
+
+    // Business rule violation without field errors: 400 + {"error": {"message": "...<part>..."}}
+    public static ResponseSpecification requestReturnsBadRequestWithMessage(String messagePart) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.message", Matchers.containsString(messagePart))
+                .build();
+    }
+
+    public static ResponseSpecification requestReturnsBadRequestWithMessage(OrderErrorMessage error) {
+        return requestReturnsBadRequestWithMessage(error.getMessage());
     }
 
     public static ResponseSpecification requestReturnsBadRequest(String errorMessage) {

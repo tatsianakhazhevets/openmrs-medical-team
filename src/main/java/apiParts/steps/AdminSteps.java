@@ -100,6 +100,22 @@ public class AdminSteps {
                 .create(createEncounterRequest);
     }
 
+    // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer
+    public static String getCurrentProviderUuid() {
+        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+                .username("admin")
+                .password("Admin123")
+                .build();
+
+        LoginAdminResponse session = new SuccessfulAuthRequester<LoginAdminResponse>(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk())
+                .login(loginAdminRequest);
+
+        return session.getCurrentProvider().getUuid();
+    }
+
     // ======== HELPERS ========
     private static String getId() {
         var response = new SuccessfulCrudRequester<GetIdentifierResponse>(
