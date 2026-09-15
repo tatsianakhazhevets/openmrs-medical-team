@@ -41,5 +41,4 @@ public class OrderSearchParams {
             queryParams.put(name, value);
         }
     }
-
 }
