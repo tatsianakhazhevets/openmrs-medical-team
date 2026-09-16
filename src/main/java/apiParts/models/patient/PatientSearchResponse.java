@@ -1,5 +1,7 @@
 package apiParts.models.patient;
 
+import java.util.List;
+
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -12,9 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PatientIdentifierRequest extends BaseModel {
-    private String identifier;
-    private String identifierType;
-    private String location;
-    private Boolean preferred;
+public class PatientSearchResponse extends BaseModel {
+    private List<GetPatientResponse> results;
 }

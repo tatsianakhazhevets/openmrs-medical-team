@@ -130,6 +130,10 @@ public class AdminSteps {
     }
 
     // ======== HELPERS ========
+    public static String getPatientIdentifier() {
+        return getId();
+    }
+
     private static String getId() {
         var response = new SuccessfulCrudRequester<GetIdentifierResponse>(
                 RequestSpecs.adminSpec(),

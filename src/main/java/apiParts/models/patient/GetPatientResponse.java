@@ -1,5 +1,6 @@
 package apiParts.models.patient;
 
+import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,15 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PersonResponse {
+public class GetPatientResponse extends BaseModel {
     private String uuid;
     private String display;
-    private String gender;
-    private Integer age;
-    private String birthdate;
-    private Boolean birthdateEstimated;
-    private Boolean dead;
-
-    private PersonNameResponse preferredName;
-    private PersonAddressResponse preferredAddress;
+    private List<PatientIdentifierResponse> identifiers;
+    private PersonResponse person;
 }

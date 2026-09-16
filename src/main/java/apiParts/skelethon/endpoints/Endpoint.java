@@ -32,10 +32,40 @@ public enum Endpoint {
             CreatePatientRequest.class,
             CreatePatientResponse.class),
 
+    PATIENT_GET(
+            "/patient",
+            BaseModel.class,
+            GetPatientResponse.class),
+
+    PATIENT_SEARCH_GET(
+            "/patient",
+            GetPatientRequest.class,
+            PatientSearchResponse.class),
+
+    PATIENT_DELETE(
+            "/patient",
+            BaseModel.class,
+            BaseModel.class),
+
     IDENTIFIER_GET(
             "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
             GetIdentifierRequest.class,
             GetIdentifierResponse.class),
+
+    PATIENT_IDENTIFIER_POST(
+            "/patient",
+            PatientIdentifierRequest.class,
+            PatientIdentifierResponse.class),
+
+    PATIENT_IDENTIFIER_UPDATE(
+            "/patient",
+            PatientIdentifierRequest.class,
+            PatientIdentifierResponse.class),
+
+    PATIENT_IDENTIFIER_DELETE(
+            "/patient",
+            BaseModel.class,
+            BaseModel.class),
 
     ENCOUNTER_POST(
             "/encounter",
@@ -68,7 +98,7 @@ public enum Endpoint {
             CreateVisitResponse.class),
 
     VISIT_GET(
-        "/visit",
+            "/visit",
             EmptyRequest.class,
             GetVisitByUuidResponse.class),
 
