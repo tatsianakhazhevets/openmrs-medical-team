@@ -1,12 +1,15 @@
 package apiTests.orders;
 
+import apiParts.assertions.ModelAssertions;
+import apiParts.assertions.OrderAssertions;
+import apiParts.models.EncounterType;
+import apiParts.models.Location;
+import apiParts.models.encounter.CreateEncounterRequest;
+import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.Ref;
 import apiParts.models.order.CareSetting;
-import apiParts.models.order.Drug;
-import apiParts.models.order.DosingUnit;
-import apiParts.models.order.DrugRoute;
 import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.ListOrdersResponse;
-import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
@@ -20,7 +23,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class OrderApiTests extends BaseTest {
+public class CreateOrderApiTests extends BaseTest {
 
     @Test
     public void adminCanFetchListOfOrders() {
@@ -70,7 +73,12 @@ public class OrderApiTests extends BaseTest {
         var patientResponse = AdminSteps.createPatient();
         String patientUUID = patientResponse.getUuid();
 
-        var encounter = AdminSteps.createDrugOrderEncounter(patientUUID);
+        CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
+        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(drugOrderRequest);
         String orderUUID = encounter.getOrders().get(0).getUuid();
 
         var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
@@ -84,33 +92,38 @@ public class OrderApiTests extends BaseTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("created order " + orderUUID + " not found in GET /order response"));
 
-        softly.assertThat(savedOrder.getPatient().getUuid())
-                .as("order patient uuid")
-                .isEqualTo(patientUUID);
-        softly.assertThat(savedOrder.getDrug().getUuid())
-                .as("order drug uuid")
-                .isEqualTo(Drug.ASPIRIN_325MG.getUuid());
-        softly.assertThat(savedOrder.getCareSetting().getUuid())
-                .as("order care setting uuid")
-                .isEqualTo(CareSetting.OUTPATIENT.getUuid());
-        softly.assertThat(savedOrder.getDose())
-                .as("order dose")
-                .isEqualTo(1.0);
-        softly.assertThat(savedOrder.getDoseUnits().getUuid())
-                .as("order dose units uuid")
-                .isEqualTo(DosingUnit.TABLET.getUuid());
-        softly.assertThat(savedOrder.getRoute().getUuid())
-                .as("order route uuid")
-                .isEqualTo(DrugRoute.ORAL.getUuid());
-        softly.assertThat(savedOrder.getFrequency().getUuid())
-                .as("order frequency uuid")
-                .isEqualTo(OrderFrequency.ONCE_DAILY.getUuid());
-        softly.assertThat(savedOrder.getQuantity())
-                .as("order quantity")
-                .isEqualTo(5.0);
-        softly.assertThat(savedOrder.getNumRefills())
-                .as("order num refills")
-                .isEqualTo(1);
+        ModelAssertions.assertMatchesExpected(softly,
+                savedOrder,
+                OrderAssertions.expectedOrdersOf(drugOrderRequest).get(0),
+                "saved drug order");
+
+        // add a lab order (Alkaline phosphatase test) encounter for the same patient
+        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
+        var labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(labOrderRequest);
+
+        CreateEncounterResponse expectedLabEncounter = new CreateEncounterResponse();
+        expectedLabEncounter.setPatient(Ref.of(patientUUID));
+        expectedLabEncounter.setLocation(Ref.of(Location.INPATIENT_WARD.getUuid()));
+        expectedLabEncounter.setEncounterType(Ref.of(EncounterType.ORDER.getUuid()));
+
+        ModelAssertions.assertMatchesExpected(softly, labEncounter, expectedLabEncounter, "lab order encounter");
+
+        softly.assertThat(labEncounter.getObs())
+                .as("lab encounter obs")
+                .isEmpty();
+        softly.assertThat(labEncounter.getVoided())
+                .as("lab encounter voided")
+                .isFalse();
+        softly.assertThat(labEncounter.getOrders())
+                .as("lab encounter orders")
+                .hasSize(1);
+        softly.assertThat(labEncounter.getOrders().get(0).getDisplay())
+                .as("lab order display")
+                .isEqualTo("Alkaline phosphatase");
     }
 
 }

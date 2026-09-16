@@ -91,8 +91,6 @@ public class EncounterApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated())
                 .create(visitRequest);
 
-        // POST /visit response embeds encounters; GET /visit/{uuid} default representation
-        // does not return them (known API behavior), so we verify against the create response.
         softly.assertThat(visit.getEncounters())
                 .extracting(Ref::getUuid)
                 .as("visit contains both encounters")

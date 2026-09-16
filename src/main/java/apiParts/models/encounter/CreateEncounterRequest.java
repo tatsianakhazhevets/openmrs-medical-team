@@ -4,7 +4,6 @@ import apiParts.models.BaseModel;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
-import apiParts.models.order.DrugOrder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
@@ -22,7 +21,7 @@ public class CreateEncounterRequest extends BaseModel {
     private String encounterDatetime;  // ISO-8601, must have if visit is present
     private Location location;
     private List<Obs> obs;
-    private List<DrugOrder> orders;
+    private List<Object> orders;       // DrugOrder, TestOrder, etc.
 
     @Data
     @NoArgsConstructor
