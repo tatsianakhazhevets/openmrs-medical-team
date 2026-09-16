@@ -11,6 +11,7 @@ import apiParts.models.order.DosingUnit;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugRoute;
+import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.TestOrder;
@@ -27,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static apiParts.models.VitalsConcept.*;
 
@@ -198,6 +200,15 @@ public class AdminSteps {
                 .login(loginAdminRequest);
 
         return session.getCurrentProvider().getUuid();
+    }
+
+    // Test orders (testorder) for a patient, as returned by GET /order?patient={uuid}&t=testorder&v=full
+    public static GetOrderResponse fetchTestOrders(String patientUUID) {
+        return new SuccessfulCrudRequester<GetOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(Map.of("patient", patientUUID, "t", "testorder", "v", "full"));
     }
 
     // ======== HELPERS ========

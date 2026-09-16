@@ -1,8 +1,11 @@
 package apiTests;
 
 import apiParts.models.Location;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.patient.*;
 import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.identifier.IdentifierRequester;

@@ -34,6 +34,12 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsServerError() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+                .build();
+    }
+
     // OpenMRS: ObjectNotFoundException -> 404
     public static ResponseSpecification requestReturnsNotFound() {
         return defaultResponseSpec()

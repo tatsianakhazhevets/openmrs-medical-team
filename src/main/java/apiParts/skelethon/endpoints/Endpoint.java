@@ -96,6 +96,11 @@ public enum Endpoint {
             EmptyRequest.class,
             GetOrderResponse.class),
 
+    ORDER_DELETE(
+            "/order",
+            EmptyRequest.class,
+            EmptyResponse.class),
+
     VISIT_POST(
             "/visit",
             CreateVisitRequest.class,
