@@ -53,6 +53,10 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     public T update(int id, BaseModel model) {
         return (T) crudRequester.update(id, model).extract().as(endpoint.getResponseModel());
     }
+    @Override
+    public T update(String uuid, BaseModel model) {
+        return (T) crudRequester.update(uuid, model).extract().as(endpoint.getResponseModel());
+    }
 
     @Override
     public ValidatableResponse delete(int id) {
@@ -62,5 +66,10 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     @Override
     public ValidatableResponse delete(String uuid) {
         return crudRequester.delete(uuid);
+    }
+
+    @Override
+    public ValidatableResponse delete(String uuid, Map<String, ?> queryParams) {
+        return crudRequester.delete(uuid, queryParams);
     }
 }

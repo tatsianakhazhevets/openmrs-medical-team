@@ -1,13 +1,14 @@
 package apiParts.steps;
 
-import apiParts.models.EncounterType;
-import apiParts.models.Location;
+import apiParts.models.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.*;
+import apiParts.models.visit.CreateVisitRequest;
+import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
@@ -99,6 +100,17 @@ public class AdminSteps {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createEncounterRequest);
+    }
+
+    public static CreateVisitResponse createVisitWithRequiredFields(String patientUUID) {
+        var request = CreateVisitRequest.builder().patient(patientUUID)
+                .visitType(VisitType.FACILITY_VISIT)
+                .build();
+
+        return new SuccessfulCrudRequester<CreateVisitResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_POST,
+                ResponseSpecs.requestReturnsCreated()).create(request);
     }
 
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer

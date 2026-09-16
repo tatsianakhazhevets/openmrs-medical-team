@@ -20,4 +20,5 @@ public class GetVisitByUuidResponse extends BaseModel {
     private String stopDatetime;
     private List<Ref> encounters;
     private List<Ref> attributes;
+    private Boolean voided;
 }
