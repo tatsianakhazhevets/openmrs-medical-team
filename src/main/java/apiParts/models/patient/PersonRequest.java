@@ -1,6 +1,8 @@
 package apiParts.models.patient;
 
+import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +15,8 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PersonRequest {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class PersonRequest extends BaseModel {
     private String gender;
     private Integer age;
     private String birthdate;

@@ -93,6 +93,12 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsBadRequest() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .build();
+    }
+
     public static ResponseSpecification requestReturnsForbidden(String errorMessage) {
         return defaultResponseSpec()
                 .expectStatusCode(HttpStatus.SC_NOT_FOUND)
