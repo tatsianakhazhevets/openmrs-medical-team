@@ -1,8 +1,11 @@
 package apiTests;
 
 import apiParts.models.Location;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.patient.*;
 import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.identifier.IdentifierRequester;
@@ -39,6 +42,19 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCanCreatePatient() {
+        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+                .username("admin")
+                .password("Admin123")
+                .build();
+
+        new SuccessfulAuthRequester<LoginAdminResponse>(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk())
+                .login(loginAdminRequest);
+
+        String gender = faker.gender().binaryTypes(); // "Male" / "Female"
+        String shortGender = gender.equals("Male") ? "M" : "F";
         CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
                 .person(PersonRequest.builder()
                         .gender(shortGender)

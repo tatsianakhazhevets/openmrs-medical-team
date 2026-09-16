@@ -7,6 +7,7 @@ import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
 import apiParts.models.order.GetOrderResponse;
+import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.patient.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
@@ -20,17 +21,21 @@ public enum Endpoint {
     LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
-            LoginAdminResponse.class),
+            LoginAdminResponse.class
+    ),
 
     LOGOUT_DELETE(
             "/session",
             BaseModel.class,
             BaseModel.class),
-
     PATIENT_POST(
             "/patient",
             CreatePatientRequest.class,
             CreatePatientResponse.class),
+    LIST_ORDERS_GET(
+            "/order",
+            BaseModel.class,
+            ListOrdersResponse.class),
 
     PATIENT_GET(
             "/patient",
@@ -46,7 +51,6 @@ public enum Endpoint {
             "/patient",
             BaseModel.class,
             BaseModel.class),
-
     IDENTIFIER_GET(
             "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
             GetIdentifierRequest.class,
@@ -91,6 +95,11 @@ public enum Endpoint {
             "/order",
             EmptyRequest.class,
             GetOrderResponse.class),
+
+    ORDER_DELETE(
+            "/order",
+            EmptyRequest.class,
+            EmptyResponse.class),
 
     VISIT_POST(
             "/visit",

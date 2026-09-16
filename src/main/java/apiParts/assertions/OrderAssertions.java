@@ -25,6 +25,7 @@ public class OrderAssertions {
     // what GET /order?t=drugorder&v=full should return for orders sent in POST /encounter
     public static List<DrugOrderResponse> expectedOrdersOf(CreateEncounterRequest request) {
         return request.getOrders().stream()
+                .map(DrugOrder.class::cast)
                 .map(OrderAssertions::expectedOf)
                 .toList();
     }

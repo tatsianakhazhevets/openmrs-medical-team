@@ -6,6 +6,15 @@ import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.order.CareSetting;
+import apiParts.models.order.DosingUnit;
+import apiParts.models.order.Drug;
+import apiParts.models.order.DrugOrder;
+import apiParts.models.order.DrugRoute;
+import apiParts.models.order.GetOrderResponse;
+import apiParts.models.order.LabTestConcept;
+import apiParts.models.order.OrderFrequency;
+import apiParts.models.order.TestOrder;
 import apiParts.models.patient.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
@@ -19,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static apiParts.models.VitalsConcept.*;
 
@@ -113,6 +123,69 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsCreated()).create(request);
     }
 
+    // Valid outpatient drug order (Aspirin, simple dosing) as a standard fixture for order-related tests
+    public static CreateEncounterResponse createDrugOrderEncounter(String patientUUID) {
+        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(drugOrderEncounterRequest(patientUUID));
+    }
+
+    // Request behind createDrugOrderEncounter, exposed so callers can build the expected
+    // response model from it (see apiParts.assertions.OrderAssertions)
+    public static CreateEncounterRequest drugOrderEncounterRequest(String patientUUID) {
+        DrugOrder order = DrugOrder.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .orderer(getCurrentProviderUuid())
+                .drug(Drug.ASPIRIN_325MG)
+                .dose(1.0)
+                .doseUnits(DosingUnit.TABLET)
+                .route(DrugRoute.ORAL)
+                .frequency(OrderFrequency.ONCE_DAILY)
+                .quantity(5.0)
+                .quantityUnits(DosingUnit.TABLET)
+                .numRefills(1)
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+    }
+
+    // Valid inpatient lab order (Alkaline phosphatase test) as a standard fixture for order-related tests
+    public static CreateEncounterResponse createLabOrderEncounter(String patientUUID) {
+        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(labOrderEncounterRequest(patientUUID));
+    }
+
+    // Request behind createLabOrderEncounter, exposed so callers can build the expected
+    // response model from it (see apiParts.assertions.ModelAssertions)
+    public static CreateEncounterRequest labOrderEncounterRequest(String patientUUID) {
+        TestOrder order = TestOrder.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .orderer(getCurrentProviderUuid())
+                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
+                .instructions("test")
+                .accessionNumber("1")
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(order))
+                .build();
+    }
+
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer
     public static String getCurrentProviderUuid() {
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
@@ -127,6 +200,15 @@ public class AdminSteps {
                 .login(loginAdminRequest);
 
         return session.getCurrentProvider().getUuid();
+    }
+
+    // Test orders (testorder) for a patient, as returned by GET /order?patient={uuid}&t=testorder&v=full
+    public static GetOrderResponse fetchTestOrders(String patientUUID) {
+        return new SuccessfulCrudRequester<GetOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(Map.of("patient", patientUUID, "t", "testorder", "v", "full"));
     }
 
     // ======== HELPERS ========
