@@ -55,14 +55,12 @@ public enum Endpoint {
     OBS_GET(
             "/obs",
             GetObsRequest.class,
-            GetObsResponse.class
-    ),
+            GetObsResponse.class),
 
     ORDER_GET(
             "/order",
             EmptyRequest.class,
-            GetOrderResponse.class
-    ),
+            GetOrderResponse.class),
 
     VISIT_POST(
             "/visit",
@@ -72,7 +70,12 @@ public enum Endpoint {
     VISIT_GET(
         "/visit",
             EmptyRequest.class,
-            GetVisitByUuidResponse.class
+            GetVisitByUuidResponse.class),
+
+    VISIT_DELETE(
+        "/visit",
+        EmptyRequest.class,
+        GetVisitByUuidResponse.class
     );
 
     private final String url;
