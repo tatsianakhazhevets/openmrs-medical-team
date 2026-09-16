@@ -6,6 +6,12 @@ import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.order.CareSetting;
+import apiParts.models.order.DosingUnit;
+import apiParts.models.order.Drug;
+import apiParts.models.order.DrugOrder;
+import apiParts.models.order.DrugRoute;
+import apiParts.models.order.OrderFrequency;
 import apiParts.models.patient.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
@@ -111,6 +117,37 @@ public class AdminSteps {
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsCreated()).create(request);
+    }
+
+    // Valid outpatient drug order (Aspirin, simple dosing) as a standard fixture for order-related tests
+    public static CreateEncounterResponse createDrugOrderEncounter(String patientUUID) {
+        DrugOrder order = DrugOrder.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .orderer(getCurrentProviderUuid())
+                .drug(Drug.ASPIRIN_325MG)
+                .dose(1.0)
+                .doseUnits(DosingUnit.TABLET)
+                .route(DrugRoute.ORAL)
+                .frequency(OrderFrequency.ONCE_DAILY)
+                .quantity(5.0)
+                .quantityUnits(DosingUnit.TABLET)
+                .numRefills(1)
+                .build();
+
+        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+
+        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(createEncounterRequest);
+    }
     }
 
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer
