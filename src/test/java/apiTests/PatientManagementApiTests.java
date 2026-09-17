@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import static apiParts.steps.AdminSteps.getPatientIdentifier;
 import static apiParts.models.errors.PatientErrorMessages.*;
@@ -38,7 +39,7 @@ public class PatientManagementApiTests extends BaseTest {
     String address = faker.address().streetAddress();
     String country = StringUtils.left(faker.address().country(), 50);
     String identifier = AdminSteps.getPatientIdentifier();
-    String nonExistingUuid = "00000000-0000-0000-0000-000000000000";
+    String nonExistingUuid = UUID.randomUUID().toString();;
     Map<String, Boolean> queryParam = Map.of("purge", true);
 
     @Test

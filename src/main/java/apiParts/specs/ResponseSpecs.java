@@ -154,10 +154,4 @@ public class ResponseSpecs {
                 .expectBody((Matchers.equalTo(errorMessage)))
                 .build();
     }
-
-    public static ResponseSpecification requestReturnsServerError() {
-        return defaultResponseSpec()
-                .expectStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)
-                .build();
-    }
 }
