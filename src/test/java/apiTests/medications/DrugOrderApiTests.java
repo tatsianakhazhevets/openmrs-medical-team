@@ -24,6 +24,8 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,7 @@ import java.util.stream.Stream;
 import static apiParts.models.errors.DrugOrderFieldError.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@CreatePatient
 public class DrugOrderApiTests extends BaseTest {
     private static final DateTimeFormatter OPENMRS_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
@@ -53,7 +56,7 @@ public class DrugOrderApiTests extends BaseTest {
     // new patient for each test and each parameter - no "duplicate active order" conflicts
     @BeforeEach
     void setUp() {
-        patientUUID = AdminSteps.createPatient().getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
         ordererUUID = AdminSteps.getCurrentProviderUuid();
     }
 

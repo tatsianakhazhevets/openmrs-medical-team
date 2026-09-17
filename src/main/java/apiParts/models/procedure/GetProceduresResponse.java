@@ -1,4 +1,4 @@
-package apiParts.models.order;
+package apiParts.models.procedure;
 
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -9,11 +9,14 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Response of GET /ws/rest/v1/procedure?patient={patientUuid}&v=full.
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GetOrderResponse extends BaseModel {
-    private List<DrugOrderResponse> results;
+public class GetProceduresResponse extends BaseModel {
+    private List<ProcedureResponse> results;
 }

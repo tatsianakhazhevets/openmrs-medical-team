@@ -1,6 +1,5 @@
 package apiParts.models.order;
 
-import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,10 +9,13 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GetOrderResponse extends BaseModel {
-    private List<DrugOrderResponse> results;
+public class ResourceReference {
+
+    private String uuid;
+    private String display;
+    private List<Link> links;
 }

@@ -14,6 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GetOrderResponse extends BaseModel {
-    private List<DrugOrderResponse> results;
+public class ListOrdersResponse extends BaseModel {
+
+    private List<Order> results;
+    private List<Link> links;
 }

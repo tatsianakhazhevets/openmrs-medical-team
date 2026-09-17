@@ -9,7 +9,11 @@ import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
 import apiParts.models.order.GetOrderResponse;
+import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.patient.*;
+import apiParts.models.procedure.CreateProcedureRequest;
+import apiParts.models.procedure.GetProceduresResponse;
+import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitByUuidResponse;
@@ -22,17 +26,21 @@ public enum Endpoint {
     LOGIN_GET(
             "/session",
             LoginAdminRequest.class,
-            LoginAdminResponse.class),
+            LoginAdminResponse.class
+    ),
 
     LOGOUT_DELETE(
             "/session",
             BaseModel.class,
             BaseModel.class),
-
     PATIENT_POST(
             "/patient",
             CreatePatientRequest.class,
             CreatePatientResponse.class),
+    LIST_ORDERS_GET(
+            "/order",
+            BaseModel.class,
+            ListOrdersResponse.class),
 
     PATIENT_GET(
             "/patient",
@@ -48,7 +56,6 @@ public enum Endpoint {
             "/patient",
             BaseModel.class,
             BaseModel.class),
-
     IDENTIFIER_GET(
             "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
             GetIdentifierRequest.class,
@@ -86,13 +93,13 @@ public enum Endpoint {
 
     ENCOUNTER_DELETE(
             "/encounter",
-            EmptyRequest.class,
-            EmptyResponse.class),
+            BaseModel.class,
+            BaseModel.class),
 
     OBS_DELETE(
             "/obs",
-            EmptyRequest.class,
-            EmptyResponse.class),
+            BaseModel.class,
+            BaseModel.class),
 
     OBS_GET(
             "/obs",
@@ -101,8 +108,41 @@ public enum Endpoint {
 
     ORDER_GET(
             "/order",
-            EmptyRequest.class,
+            BaseModel.class,
             GetOrderResponse.class),
+
+    ORDER_DELETE(
+            "/order",
+            BaseModel.class,
+            BaseModel.class),
+
+    PROCEDURE_POST(
+            "/procedure",
+            CreateProcedureRequest.class,
+            ProcedureResponse.class),
+
+    PROCEDURE_GET(
+            "/procedure",
+            BaseModel.class,
+            ProcedureResponse.class),
+
+    // POST /procedure/{uuid}: partial update, only sent fields are changed
+    PROCEDURE_UPDATE(
+            "/procedure",
+            CreateProcedureRequest.class,
+            ProcedureResponse.class),
+
+    // DELETE /procedure/{uuid} -> void
+    PROCEDURE_DELETE(
+            "/procedure",
+            BaseModel.class,
+            BaseModel.class),
+
+    // GET /procedure?patient={uuid}&v=full[&includeAll=true]
+    PROCEDURES_GET(
+            "/procedure",
+            BaseModel.class,
+            GetProceduresResponse.class),
 
     VISIT_POST(
             "/visit",
@@ -111,7 +151,7 @@ public enum Endpoint {
 
     VISIT_GET(
             "/visit",
-            EmptyRequest.class,
+            BaseModel.class,
             GetVisitByUuidResponse.class),
 
     VISIT_DELETE(
@@ -139,6 +179,9 @@ public enum Endpoint {
             "/allergy",
             BaseModel.class,
             AllergyResponse.class);
+        BaseModel.class,
+        GetVisitByUuidResponse.class
+    );
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;
