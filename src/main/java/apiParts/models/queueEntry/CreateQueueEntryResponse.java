@@ -11,12 +11,12 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateQueueEntryResponse extends BaseModel {
     private String uuid;
-    private Ref priority;
-    private Double sortWeight;
-    private String startedAt;
-    private String endedAt;
     private Ref status;
     private Ref patient;
     private Ref visit;
+    private Ref priority;
     private String priorityComment;
+    private Double sortWeight;
+    private String startedAt;
+    private String endedAt;
 }

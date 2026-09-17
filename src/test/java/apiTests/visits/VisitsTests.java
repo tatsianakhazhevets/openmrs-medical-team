@@ -1,5 +1,7 @@
 package apiTests.visits;
 
+import apiParts.assertions.ModelAssertions;
+import apiParts.assertions.VisitAssertions;
 import apiParts.models.Attribute;
 import apiParts.models.EncounterType;
 import apiParts.models.visit.VisitAttributeType;
@@ -73,11 +75,11 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void adminCanCreateVisitOnlyWithRequiredFields() {
-        var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
+        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
+        var visit = createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("visit uuid").isNotBlank();
-        softly.assertThat(visit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(visit.getVisitType().getUuid()).as("visit type uuid").isEqualTo(VisitType.FACILITY_VISIT.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, visit, VisitAssertions.expectedVisitOf(request), "created visit");
         softly.assertThat(visit.getLocation()).as("location").isNull();
         softly.assertThat(visit.getStopDatetime()).as("stop datetime").isNull();
         softly.assertThat(visit.getStartDatetime()).as("start datetime").isNotNull();
@@ -107,9 +109,7 @@ public class VisitsTests extends BaseTest {
         var savedVisit = getVisit(visit.getUuid());
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
-        softly.assertThat(savedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(savedVisit.getVisitType().getUuid()).as("visit type uuid").isEqualTo(VisitType.FACILITY_VISIT.getUuid());
-        softly.assertThat(savedVisit.getLocation().getUuid()).as("location uuid").isEqualTo(VisitLocation.UBUNTU_HOSPITAL.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, savedVisit, VisitAssertions.expectedVisitOf(request), "created visit");
         softly.assertThat(savedVisit.getAttributes()).extracting(Ref::getDisplay).containsExactly(
                 VisitAttributeType.INSURANCE_POLICY_NUMBER.getDisplay() + ": " + insurancePolicyNumber);
         softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNull();
@@ -173,8 +173,7 @@ public class VisitsTests extends BaseTest {
 
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(updatedVisit.getVisitType().getUuid()).as("updated visit type").isEqualTo(VisitType.HOME_VISIT.getUuid());
-        softly.assertThat(updatedVisit.getLocation().getUuid()).as("updated location").isEqualTo(VisitLocation.MOBILE_CLINIC.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, updatedVisit, VisitAssertions.expectedVisitOf(updatedRequest), "updated visit");
         softly.assertAll();
     }
 
