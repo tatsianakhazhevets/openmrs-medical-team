@@ -15,6 +15,7 @@ import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.TestOrder;
+import apiParts.models.encounter.Ref;
 import apiParts.models.patient.*;
 import apiParts.models.procedure.BodySite;
 import apiParts.models.procedure.CreateProcedureRequest;
@@ -22,6 +23,8 @@ import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.procedure.ProcedureStatus;
 import apiParts.models.procedure.ProcedureType;
+import apiParts.models.queue.GetQueueResponse;
+import apiParts.models.queueEntry.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -35,6 +38,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +58,17 @@ public class AdminSteps {
     public static final OffsetDateTime PROCEDURE_START = OffsetDateTime.now(ZoneOffset.ofHours(3)).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
 
     public static CreatePatientResponse createPatient() {
+        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+                .username("admin")
+                .password("Admin123")
+                .build();
+
+        new SuccessfulAuthRequester<LoginAdminResponse>(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk())
+                .login(loginAdminRequest);
+
         String gender = faker.gender().binaryTypes(); // "Male" / "Female"
         String shortGender = gender.equals("Male") ? "M" : "F";
 
@@ -211,6 +228,102 @@ public class AdminSteps {
                 .startDateTime(PROCEDURE_START.format(OPENMRS_REQUEST_DATE_TIME))
                 .status(ProcedureStatus.COMPLETED.getUuid())
                 .build();
+    }
+
+    public static void deleteVisit(String visitUUID) {
+        new SuccessfulCrudRequester<CreateVisitResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_DELETE,
+                ResponseSpecs.requestReturnsNoContent()
+        ).delete(visitUUID, Map.of("purge", true));
+    }
+
+    public static CreateQueueEntryResponse addPatientToQueue(String patientUUID, String visitUUID) {
+        GetQueueResponse getQueueResponse = new SuccessfulCrudRequester<GetQueueResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_GET,
+                ResponseSpecs.requestReturnsOk()
+        ).get(Map.of(
+                "v",
+                "custom:(uuid,display,name,description,service:(uuid,display),allowedPriorities:(uuid,display),allowedStatuses:(uuid,display),location:(uuid,display))"
+        ));
+        var queue = getQueueResponse.getResults().stream()
+                .filter(q ->
+                        "Outpatient Consultation".equals(q.getName())
+                                && "Outpatient Clinic".equals(q.getLocation().getDisplay())
+                )
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic' was not found"
+                ));
+
+        var request = CreateQueueEntryRequest.builder()
+                .visit(Ref.of(visitUUID))
+                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
+                        .status(QueueStatus.WAITING.toRef())
+                        .priority(QueuePriority.NOT_URGENT.toRef())
+                        .queue(Ref.of(queue.getUuid()))
+                        .patient(Ref.of(patientUUID))
+                        .startedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+                                .withZone(ZoneOffset.UTC)
+                                .format(Instant.now()))
+                        .sortWeight(0)
+                        .build())
+                .build();
+
+        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_QUEUE_ENTRY_POST,
+                ResponseSpecs.requestReturnsCreated()
+        ).create(request);
+    }
+
+    public static GetQueueEntryResponse getActiveQueueEntries() {
+        return new SuccessfulCrudRequester<GetQueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_GET,
+                ResponseSpecs.requestReturnsOk()
+        ).get(Map.of(
+                "v",
+                "custom:(uuid,queue:(uuid,display),status:(uuid,display),patient:(uuid,display),visit:(uuid,display),priority:(uuid,display),sortWeight,startedAt,endedAt)",
+                "location",
+                "44c3efb0-2583-4c80-a79e-1f756a03c0a1",
+                "isEnded",
+                "false"
+        ));
+    }
+
+    public static CreateQueueEntryResponse updateQueueEntry(
+            String queueEntryUUID,
+            QueueStatus status,
+            QueuePriority priority,
+            String priorityComment) {
+
+        var request = UpdateQueueEntryRequest.builder()
+                .status(status.toRef())
+                .priority(priority.toRef())
+                .priorityComment(priorityComment)
+                .build();
+
+        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_UPDATE,
+                ResponseSpecs.requestReturnsOk()
+        ).update(queueEntryUUID, request);
+    }
+
+    public static CreateQueueEntryResponse endQueueEntry(String queueEntryUUID) {
+        var endRequest = EndQueueEntryRequest.builder()
+                .endedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now()))
+                .build();
+
+        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_UPDATE,
+                ResponseSpecs.requestReturnsOk()
+        ).update(queueEntryUUID, endRequest);
     }
 
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer

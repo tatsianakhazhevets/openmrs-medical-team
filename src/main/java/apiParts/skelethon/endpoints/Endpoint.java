@@ -12,9 +12,14 @@ import apiParts.models.patient.*;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
+import apiParts.models.queue.GetQueueResponse;
+import apiParts.models.queueEntry.CreateQueueEntryRequest;
+import apiParts.models.queueEntry.CreateQueueEntryResponse;
+import apiParts.models.queueEntry.EndQueueEntryRequest;
+import apiParts.models.queueEntry.GetQueueEntryResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
-import apiParts.models.visit.GetVisitByUuidResponse;
+import apiParts.models.visit.GetVisitResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -31,6 +36,7 @@ public enum Endpoint {
             "/session",
             BaseModel.class,
             BaseModel.class),
+
     PATIENT_POST(
             "/patient",
             CreatePatientRequest.class,
@@ -150,12 +156,12 @@ public enum Endpoint {
     VISIT_GET(
             "/visit",
             BaseModel.class,
-            GetVisitByUuidResponse.class),
+            GetVisitResponse.class),
 
     VISIT_DELETE(
         "/visit",
         BaseModel.class,
-        GetVisitByUuidResponse.class),
+        GetVisitResponse.class),
 
     ALLERGY_POST(
             "/allergy",
@@ -176,7 +182,27 @@ public enum Endpoint {
     ALLERGY_DELETE(
             "/allergy",
             BaseModel.class,
-            AllergyResponse.class);
+            AllergyResponse.class),
+
+    VISIT_QUEUE_ENTRY_POST(
+            "/visit-queue-entry",
+            CreateQueueEntryRequest.class,
+            CreateQueueEntryResponse.class),
+
+    QUEUE_ENTRY_UPDATE(
+            "/queue-entry",
+            EndQueueEntryRequest.class,
+            CreateQueueEntryResponse.class),
+
+    QUEUE_ENTRY_GET(
+            "/queue-entry",
+            BaseModel.class,
+            GetQueueEntryResponse.class),
+
+    QUEUE_GET(
+            "/queue",
+            BaseModel.class,
+            GetQueueResponse.class);
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;

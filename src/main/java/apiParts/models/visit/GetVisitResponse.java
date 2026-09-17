@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GetVisitByUuidResponse extends BaseModel {
+public class GetVisitResponse extends BaseModel {
     private String uuid;
     private Ref patient;
     private Ref visitType;
