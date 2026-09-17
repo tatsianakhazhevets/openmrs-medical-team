@@ -3,6 +3,7 @@ package common.storages;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
 import apiParts.models.procedure.ProcedureResponse;
+import apiParts.models.visit.CreateVisitResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,8 @@ public class SessionStorage {
     private final List<CreatePatientResponse> patients = new ArrayList<>();
     private final List<ProcedureResponse> procedures = new ArrayList<>();
     private final List<CreateEncounterResponse> orderEncounters = new ArrayList<>();
+    private final List<CreateEncounterResponse> encounters = new ArrayList<>();
+    private final List<CreateVisitResponse> visits = new ArrayList<>();
 
     private SessionStorage() {
     }
@@ -76,6 +79,46 @@ public class SessionStorage {
         INSTANCE.get().orderEncounters.clear();
     }
 
+    // ======== ENCOUNTERS (@CreateEncounter) ========
+    public static void addEncounter(CreateEncounterResponse encounter) {
+        INSTANCE.get().encounters.add(encounter);
+    }
+
+    public static CreateEncounterResponse getEncounter() {
+        return getEncounter(1);
+    }
+
+    public static CreateEncounterResponse getEncounter(int number) {
+        return get(INSTANCE.get().encounters, number, "encounters", "@CreateEncounter");
+    }
+
+    public static List<CreateEncounterResponse> getEncounters() {
+        return List.copyOf(INSTANCE.get().encounters);
+    }
+
+    public static void clearEncounters() {
+        INSTANCE.get().encounters.clear();
+    }
+    // ======== VISITS (@CreateVisit) ========
+    public static void addVisit(CreateVisitResponse visit) {
+        INSTANCE.get().visits.add(visit);
+    }
+
+    public static CreateVisitResponse getVisit() {
+        return getVisit(1);
+    }
+
+    public static CreateVisitResponse getVisit(int number) {
+        return get(INSTANCE.get().visits, number, "visits", "@CreateVisit");
+    }
+
+    public static List<CreateVisitResponse> getVisits() {
+        return List.copyOf(INSTANCE.get().visits);
+    }
+
+    public static void clearVisits() {
+        INSTANCE.get().visits.clear();
+    }
     // ======== HELPERS ========
     private static <T> T get(List<T> items, int number, String name, String annotation) {
         if (items.isEmpty()) {

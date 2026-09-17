@@ -5,11 +5,9 @@ import apiParts.models.queue.QueuePriority;
 import apiParts.models.queue.QueueStatus;
 import apiParts.models.queue.QueueType;
 import apiParts.models.encounter.Ref;
-import apiParts.models.patient.CreatePatientResponse;
 import apiParts.models.queue.GetQueueResponse;
 import apiParts.models.queue.QueueResponse;
 import apiParts.models.queueEntry.*;
-import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
@@ -17,6 +15,9 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.annotations.CreateVisit;
+import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
+@CreateVisit
+@CreatePatient
 public class QueueTests extends BaseTest {
     private static final String NON_EXISTING_QUEUE_ENTRY_UUID =
             "00000000-0000-0000-0000-000000000000";
@@ -38,10 +41,8 @@ public class QueueTests extends BaseTest {
 
     @BeforeEach
     public void setUp() {
-        CreatePatientResponse patient = AdminSteps.createPatient();
-        patientUUID = patient.getUuid();
-        CreateVisitResponse visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
-        visitUUID = visit.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
+        visitUUID = SessionStorage.getVisit().getUuid();
     }
 
     @AfterEach

@@ -1,6 +1,7 @@
 package apiTests.visits;
 
 import apiParts.models.Attribute;
+import apiParts.models.EncounterType;
 import apiParts.models.visit.VisitAttributeType;
 import apiParts.models.visit.VisitLocation;
 import apiParts.models.visit.VisitType;
@@ -14,6 +15,9 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreateEncounter;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,21 +27,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@CreatePatient
 public class VisitsTests extends BaseTest {
     private static final Faker FAKER = new Faker(new Locale("en", "US"));
     private static final String NON_EXISTENT_VISIT_UUID =
             "82f18b44-6814-11e8-923f-e9a88dcb533f";
     private String patientUUID;
-    private String encounterUUID;
     private String visitUUID;
-    private String insurancePolicyNumber = FAKER.bothify("POLICY-#####");
+    private final String insurancePolicyNumber = FAKER.bothify("POLICY-#####");
 
     @BeforeEach
     public void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
-        encounterUUID = encounter.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
 
     }
 
@@ -85,8 +86,10 @@ public class VisitsTests extends BaseTest {
         softly.assertAll();
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanCreateVisitWithOptionalFields() {
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
         var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
@@ -138,8 +141,10 @@ public class VisitsTests extends BaseTest {
                 .create(request);
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanUpdateVisit() {
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
         var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
@@ -207,8 +212,10 @@ public class VisitsTests extends BaseTest {
                 .update(visit.getUuid(), updatedRequest);
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanRetireVisit() {
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
         var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
@@ -234,8 +241,10 @@ public class VisitsTests extends BaseTest {
         softly.assertAll();
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanPurgeVisit() {
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
         var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
