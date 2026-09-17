@@ -13,54 +13,32 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.annotations.CreateProcedure;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static apiParts.models.procedure.BodySite.ABDOMEN;
-import static apiParts.models.procedure.ProcedureConcept.LAPAROSCOPIC_CHOLECYSTECTOMY;
-import static apiParts.models.procedure.ProcedureStatus.COMPLETED;
-import static apiParts.models.procedure.ProcedureType.EMERGENCY;
-import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 // DELETE /procedure/{uuid} is a soft delete (procedure is voided): hidden from search, still returned by uuid and with includeAll=true.
+@CreatePatient
+@CreateProcedure
 public class DeleteProcedureApiTests extends BaseTest {
-    private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
-    // yesterday, truncated to minutes: server does not store milliseconds
-    private static final OffsetDateTime START = OffsetDateTime.now(MOSCOW).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
-
     private String patientUUID;
     private CreateProcedureRequest createRequest;
     private ProcedureResponse procedure;
 
-    // Precondition: patient with one valid procedure, returned by search
+    // Precondition: patient with one valid procedure (@CreatePatient, @CreateProcedure), returned by search
     @BeforeEach
     void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
-
-        createRequest = CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
-                .procedureType(EMERGENCY.getUuid())
-                .bodySite(ABDOMEN.getUuid())
-                .startDateTime(START.format(OPENMRS_REQUEST_DATE_TIME))
-                .status(COMPLETED.getUuid())
-                .build();
-
-        procedure = new SuccessfulCrudRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_POST,
-                ResponseSpecs.requestReturnsCreated()
-        )
-                .create(createRequest);
+        patientUUID = SessionStorage.getPatient().getUuid();
+        createRequest = AdminSteps.procedureRequest(patientUUID);
+        procedure = SessionStorage.getProcedure();
 
         assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false)))
                 .as("precondition: patient has created procedure")

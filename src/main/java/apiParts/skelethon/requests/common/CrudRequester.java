@@ -75,7 +75,6 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
     public ValidatableResponse get(String uuid) {
         return given()
                 .spec(requestSpecification)
-                .log().all()
                 .get(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()

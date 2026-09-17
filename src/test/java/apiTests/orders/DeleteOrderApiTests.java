@@ -1,28 +1,30 @@
 package apiTests.orders;
 
-import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreateOrder;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.UUID;
 
+import static common.annotations.CreateOrder.Type.LAB;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DeleteOrderApiTests extends BaseTest {
 
     @Test
+    @CreatePatient
+    @CreateOrder(LAB)
     public void adminCanDeleteOrder() {
-        var patientResponse = AdminSteps.createPatient();
-        String patientUUID = patientResponse.getUuid();
-
-        CreateEncounterResponse encounter = AdminSteps.createLabOrderEncounter(patientUUID);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
+        String patientUUID = SessionStorage.getPatient().getUuid();
+        String orderUUID = SessionStorage.getOrderUuid();
 
         var ordersBeforeDelete = AdminSteps.fetchTestOrders(patientUUID);
         assertThat(ordersBeforeDelete.getResults())
@@ -43,12 +45,11 @@ public class DeleteOrderApiTests extends BaseTest {
 
     // Purging an order that is referenced by an encounter is not supported and results in a server error
     @Test
+    @CreatePatient
+    @CreateOrder(LAB)
     public void adminCannotPurgeOrderReferencedByEncounter() {
-        var patientResponse = AdminSteps.createPatient();
-        String patientUUID = patientResponse.getUuid();
-
-        CreateEncounterResponse encounter = AdminSteps.createLabOrderEncounter(patientUUID);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
+        String patientUUID = SessionStorage.getPatient().getUuid();
+        String orderUUID = SessionStorage.getOrderUuid();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -72,12 +73,11 @@ public class DeleteOrderApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
+    @CreateOrder(LAB)
     public void unauthorizedUserCannotDeleteOrder() {
-        var patientResponse = AdminSteps.createPatient();
-        String patientUUID = patientResponse.getUuid();
-
-        CreateEncounterResponse encounter = AdminSteps.createLabOrderEncounter(patientUUID);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
+        String patientUUID = SessionStorage.getPatient().getUuid();
+        String orderUUID = SessionStorage.getOrderUuid();
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),

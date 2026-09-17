@@ -17,6 +17,8 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,14 +35,14 @@ import java.util.stream.Stream;
 import static apiParts.models.VitalsConcept.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@CreatePatient
 public class VitalsAndBiometricsTests extends BaseTest {
     private static final int VITALS_OBS_COUNT = 11; // obs in AdminSteps.createVitalsEncounter()
     private String patientUUID;
 
     @BeforeEach
     void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
     }
 
     // Boundaries = lowAbsolute / hiAbsolute of the concept reference range applied to obs (inclusive, ObsValidator).

@@ -19,8 +19,9 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,6 +47,7 @@ import static apiParts.models.procedure.ProcedureStatus.*;
 import static apiParts.models.procedure.ProcedureType.*;
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
+@CreatePatient
 public class CreateProcedureApiTests extends BaseTest {
     private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
     // yesterday, truncated to minutes: server does not store milliseconds
@@ -57,8 +59,7 @@ public class CreateProcedureApiTests extends BaseTest {
     // new patient for each test and each parameter - only procedures of this test are returned for the patient
     @BeforeEach
     void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
     }
 
     // Pairwise: each pair of values of any two parameters is covered exactly once.
