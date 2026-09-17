@@ -28,24 +28,4 @@ public class AuthRequester extends HttpRequest implements AuthEndpoint {
                 .assertThat()
                 .spec(responseSpecification);
     }
-
-    @Override
-    public ValidatableResponse logout() {
-        return given()
-                .spec(requestSpecification)
-                .delete(endpoint.getUrl())
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
-    @Override
-    public ValidatableResponse getSession() {
-        return given()
-                .spec(requestSpecification)
-                .get(endpoint.getUrl())
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
 }
