@@ -1,6 +1,10 @@
 package apiParts.skelethon.endpoints;
 
 import apiParts.models.BaseModel;
+import apiParts.models.EmptyRequest;
+import apiParts.models.EmptyResponse;
+import apiParts.models.allergy.AllergyRequest;
+import apiParts.models.allergy.AllergyResponse;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
@@ -77,6 +81,16 @@ public enum Endpoint {
             CreateEncounterRequest.class,
             CreateEncounterResponse.class),
 
+    ENCOUNTER_GET(
+            "/encounter",
+            BaseModel.class,
+            CreateEncounterResponse.class),
+
+    ENCOUNTER_UPDATE(
+            "/encounter/{uuid}",
+            CreateEncounterRequest.class,
+            CreateEncounterResponse.class),
+
     ENCOUNTER_DELETE(
             "/encounter",
             BaseModel.class,
@@ -142,6 +156,29 @@ public enum Endpoint {
 
     VISIT_DELETE(
         "/visit",
+        EmptyRequest.class,
+        GetVisitByUuidResponse.class),
+
+    ALLERGY_POST(
+            "/allergy",
+            AllergyRequest.class,
+            AllergyResponse.class),
+
+    PATIENT_ALLERGY_GET(
+            "/allergy",
+            BaseModel.class,
+            AllergyResponse.class
+    ),
+
+    ALLERGY_UPDATE(
+            "/allergy",
+            AllergyRequest.class,
+            AllergyResponse.class),
+
+    ALLERGY_DELETE(
+            "/allergy",
+            BaseModel.class,
+            AllergyResponse.class);
         BaseModel.class,
         GetVisitByUuidResponse.class
     );
