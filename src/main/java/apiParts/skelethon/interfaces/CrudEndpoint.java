@@ -17,6 +17,8 @@ public interface CrudEndpoint {
 
     Object get(String uuid);
 
+    Object get(String uuid, Map<String, ?> queryParams);
+
     Object update(int id, BaseModel model);
 
     Object update(String uuid, BaseModel model);

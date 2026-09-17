@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public enum VitalsConcept {
+public enum VitalsConcept implements HasUuid {
     SYSTOLIC_BP        ("5085AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", ValueType.NUMERIC,   0.0, 250.0, 0), // mmHg
     DIASTOLIC_BP       ("5086AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", ValueType.NUMERIC,   0.0, 150.0, 0), // mmHg
     RESPIRATORY_RATE   ("5242AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", ValueType.NUMERIC,   0.0,  99.0, 0), // breaths/min
