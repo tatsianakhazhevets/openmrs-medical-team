@@ -1,8 +1,6 @@
 package apiParts.skelethon.endpoints;
 
 import apiParts.models.BaseModel;
-import apiParts.models.EmptyRequest;
-import apiParts.models.EmptyResponse;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
@@ -81,13 +79,13 @@ public enum Endpoint {
 
     ENCOUNTER_DELETE(
             "/encounter",
-            EmptyRequest.class,
-            EmptyResponse.class),
+            BaseModel.class,
+            BaseModel.class),
 
     OBS_DELETE(
             "/obs",
-            EmptyRequest.class,
-            EmptyResponse.class),
+            BaseModel.class,
+            BaseModel.class),
 
     OBS_GET(
             "/obs",
@@ -96,23 +94,40 @@ public enum Endpoint {
 
     ORDER_GET(
             "/order",
-            EmptyRequest.class,
+            BaseModel.class,
             GetOrderResponse.class),
 
     ORDER_DELETE(
             "/order",
-            EmptyRequest.class,
-            EmptyResponse.class),
+            BaseModel.class,
+            BaseModel.class),
 
     PROCEDURE_POST(
             "/procedure",
             CreateProcedureRequest.class,
             ProcedureResponse.class),
 
-    // GET /procedure?patient={uuid}&v=full
+    PROCEDURE_GET(
+            "/procedure",
+            BaseModel.class,
+            ProcedureResponse.class),
+
+    // POST /procedure/{uuid}: partial update, only sent fields are changed
+    PROCEDURE_UPDATE(
+            "/procedure",
+            CreateProcedureRequest.class,
+            ProcedureResponse.class),
+
+    // DELETE /procedure/{uuid} -> void
+    PROCEDURE_DELETE(
+            "/procedure",
+            BaseModel.class,
+            BaseModel.class),
+
+    // GET /procedure?patient={uuid}&v=full[&includeAll=true]
     PROCEDURES_GET(
             "/procedure",
-            EmptyRequest.class,
+            BaseModel.class,
             GetProceduresResponse.class),
 
     VISIT_POST(
@@ -122,12 +137,12 @@ public enum Endpoint {
 
     VISIT_GET(
             "/visit",
-            EmptyRequest.class,
+            BaseModel.class,
             GetVisitByUuidResponse.class),
 
     VISIT_DELETE(
         "/visit",
-        EmptyRequest.class,
+        BaseModel.class,
         GetVisitByUuidResponse.class
     );
 

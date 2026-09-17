@@ -46,7 +46,7 @@ import static apiParts.models.procedure.ProcedureStatus.*;
 import static apiParts.models.procedure.ProcedureType.*;
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
-public class ProcedureApiTests extends BaseTest {
+public class CreateProcedureApiTests extends BaseTest {
     private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
     // yesterday, truncated to minutes: server does not store milliseconds
     private static final OffsetDateTime START = OffsetDateTime.now(MOSCOW).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
