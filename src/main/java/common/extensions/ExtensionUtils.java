@@ -22,7 +22,7 @@ final class ExtensionUtils {
     static String requirePatientUuid(Class<? extends Annotation> annotationType) {
         if (SessionStorage.getPatients().isEmpty()) {
             throw new IllegalStateException("@" + annotationType.getSimpleName()
-                    + " needs a patient - declare @CreatePatient above @" + annotationType.getSimpleName());
+                    + " needs a patient - mark test class or method with @CreatePatient");
         }
         return SessionStorage.getPatient().getUuid();
     }

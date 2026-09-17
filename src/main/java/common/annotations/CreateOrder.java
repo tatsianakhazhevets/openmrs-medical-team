@@ -1,8 +1,5 @@
 package common.annotations;
 
-import common.extensions.CreateOrderExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -17,8 +14,8 @@ import java.lang.annotation.Target;
  * LAB - AdminSteps.createLabOrderEncounter (Alkaline phosphatase, inpatient ward).
  * One order only: server does not create second active drug order for the same drug.
  * <p>
- * Needs a patient: declare @CreatePatient ABOVE @CreateOrder on the same level
- * (or on class if @CreateOrder is on method) - extensions run in declaration order.
+ * Needs a patient: mark test class or method with @CreatePatient too (in any order and on any level).
+ * Handled by CreateOrderExtension, registered in apiTests.BaseTest after CreatePatientExtension.
  * <p>
  * Access: SessionStorage.getOrderUuid(), getOrderEncounter().
  * Expected model: AdminSteps.drugOrderEncounterRequest / labOrderEncounterRequest(patientUUID).
@@ -26,7 +23,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-@ExtendWith(CreateOrderExtension.class)
 public @interface CreateOrder {
     Type value();
 
