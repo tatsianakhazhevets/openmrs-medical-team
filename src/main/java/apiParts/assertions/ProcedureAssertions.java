@@ -22,7 +22,14 @@ public class ProcedureAssertions {
 
     // what GET /procedure?patient={uuid}&v=full should return for procedure sent in POST /procedure
     public static List<ProcedureResponse> expectedProceduresOf(CreateProcedureRequest request) {
-        return List.of(expectedOf(request));
+        return List.of(expectedProcedureOf(request));
+    }
+
+    // same for several procedures of one patient
+    public static List<ProcedureResponse> expectedProceduresOf(List<CreateProcedureRequest> requests) {
+        return requests.stream()
+                .map(ProcedureAssertions::expectedProcedureOf)
+                .toList();
     }
 
     // sort key for ModelAssertions.assertListMatchesExpected
@@ -35,16 +42,21 @@ public class ProcedureAssertions {
         return new TreeSet<>(Set.of(response.getUuid()));
     }
 
-    // procedure uuids returned by GET /procedure
-    public static Set<String> uuidsOf(GetProceduresResponse response) {
-        return response.getResults().stream()
+    // procedure uuids returned by several POST /procedure
+    public static Set<String> uuidsOf(List<ProcedureResponse> responses) {
+        return responses.stream()
                 .map(ProcedureResponse::getUuid)
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    // ======== HELPERS ========
+    // procedure uuids returned by GET /procedure
+    public static Set<String> uuidsOf(GetProceduresResponse response) {
+        return uuidsOf(response.getResults());
+    }
+
+    // what POST /procedure and GET /procedure/{uuid} should return for the request
     // null fields of request stay null in expected and are not checked
-    private static ProcedureResponse expectedOf(CreateProcedureRequest request) {
+    public static ProcedureResponse expectedProcedureOf(CreateProcedureRequest request) {
         return ProcedureResponse.builder()
                 .patient(ref(request.getPatient()))
                 .procedureCoded(ref(request.getProcedureCoded()))
@@ -62,6 +74,7 @@ public class ProcedureAssertions {
                 .build();
     }
 
+    // ======== HELPERS ========
     private static Ref ref(String uuid) {
         return uuid == null ? null : Ref.of(uuid);
     }
