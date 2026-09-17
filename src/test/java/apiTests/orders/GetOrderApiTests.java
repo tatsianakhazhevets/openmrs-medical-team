@@ -17,22 +17,23 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreateOrder;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static common.annotations.CreateOrder.Type.DRUG;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@CreatePatient
 public class GetOrderApiTests extends BaseTest {
 
     @Test
     public void adminCanFetchListOfOrders() {
-
-        // create patient
-        var patientResponse = AdminSteps.createPatient();
-
         OrderSearchParams searchParams = OrderSearchParams.builder()
-                .patient(patientResponse.getUuid())
+                .patient(SessionStorage.getPatient().getUuid())
                 .careSetting(CareSetting.INPATIENT.name())
                 .limit(1)
                 .representation("default")
@@ -49,12 +50,8 @@ public class GetOrderApiTests extends BaseTest {
 
     @Test
     public void authRequiredToFetchListOfOrders() {
-
-        // create patient
-        var patientResponse = AdminSteps.createPatient();
-
         OrderSearchParams searchParams = OrderSearchParams.builder()
-                .patient(patientResponse.getUuid())
+                .patient(SessionStorage.getPatient().getUuid())
                 .careSetting(CareSetting.INPATIENT.name())
                 .limit(1)
                 .representation("default")
@@ -67,19 +64,13 @@ public class GetOrderApiTests extends BaseTest {
                 .get(searchParams.toQueryParams());
     }
 
+    // Precondition: patient with a standard drug order encounter
     @Test
+    @CreateOrder(DRUG)
     public void adminCanCheckSpecificOrderDetails() {
-        // create a patient with a standard drug order encounter
-        var patientResponse = AdminSteps.createPatient();
-        String patientUUID = patientResponse.getUuid();
-
+        String patientUUID = SessionStorage.getPatient().getUuid();
         CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(drugOrderRequest);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
+        String orderUUID = SessionStorage.getOrderUuid();
 
         var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
                 RequestSpecs.adminSpec(),

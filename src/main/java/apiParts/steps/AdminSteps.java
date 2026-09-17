@@ -16,6 +16,12 @@ import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.TestOrder;
 import apiParts.models.patient.*;
+import apiParts.models.procedure.BodySite;
+import apiParts.models.procedure.CreateProcedureRequest;
+import apiParts.models.procedure.ProcedureConcept;
+import apiParts.models.procedure.ProcedureResponse;
+import apiParts.models.procedure.ProcedureStatus;
+import apiParts.models.procedure.ProcedureType;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -26,28 +32,26 @@ import apiParts.specs.ResponseSpecs;
 import net.datafaker.Faker;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import static apiParts.models.VitalsConcept.*;
+import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 public class AdminSteps {
 
     static Faker faker = new Faker(new Locale("en", "US"));
 
+    // startDateTime of procedureRequest(): yesterday, truncated to minutes (server does not store milliseconds).
+    // Fixed for the whole run, so procedureRequest() is the same request as sent by createProcedure()
+    // and tests can build dates relative to the created procedure
+    public static final OffsetDateTime PROCEDURE_START = OffsetDateTime.now(ZoneOffset.ofHours(3)).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
+
     public static CreatePatientResponse createPatient() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username("admin")
-                .password("Admin123")
-                .build();
-
-        new SuccessfulAuthRequester<LoginAdminResponse>(
-                RequestSpecs.unAuthSpec(),
-                Endpoint.LOGIN_GET,
-                ResponseSpecs.requestReturnsOk())
-                .login(loginAdminRequest);
-
         String gender = faker.gender().binaryTypes(); // "Male" / "Female"
         String shortGender = gender.equals("Male") ? "M" : "F";
 
@@ -183,6 +187,29 @@ public class AdminSteps {
                 .encounterType(EncounterType.ORDER)
                 .location(Location.INPATIENT_WARD)
                 .orders(List.of(order))
+                .build();
+    }
+
+    // Valid procedure with required fields only (Laparoscopic cholecystectomy, started yesterday)
+    // as a standard fixture for procedure tests
+    public static ProcedureResponse createProcedure(String patientUUID) {
+        return new SuccessfulCrudRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURE_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(procedureRequest(patientUUID));
+    }
+
+    // Request behind createProcedure, exposed so callers can build the expected
+    // response model from it (see apiParts.assertions.ProcedureAssertions)
+    public static CreateProcedureRequest procedureRequest(String patientUUID) {
+        return CreateProcedureRequest.builder()
+                .patient(patientUUID)
+                .procedureCoded(ProcedureConcept.LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
+                .procedureType(ProcedureType.EMERGENCY.getUuid())
+                .bodySite(BodySite.ABDOMEN.getUuid())
+                .startDateTime(PROCEDURE_START.format(OPENMRS_REQUEST_DATE_TIME))
+                .status(ProcedureStatus.COMPLETED.getUuid())
                 .build();
     }
 

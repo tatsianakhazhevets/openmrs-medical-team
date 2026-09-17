@@ -12,8 +12,10 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.annotations.CreateProcedure;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import static apiParts.models.procedure.ProcedureStatus.COMPLETED;
 import static apiParts.models.procedure.ProcedureType.EMERGENCY;
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
+@CreatePatient
 public class GetProcedureApiTests extends BaseTest {
     private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
     // yesterday, truncated to minutes: server does not store milliseconds
@@ -44,8 +47,7 @@ public class GetProcedureApiTests extends BaseTest {
 
     @BeforeEach
     void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
     }
 
     @Test
@@ -141,8 +143,9 @@ public class GetProcedureApiTests extends BaseTest {
     }
 
     @Test
+    @CreateProcedure
     public void unauthorizedUserCannotGetProcedureByUuid() {
-        var procedure = createProcedure(validProcedure().build());
+        var procedure = SessionStorage.getProcedure();
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -153,9 +156,8 @@ public class GetProcedureApiTests extends BaseTest {
     }
 
     @Test
+    @CreateProcedure
     public void unauthorizedUserCannotGetProceduresOfPatient() {
-        createProcedure(validProcedure().build());
-
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.PROCEDURES_GET,
