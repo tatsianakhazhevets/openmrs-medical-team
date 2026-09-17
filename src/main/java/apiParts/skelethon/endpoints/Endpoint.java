@@ -1,8 +1,6 @@
 package apiParts.skelethon.endpoints;
 
 import apiParts.models.BaseModel;
-import apiParts.models.EmptyRequest;
-import apiParts.models.EmptyResponse;
 import apiParts.models.allergy.AllergyRequest;
 import apiParts.models.allergy.AllergyResponse;
 import apiParts.models.auth.LoginAdminRequest;
@@ -156,7 +154,7 @@ public enum Endpoint {
 
     VISIT_DELETE(
         "/visit",
-        EmptyRequest.class,
+        BaseModel.class,
         GetVisitByUuidResponse.class),
 
     ALLERGY_POST(
@@ -179,9 +177,6 @@ public enum Endpoint {
             "/allergy",
             BaseModel.class,
             AllergyResponse.class);
-        BaseModel.class,
-        GetVisitByUuidResponse.class
-    );
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;
