@@ -1,9 +1,9 @@
 package apiTests.visits;
 
 import apiParts.models.Attribute;
-import apiParts.models.VisitAttributeType;
-import apiParts.models.VisitLocation;
-import apiParts.models.VisitType;
+import apiParts.models.visit.VisitAttributeType;
+import apiParts.models.visit.VisitLocation;
+import apiParts.models.visit.VisitType;
 import apiParts.models.encounter.Ref;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;

@@ -1,4 +1,4 @@
-package apiParts.models;
+package apiParts.models.queue;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

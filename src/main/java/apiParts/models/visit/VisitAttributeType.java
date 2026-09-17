@@ -1,4 +1,4 @@
-package apiParts.models;
+package apiParts.models.visit;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;

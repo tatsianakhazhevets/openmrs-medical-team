@@ -1,7 +1,7 @@
 package apiTests.encounters;
 
 import apiParts.models.EncounterType;
-import apiParts.models.VisitType;
+import apiParts.models.visit.VisitType;
 import apiParts.models.encounter.Ref;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;

@@ -1,5 +1,6 @@
 package apiParts.models;
 
+import apiParts.models.visit.VisitAttributeType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

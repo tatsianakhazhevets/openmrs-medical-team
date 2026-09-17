@@ -1,9 +1,9 @@
 package apiTests.queue;
 
 import apiParts.models.Location;
-import apiParts.models.QueuePriority;
-import apiParts.models.QueueStatus;
-import apiParts.models.QueueType;
+import apiParts.models.queue.QueuePriority;
+import apiParts.models.queue.QueueStatus;
+import apiParts.models.queue.QueueType;
 import apiParts.models.encounter.Ref;
 import apiParts.models.patient.CreatePatientResponse;
 import apiParts.models.queue.GetQueueResponse;
