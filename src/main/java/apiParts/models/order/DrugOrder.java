@@ -12,6 +12,9 @@ import lombok.*;
 public class DrugOrder extends BaseModel {
     public static final String SIMPLE_DOSING = "org.openmrs.SimpleDosingInstructions";      // dose, doseUnits, route, frequency required
     public static final String FREE_TEXT_DOSING = "org.openmrs.FreeTextDosingInstructions"; // dosingInstructions required
+    public static final String URGENCY_ROUTINE = "ROUTINE";                    // server default when urgency is omitted (Active Medications)
+    public static final String URGENCY_ON_SCHEDULED_DATE = "ON_SCHEDULED_DATE"; // sent together with scheduledDate (Upcoming Medications)
+    public static final String ORDER_TYPE_UUID = "131168f4-15f5-102d-96e4-000c29c2a5d7"; // "Drug Order", GET /order?orderTypes={uuid}
 
     @Builder.Default private String type = "drugorder";
     @Builder.Default private String action = "NEW";
@@ -35,6 +38,8 @@ public class DrugOrder extends BaseModel {
     private String dosingInstructions;  // for FREE_TEXT_DOSING
     private String orderReasonNonCoded;
     private String dateActivated;
+    private String urgency;             // ON_SCHEDULED_DATE, sent together with scheduledDate (Upcoming Medications)
+    private String scheduledDate;       // ISO-8601 with offset, e.g. "2026-09-19T00:00:00-04:00"
 
     // Lombok keeps this method instead of generating its own:
     // drug and its concept always go together

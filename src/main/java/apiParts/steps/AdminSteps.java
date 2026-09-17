@@ -6,13 +6,20 @@ import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.GetObsResponse;
+import apiParts.models.encounter.ObsResponse;
 import apiParts.models.order.CareSetting;
+import apiParts.models.order.DiscontinueDrugOrderRequest;
+import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.DosingUnit;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugRoute;
+import apiParts.models.order.FulfillerDetailsRequest;
+import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.LabTestConcept;
+import apiParts.models.order.Order;
 import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.TestOrder;
 import apiParts.models.encounter.Ref;
@@ -33,6 +40,7 @@ import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.order.OrderFulfillerRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import net.datafaker.Faker;
@@ -170,6 +178,35 @@ public class AdminSteps {
                 .quantity(5.0)
                 .quantityUnits(DosingUnit.TABLET)
                 .numRefills(1)
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+    }
+
+    // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled 2 days ahead
+    // (urgency=ON_SCHEDULED_DATE) - Upcoming Medications fixture. Exposed as a request (not create+request
+    // pair) since callers need the same instance both to POST /encounter and to build the expected
+    // response model (see apiParts.assertions.OrderAssertions) - scheduledDate is time-sensitive.
+    public static CreateEncounterRequest upcomingDrugOrderEncounterRequest(String patientUUID) {
+        DrugOrder order = DrugOrder.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .orderer(getCurrentProviderUuid())
+                .drug(Drug.ASPIRIN_325MG)
+                .dose(1.0)
+                .doseUnits(DosingUnit.TABLET)
+                .route(DrugRoute.ORAL)
+                .frequency(OrderFrequency.ONCE_DAILY)
+                .quantity(5.0)
+                .quantityUnits(DosingUnit.TABLET)
+                .numRefills(1)
+                .urgency(DrugOrder.URGENCY_ON_SCHEDULED_DATE)
+                .scheduledDate(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2).format(OPENMRS_REQUEST_DATE_TIME))
                 .build();
 
         return CreateEncounterRequest.builder()
@@ -351,6 +388,114 @@ public class AdminSteps {
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
                 .get(Map.of("patient", patientUUID, "t", "testorder", "v", "full"));
+    }
+
+    // Drug orders (drugorder) for a patient, as returned by GET /order?careSetting={uuid}&orderTypes={uuid}&v=full.
+    // Unlike t=drugorder (which only ever returns currently active orders), careSetting+orderTypes also returns
+    // stopped orders - required to see Past Medications. excludeDiscontinueOrders=true still hides the DISCONTINUE
+    // stub order created by discontinueDrugOrderEncounter, leaving only the original (now stopped) order
+    public static GetOrderResponse fetchMedications(String patientUUID) {
+        return new SuccessfulCrudRequester<GetOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(Map.of("patient", patientUUID,
+                        "careSetting", CareSetting.OUTPATIENT.getUuid(),
+                        "orderTypes", DrugOrder.ORDER_TYPE_UUID,
+                        "v", "full",
+                        "excludeDiscontinueOrders", "true"));
+    }
+
+    // Single order by uuid, as returned by GET /order/{uuid}?v=full. Unlike fetchTestOrders,
+    // this also finds orders once they are stopped/discontinued, which the list endpoint excludes
+    public static Order fetchOrder(String orderUUID) {
+        return new SuccessfulCrudRequester<Order>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_POST,
+                ResponseSpecs.requestReturnsOk())
+                .get(orderUUID, Map.of("v", "full"));
+    }
+
+    // Single obs by uuid for a patient, as returned by GET /obs?patient={uuid}&v=full
+    public static ObsResponse fetchObs(String patientUUID, String obsUUID) {
+        GetObsResponse patientObs = new SuccessfulCrudRequester<GetObsResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.OBS_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(Map.of("patient", patientUUID, "v", "full"));
+
+        return patientObs.getResults().stream()
+                .filter(obs -> obs.getUuid().equals(obsUUID))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("obs " + obsUUID + " not found in GET /obs response"));
+    }
+
+    // Request behind discontinueOrder, exposed so callers can send it themselves
+    // (e.g. to exercise auth/error paths with a custom ResponseSpecification)
+    public static DiscontinueOrderRequest discontinueOrderRequest(String orderUUID, String patientUUID, String encounterUUID) {
+        return DiscontinueOrderRequest.builder()
+                .previousOrder(orderUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .encounter(encounterUUID)
+                .patient(patientUUID)
+                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
+                .orderer(getCurrentProviderUuid())
+                .build();
+    }
+
+    // Discontinues a testorder (POST /order, action=DISCONTINUE), the way the laboratory
+    // stops a test order once its result has been captured
+    public static Order discontinueOrder(String orderUUID, String patientUUID, String encounterUUID) {
+        return new SuccessfulCrudRequester<Order>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(discontinueOrderRequest(orderUUID, patientUUID, encounterUUID));
+    }
+
+    // Request behind discontinueDrugOrderEncounter, exposed so callers can build the expected
+    // response model from it (see apiParts.assertions.OrderAssertions)
+    public static CreateEncounterRequest discontinueDrugOrderEncounterRequest(String patientUUID, String orderUUID, Drug drug) {
+        DiscontinueDrugOrderRequest order = DiscontinueDrugOrderRequest.builder()
+                .previousOrder(orderUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .patient(patientUUID)
+                .orderer(getCurrentProviderUuid())
+                .drug(drug)
+                .orderReasonNonCoded("test indication")
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+    }
+
+    // Discontinues a drug order (POST /encounter, action=DISCONTINUE), the way the Medications page
+    // stops an active/upcoming medication; the original order ends up with dateStopped set (Past Medications)
+    public static CreateEncounterResponse discontinueDrugOrderEncounter(String patientUUID, String orderUUID, Drug drug) {
+        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(discontinueDrugOrderEncounterRequest(patientUUID, orderUUID, drug));
+    }
+
+    // Updates the fulfiller status of a testorder (POST /order/{uuid}/fulfillerdetails/), the way
+    // the laboratory reports progress on a test order (e.g. IN_PROGRESS, then COMPLETED)
+    public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status, String comment) {
+        FulfillerDetailsRequest request = FulfillerDetailsRequest.builder()
+                .fulfillerStatus(status)
+                .fulfillerComment(comment)
+                .build();
+
+        new OrderFulfillerRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_FULFILLER_DETAILS_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .updateFulfillerDetails(orderUUID, request);
     }
 
     // ======== HELPERS ========
