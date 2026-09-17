@@ -1,10 +1,28 @@
 package apiParts.skelethon.interfaces;
 
-import io.restassured.response.Response;
+import apiParts.models.BaseModel;
+
+import java.util.Map;
 
 public interface CrudEndpoint {
-    Response create();
-    Response get();
-    Response update();
-    Response delete();
+    Object create(BaseModel model);
+
+    Object create();
+
+    Object get(int id);
+
+    Object get();
+
+    Object get(Map<String, ?> queryParams);
+
+    Object get(String uuid);
+
+    Object update(int id, BaseModel model);
+
+    Object update(String uuid, BaseModel model);
+    Object delete(int id);
+
+    Object delete(String uuid);
+
+    Object delete(String uuid, Map<String, ?> queryParams);
 }
