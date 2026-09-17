@@ -9,6 +9,9 @@ import apiParts.models.encounter.*;
 import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.patient.*;
+import apiParts.models.procedure.CreateProcedureRequest;
+import apiParts.models.procedure.GetProceduresResponse;
+import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitByUuidResponse;
@@ -100,6 +103,17 @@ public enum Endpoint {
             "/order",
             EmptyRequest.class,
             EmptyResponse.class),
+
+    PROCEDURE_POST(
+            "/procedure",
+            CreateProcedureRequest.class,
+            ProcedureResponse.class),
+
+    // GET /procedure?patient={uuid}&v=full
+    PROCEDURES_GET(
+            "/procedure",
+            EmptyRequest.class,
+            GetProceduresResponse.class),
 
     VISIT_POST(
             "/visit",
