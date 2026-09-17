@@ -30,7 +30,7 @@ public class PatientManagementApiTests extends BaseTest {
     Faker faker = new Faker(new Locale("en", "US"));
 
     String gender = faker.gender().binaryTypes();
-    String shortGender = gender.equals("Male") ? "M" : "F";
+    String shortGender = faker.gender().binaryTypes();;
     String givenName = faker.name().firstName();
     String familyName = faker.name().lastName();
     String birthdate = faker.timeAndDate().birthday(18, 65, "yyyy-MM-dd");
@@ -55,8 +55,6 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
-        String gender = faker.gender().binaryTypes(); // "Male" / "Female"
-        String shortGender = gender.equals("Male") ? "M" : "F";
         CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
                 .person(PersonRequest.builder()
                         .gender(shortGender)

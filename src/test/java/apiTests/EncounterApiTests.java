@@ -12,22 +12,32 @@ import apiParts.skelethon.requests.encounter.SuccessfulEncounterRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Stream;
+
 import static apiParts.models.errors.EncounterErrorMessages.*;
 
 public class EncounterApiTests extends BaseTest {
 
-    String nonExistingUuid = "00000000-0000-0000-0000-000000000000";
-    String encounterDatetime = "2026-09-16T10:00:00.000+0200";
-    String updatedEncounterDatetime = "2026-09-16T11:00:00.000+0200";
-    String updatedEncounterDatetimeExp = "2026-09-16T09:00:00.000+0000";
-    String normalTemperature = "36.6";
+    Faker faker = new Faker(new Locale("en", "US"));
+
+    String nonExistingUuid = UUID.randomUUID().toString();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    String encounterDatetime = OffsetDateTime.now().withHour(10).withMinute(0).withSecond(0).withNano(0).format(formatter);
+    String updatedEncounterDatetime = OffsetDateTime.parse(encounterDatetime, formatter).plusHours(1).format(formatter);
+    String updatedEncounterDatetimeExp = OffsetDateTime.parse(updatedEncounterDatetime, formatter).withOffsetSameInstant(ZoneOffset.UTC).format(formatter);
+    double normalTemperature = faker.number().randomDouble(1, 36, 37);
 
     @Test
     public void adminCanCreateEncounter() {
@@ -72,7 +82,7 @@ public class EncounterApiTests extends BaseTest {
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
-                .obs(List.of(CreateEncounterRequest.Obs.of(VitalsConcept.TEMPERATURE, 36.6)))
+                .obs(List.of(CreateEncounterRequest.Obs.of(VitalsConcept.TEMPERATURE, normalTemperature)))
                 .build();
 
         CreateEncounterResponse createdEncounterResponse = new SuccessfulEncounterRequester<CreateEncounterResponse>(
@@ -92,7 +102,7 @@ public class EncounterApiTests extends BaseTest {
         softly.assertThat(receivedEncounterResponse.getObs()).hasSize(1);
         softly.assertThat(receivedEncounterResponse.getObs().get(0).getUuid())
                 .isEqualTo(createdEncounterResponse.getObs().get(0).getUuid());
-        softly.assertThat(receivedEncounterResponse.getObs().get(0).getDisplay()).contains(normalTemperature);
+        softly.assertThat(receivedEncounterResponse.getObs().get(0).getDisplay()).contains(Double.toString(normalTemperature));
         softly.assertThat(receivedEncounterResponse.getVoided()).isFalse();
     }
 

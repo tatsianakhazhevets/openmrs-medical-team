@@ -13,14 +13,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+
 import static apiParts.models.errors.AllergyErrorMassages.*;
 
 public class AllergyApiTests extends BaseTest {
 
     Faker faker = new Faker(new Locale("en", "US"));
 
-    String nonExistingUuid = "00000000-0000-0000-0000-000000000000";
-    String updatedComment = "Updated allergy comment";
+    String nonExistingUuid = UUID.randomUUID().toString();;
+    String updatedComment = faker.lorem().sentence();
     String comment = faker.lorem().sentence();
 
     @Test
