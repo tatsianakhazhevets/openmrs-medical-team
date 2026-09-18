@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  * Handled by CreateProcedureExtension, registered in apiTests.BaseTest after CreatePatientExtension.
  * <p>
  * Access: SessionStorage.getProcedure() / getProcedure(n).
- * Expected model: AdminSteps.procedureRequest(patientUUID) - the same request that was sent on create.
+ * Expected model: ProcedureTestData.procedureRequest(patientUUID) - the same request that was sent on create.
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

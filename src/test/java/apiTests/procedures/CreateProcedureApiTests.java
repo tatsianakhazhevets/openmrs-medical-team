@@ -1,6 +1,7 @@
 package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.HasUuid;
 import apiParts.models.errors.ProcedureErrorMessage;
@@ -19,6 +20,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiParts.testdata.ProcedureTestData;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -27,12 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -45,14 +44,20 @@ import static apiParts.models.procedure.BodySite.*;
 import static apiParts.models.procedure.ProcedureConcept.*;
 import static apiParts.models.procedure.ProcedureStatus.*;
 import static apiParts.models.procedure.ProcedureType.*;
+import static apiParts.utils.DateTimeUtils.MOSCOW;
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 @CreatePatient
 public class CreateProcedureApiTests extends BaseTest {
-    private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
-    // yesterday, truncated to minutes: server does not store milliseconds
-    private static final OffsetDateTime START = OffsetDateTime.now(MOSCOW).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
-    private static final String NON_CODED_PROCEDURE = "Procedure non coded";
+    // Day in the past, truncated to minutes: server does not store milliseconds
+    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
+    private static final String NON_CODED_PROCEDURE = RandomModelGenerator.randomSentence();
+
+    // Any duration is handled by the same server logic
+    private static final int MIN_DURATION = 1;
+    private static final int MAX_DURATION = 10;
+    private static final int MIN_DAYS_IN_FUTURE = 1;
+    private static final int MAX_DAYS_IN_FUTURE = 30;
 
     private String patientUUID;
 
@@ -69,21 +74,21 @@ public class CreateProcedureApiTests extends BaseTest {
         return Stream.of(
                 // procedureCoded | procedureNonCoded | procedureType | bodySite | status | duration | durationUnit
                 Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, SURGICAL, ABDOMEN, COMPLETED, null, null),
-                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, IMAGING, CHEST, NOT_DONE, 2, DAYS),
-                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, VACCINATION, EYE, PREPARATION, 45, MINUTES),
-                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, OTHER, SKIN, IN_PROGRESS, 3, HOURS),
-                Arguments.of(X_RAY_CHEST, null, SURGICAL, CHEST, IN_PROGRESS, 45, MINUTES),
-                Arguments.of(X_RAY_CHEST, null, IMAGING, ABDOMEN, PREPARATION, 3, HOURS),
+                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, IMAGING, CHEST, NOT_DONE, randomDuration(), DAYS),
+                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, VACCINATION, EYE, PREPARATION, randomDuration(), MINUTES),
+                Arguments.of(LAPAROSCOPIC_CHOLECYSTECTOMY, null, OTHER, SKIN, IN_PROGRESS, randomDuration(), HOURS),
+                Arguments.of(X_RAY_CHEST, null, SURGICAL, CHEST, IN_PROGRESS, randomDuration(), MINUTES),
+                Arguments.of(X_RAY_CHEST, null, IMAGING, ABDOMEN, PREPARATION, randomDuration(), HOURS),
                 Arguments.of(X_RAY_CHEST, null, VACCINATION, SKIN, NOT_DONE, null, null),
-                Arguments.of(X_RAY_CHEST, null, OTHER, EYE, COMPLETED, 2, DAYS),
-                Arguments.of(INFLUENZA_VACCINATION, null, SURGICAL, EYE, NOT_DONE, 3, HOURS),
-                Arguments.of(INFLUENZA_VACCINATION, null, IMAGING, SKIN, COMPLETED, 45, MINUTES),
-                Arguments.of(INFLUENZA_VACCINATION, null, VACCINATION, ABDOMEN, IN_PROGRESS, 2, DAYS),
+                Arguments.of(X_RAY_CHEST, null, OTHER, EYE, COMPLETED, randomDuration(), DAYS),
+                Arguments.of(INFLUENZA_VACCINATION, null, SURGICAL, EYE, NOT_DONE, randomDuration(), HOURS),
+                Arguments.of(INFLUENZA_VACCINATION, null, IMAGING, SKIN, COMPLETED, randomDuration(), MINUTES),
+                Arguments.of(INFLUENZA_VACCINATION, null, VACCINATION, ABDOMEN, IN_PROGRESS, randomDuration(), DAYS),
                 Arguments.of(INFLUENZA_VACCINATION, null, OTHER, CHEST, PREPARATION, null, null),
-                Arguments.of(null, NON_CODED_PROCEDURE, SURGICAL, SKIN, PREPARATION, 2, DAYS),
+                Arguments.of(null, NON_CODED_PROCEDURE, SURGICAL, SKIN, PREPARATION, randomDuration(), DAYS),
                 Arguments.of(null, NON_CODED_PROCEDURE, IMAGING, EYE, IN_PROGRESS, null, null),
-                Arguments.of(null, NON_CODED_PROCEDURE, VACCINATION, CHEST, COMPLETED, 3, HOURS),
-                Arguments.of(null, NON_CODED_PROCEDURE, OTHER, ABDOMEN, NOT_DONE, 45, MINUTES)
+                Arguments.of(null, NON_CODED_PROCEDURE, VACCINATION, CHEST, COMPLETED, randomDuration(), HOURS),
+                Arguments.of(null, NON_CODED_PROCEDURE, OTHER, ABDOMEN, NOT_DONE, randomDuration(), MINUTES)
         );
     }
 
@@ -105,12 +110,14 @@ public class CreateProcedureApiTests extends BaseTest {
                         Arguments.of("endDateTime before startDateTime",
                                 mutate(b -> b.endDateTime(format(START.minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
                         Arguments.of("[known issue] completed procedure with startDateTime in the future",
-                                mutate(b -> b.startDateTime(format(OffsetDateTime.now(MOSCOW).plusDays(1)))), START_DATE_TIME_IN_FUTURE),
+                                mutate(b -> b.startDateTime(format(OffsetDateTime.now(MOSCOW)
+                                        .plusDays(RandomModelGenerator.randomInt(MIN_DAYS_IN_FUTURE, MAX_DAYS_IN_FUTURE))))),
+                        START_DATE_TIME_IN_FUTURE),
                         Arguments.of("startDateTime and estimatedStartDate for new procedure",
                                 mutate(b -> b.estimatedStartDate(START.format(DateTimeFormatter.ofPattern("yyyy-MM")))), START_DATE_TIME_AND_ESTIMATED_DATE_MUTUALLY_EXCLUSIVE),
 
                         // Duration
-                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(3)), DURATION_UNIT_REQUIRED),
+                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(randomDuration())), DURATION_UNIT_REQUIRED),
 
                         // Procedure
                         Arguments.of("procedureCoded and procedureNonCoded",
@@ -138,7 +145,7 @@ public class CreateProcedureApiTests extends BaseTest {
                 .status(status.getUuid())
                 .duration(duration)
                 .durationUnit(uuidOf(durationUnit))
-                .notes("done smth")
+                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         var procedure = new SuccessfulCrudRequester<ProcedureResponse>(
@@ -180,8 +187,15 @@ public class CreateProcedureApiTests extends BaseTest {
     }
 
     // Not ISO-8601 value fails on conversion before validation: 400 without globalErrors
+    static Stream<String> invalidStartDateTimes() {
+        return Stream.of(
+                "",
+                RandomModelGenerator.randomWord(),
+                START.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+    }
+
     @ParameterizedTest(name = "startDateTime = \"{0}\"")
-    @ValueSource(strings = {"", "not-a-date", "16.09.2026 10:00"})
+    @MethodSource("invalidStartDateTimes")
     public void adminCannotCreateProcedureWithInvalidStartDateTime(String startDateTime) {
         var request = validProcedure()
                 .startDateTime(startDateTime)
@@ -245,6 +259,10 @@ public class CreateProcedureApiTests extends BaseTest {
                 Arguments.of(field + " = \"\"", mutate(b -> setter.apply(b, "")), error),
                 Arguments.of(field + " = non-existent uuid", mutate(b -> setter.apply(b, UUID.randomUUID().toString())), error)
         );
+    }
+
+    private static int randomDuration() {
+        return RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
     }
 
     private static String format(OffsetDateTime dateTime) {

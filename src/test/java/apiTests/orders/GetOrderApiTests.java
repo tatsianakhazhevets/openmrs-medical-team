@@ -16,6 +16,7 @@ import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.testdata.OrderTestData;
 import apiTests.BaseTest;
 import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
@@ -69,7 +70,7 @@ public class GetOrderApiTests extends BaseTest {
     @CreateOrder(DRUG)
     public void adminCanCheckSpecificOrderDetails() {
         String patientUUID = SessionStorage.getPatient().getUuid();
-        CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
+        CreateEncounterRequest drugOrderRequest = OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
         String orderUUID = SessionStorage.getOrderUuid();
 
         var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
@@ -89,7 +90,7 @@ public class GetOrderApiTests extends BaseTest {
                 "saved drug order");
 
         // add a lab order (Alkaline phosphatase test) encounter for the same patient
-        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
+        CreateEncounterRequest labOrderRequest = OrderTestData.labOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
         var labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
