@@ -17,8 +17,8 @@ import java.util.stream.Stream;
 
 public class AuthenticationApiTests extends BaseTest {
 
-    private static final String VALID_USERNAME = "admin";
-    private static final String VALID_PASSWORD = "Admin123";
+    private static final String VALID_USERNAME = RequestSpecs.ADMIN_USERNAME;
+    private static final String VALID_PASSWORD = RequestSpecs.ADMIN_PASSWORD;
 
     @Test
     public void adminCanLogin() {

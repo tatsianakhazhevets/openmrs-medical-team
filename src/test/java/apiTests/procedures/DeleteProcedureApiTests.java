@@ -11,7 +11,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
+import apiParts.testdata.ProcedureTestData;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
@@ -37,7 +37,7 @@ public class DeleteProcedureApiTests extends BaseTest {
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
-        createRequest = AdminSteps.procedureRequest(patientUUID);
+        createRequest = ProcedureTestData.procedureRequest(patientUUID);
         procedure = SessionStorage.getProcedure();
 
         assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false)))

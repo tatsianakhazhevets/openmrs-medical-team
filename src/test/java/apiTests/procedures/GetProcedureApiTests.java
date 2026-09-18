@@ -1,6 +1,7 @@
 package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.errors.ProcedureErrorMessage;
 import apiParts.models.procedure.CreateProcedureRequest;
@@ -12,6 +13,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiParts.testdata.ProcedureTestData;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
@@ -20,15 +22,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static apiParts.models.order.DurationUnit.HOURS;
 import static apiParts.models.procedure.BodySite.ABDOMEN;
@@ -39,9 +40,12 @@ import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 @CreatePatient
 public class GetProcedureApiTests extends BaseTest {
-    private static final ZoneOffset MOSCOW = ZoneOffset.ofHours(3);
-    // yesterday, truncated to minutes: server does not store milliseconds
-    private static final OffsetDateTime START = OffsetDateTime.now(MOSCOW).minusDays(1).truncatedTo(ChronoUnit.MINUTES);
+    // Day in the past, truncated to minutes: server does not store milliseconds
+    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
+
+    // Any duration is handled by the same server logic
+    private static final int MIN_DURATION = 1;
+    private static final int MAX_DURATION = 10;
 
     private String patientUUID;
 
@@ -52,17 +56,19 @@ public class GetProcedureApiTests extends BaseTest {
 
     @Test
     public void adminCanGetProcedureByUuid() {
+        // procedure lasted exactly its duration: endDateTime and duration are built from one value
+        int durationInHours = RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
         var request = CreateProcedureRequest.builder()
                 .patient(patientUUID)
                 .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
                 .procedureType(EMERGENCY.getUuid())
                 .bodySite(ABDOMEN.getUuid())
                 .startDateTime(format(START))
-                .endDateTime(format(START.plusHours(3)))
+                .endDateTime(format(START.plusHours(durationInHours)))
                 .status(COMPLETED.getUuid())
-                .duration(3)
+                .duration(durationInHours)
                 .durationUnit(HOURS.getUuid())
-                .notes("done smth")
+                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         var procedure = createProcedure(request);
@@ -83,9 +89,14 @@ public class GetProcedureApiTests extends BaseTest {
                 "procedure returned by GET /procedure/{uuid}");
     }
 
-    // each procedure has its own procedureCoded - it is the sort key for list comparison
+    // each procedure has its own procedureCoded - it is the sort key for list comparison,
+    // so the patient cannot have more procedures than there are concepts
+    static Stream<Integer> proceduresCounts() {
+        return Stream.of(0, 1, ProcedureConcept.values().length);
+    }
+
     @ParameterizedTest(name = "patient with {0} procedure(s)")
-    @ValueSource(ints = {0, 1, 3})
+    @MethodSource("proceduresCounts")
     public void adminCanGetAllProceduresOfPatient(int proceduresCount) {
         List<CreateProcedureRequest> requests = new ArrayList<>();
         List<ProcedureResponse> procedures = new ArrayList<>();

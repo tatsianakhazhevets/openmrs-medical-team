@@ -45,8 +45,8 @@ public class PatientManagementApiTests extends BaseTest {
     @Test
     public void adminCanCreatePatient() {
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username("admin")
-                .password("Admin123")
+                .username(RequestSpecs.ADMIN_USERNAME)
+                .password(RequestSpecs.ADMIN_PASSWORD)
                 .build();
 
         new SuccessfulAuthRequester<LoginAdminResponse>(
@@ -77,7 +77,7 @@ public class PatientManagementApiTests extends BaseTest {
                 .identifiers(List.of(
                         PatientIdentifierRequest.builder()
                                 .identifier(identifier)
-                                .identifierType(IdentifierType.TYPE.getType())
+                                .identifierType(IdentifierType.MRS_ID.getUuid())
                                 .location(Location.OUTPATIENT_CLINIC.getUuid())
                                 .preferred(true)
                                 .build()))
@@ -119,7 +119,7 @@ public class PatientManagementApiTests extends BaseTest {
                         .identifiers(List.of(
                                 PatientIdentifierRequest.builder()
                                         .identifier(identifier)
-                                        .identifierType(IdentifierType.TYPE.getType())
+                                        .identifierType(IdentifierType.MRS_ID.getUuid())
                                         .location(Location.OUTPATIENT_CLINIC.getUuid())
                                         .preferred(true)
                                         .build()))
@@ -321,7 +321,7 @@ public class PatientManagementApiTests extends BaseTest {
         PatientIdentifierRequest identifierRequest =
                 PatientIdentifierRequest.builder()
                         .identifier(identifier)
-                        .identifierType(IdentifierType.TYPE.getType())
+                        .identifierType(IdentifierType.MRS_ID.getUuid())
                         .location(Location.OUTPATIENT_CLINIC.getUuid())
                         .preferred(false)
                         .build();
@@ -375,7 +375,7 @@ public class PatientManagementApiTests extends BaseTest {
         PatientIdentifierRequest updateRequest =
                 PatientIdentifierRequest.builder()
                         .identifier(updatedIdentifier)
-                        .identifierType(IdentifierType.TYPE.getType())
+                        .identifierType(IdentifierType.MRS_ID.getUuid())
                         .location(Location.OUTPATIENT_CLINIC.getUuid())
                         .preferred(false)
                         .build();
@@ -424,7 +424,7 @@ public class PatientManagementApiTests extends BaseTest {
         PatientIdentifierRequest identifierRequest =
                 PatientIdentifierRequest.builder()
                         .identifier(identifier)
-                        .identifierType(IdentifierType.TYPE.getType())
+                        .identifierType(IdentifierType.MRS_ID.getUuid())
                         .location(Location.OUTPATIENT_CLINIC.getUuid())
                         .preferred(false)
                         .build();

@@ -2,6 +2,7 @@ package apiTests.vitalsAndBiometrics;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.assertions.ObsAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
@@ -25,19 +26,24 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 
-import static apiParts.models.VitalsConcept.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CreatePatient
 public class VitalsAndBiometricsTests extends BaseTest {
-    private static final int VITALS_OBS_COUNT = 11; // obs in AdminSteps.createVitalsEncounter()
+    // Step outside the reference range: 0.1 for concepts with decimals, 1 for whole-number ones
+    // (for them 0.1 is not a valid value at all and the server would fail on conversion, not on range)
+    private static final double DECIMAL_STEP = 0.1;
+    private static final double WHOLE_NUMBER_STEP = 1;
+
     private String patientUUID;
 
     @BeforeEach
@@ -45,55 +51,22 @@ public class VitalsAndBiometricsTests extends BaseTest {
         patientUUID = SessionStorage.getPatient().getUuid();
     }
 
-    // Boundaries = lowAbsolute / hiAbsolute of the concept reference range applied to obs (inclusive, ObsValidator).
-    // Check: GET /obs?patient={uuid}&concept={uuid}&v=full -> referenceRange
-    // MID_UPPER_ARM_CIRC has no absolute limits (null) - nominal value is used in both sets
+    // Boundaries = lowAbsolute / hiAbsolute of the concept reference range (inclusive, ObsValidator),
+    // kept in VitalsConcept. Check: GET /obs?patient={uuid}&concept={uuid}&v=full -> referenceRange
     static Stream<Arguments> validVitalsBoundaries() {
         return Stream.of(
-                Arguments.of("lower boundary", List.of(
-                        Obs.of(SYSTOLIC_BP, 0),
-                        Obs.of(DIASTOLIC_BP, 0),
-                        Obs.of(RESPIRATORY_RATE, 0),
-                        Obs.of(OXYGEN_SATURATION, 0),
-                        Obs.of(PULSE, 0),
-                        Obs.of(TEMPERATURE, 25),
-                        Obs.of(GENERAL_NOTE, "Some note"),
-                        Obs.of(WEIGHT, 0),
-                        Obs.of(HEIGHT, 10),
-                        Obs.of(MID_UPPER_ARM_CIRC, 14),
-                        Obs.of(BMI, 0)
-                )),
-                Arguments.of("upper boundary", List.of(
-                        Obs.of(SYSTOLIC_BP, 250),
-                        Obs.of(DIASTOLIC_BP, 150),
-                        Obs.of(RESPIRATORY_RATE, 99),
-                        Obs.of(OXYGEN_SATURATION, 100),
-                        Obs.of(PULSE, 230),
-                        Obs.of(TEMPERATURE, 47),
-                        Obs.of(GENERAL_NOTE, "Some note"),
-                        Obs.of(WEIGHT, 250),
-                        Obs.of(HEIGHT, 272),
-                        Obs.of(MID_UPPER_ARM_CIRC, 14),
-                        Obs.of(BMI, 100)
-                ))
+                Arguments.of("lower boundary", obsAt(VitalsConcept::low)),
+                Arguments.of("upper boundary", obsAt(VitalsConcept::high))
         );
     }
 
-    // Same reference range boundaries as in validVitalsBoundaries(): each obs is sent alone,
+    // Same boundaries as in validVitalsBoundaries(): each obs is sent alone,
     // because 400 response does not say which obs is out of range.
-    // MID_UPPER_ARM_CIRC has no absolute limits - no negative cases
+    // Concepts without absolute limits (MID_UPPER_ARM_CIRC, TEXT) have no negative cases
     static Stream<Arguments> outOfRangeVitals() {
-        return Stream.of(
-                outOfRange(SYSTOLIC_BP, 0, 250),
-                outOfRange(DIASTOLIC_BP, 0, 150),
-                outOfRange(RESPIRATORY_RATE, 0, 99),
-                outOfRange(OXYGEN_SATURATION, 0, 100),
-                outOfRange(PULSE, 0, 230),
-                outOfRange(TEMPERATURE, 25, 47),
-                outOfRange(WEIGHT, 0, 250),
-                outOfRange(HEIGHT, 10, 272),
-                outOfRange(BMI, 0, 100)
-        ).flatMap(cases -> cases);
+        return Arrays.stream(VitalsConcept.values())
+                .filter(VitalsConcept::hasAbsoluteRange)
+                .flatMap(VitalsAndBiometricsTests::outOfRange);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -235,16 +208,36 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
     // Precondition (hard assert): all obs of created encounter are saved for patient
     private void assertPatientHasObsOf(CreateEncounterResponse encounter) {
+        Set<String> expectedObsUUIDs = ObsAssertions.uuidsOf(encounter);
         assertThat(ObsAssertions.uuidsOf(getPatientObs()))
-                .as("precondition: patient has " + VITALS_OBS_COUNT + " obs of created encounter")
-                .hasSize(VITALS_OBS_COUNT)
-                .isEqualTo(ObsAssertions.uuidsOf(encounter));
+                .as("precondition: patient has %d obs of created encounter", expectedObsUUIDs.size())
+                .isEqualTo(expectedObsUUIDs);
     }
 
-    private static Stream<Arguments> outOfRange(VitalsConcept concept, int lowAbsolute, int hiAbsolute) {
+    // Every vitals concept at one edge of its range: TEXT concept gets free text,
+    // concept without absolute limits - any value inside its nominal range
+    private static List<Obs> obsAt(ToDoubleFunction<VitalsConcept> boundary) {
+        return Arrays.stream(VitalsConcept.values())
+                .map(concept -> boundaryObs(concept, boundary))
+                .toList();
+    }
+
+    private static Obs boundaryObs(VitalsConcept concept, ToDoubleFunction<VitalsConcept> boundary) {
+        if (concept.getValueType() == VitalsConcept.ValueType.TEXT) {
+            return Obs.of(concept, RandomModelGenerator.randomSentence());
+        }
+        double value = concept.hasAbsoluteRange()
+                ? boundary.applyAsDouble(concept)
+                : RandomModelGenerator.randomDouble(concept.low(), concept.high(), concept.getDecimalPlaces());
+        return Obs.of(concept, concept.valueOf(value));
+    }
+
+    // One step outside each absolute limit of the concept
+    private static Stream<Arguments> outOfRange(VitalsConcept concept) {
+        double step = concept.getDecimalPlaces() == 0 ? WHOLE_NUMBER_STEP : DECIMAL_STEP;
         return Stream.of(
-                Arguments.of(concept, lowAbsolute - 1, ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
-                Arguments.of(concept, hiAbsolute + 1, ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
+                Arguments.of(concept, concept.valueOf(concept.low() - step), ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
+                Arguments.of(concept, concept.valueOf(concept.high() + step), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
         );
     }
 
