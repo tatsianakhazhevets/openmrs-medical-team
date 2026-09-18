@@ -11,12 +11,15 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+
+import static common.annotations.CreateOrder.Type.DRUG;
 
 @CreatePatient
 public class MedicationsApiTests extends BaseTest {
@@ -86,9 +89,9 @@ public class MedicationsApiTests extends BaseTest {
     }
 
     @Test
+    @CreateOrder(DRUG)
     public void discontinuedMedicationBecomesPastAndReplacesOriginalInList() {
-        CreateEncounterResponse created = AdminSteps.createDrugOrderEncounter(patientUUID);
-        var originalOrderUUID = OrderAssertions.uuidsOf(created).iterator().next();
+        var originalOrderUUID = SessionStorage.getOrderUuid();
 
         var discontinued = AdminSteps.discontinueDrugOrderEncounter(patientUUID, originalOrderUUID, Drug.ASPIRIN_325MG);
         var discontinueStubUUID = OrderAssertions.uuidsOf(discontinued).iterator().next();

@@ -68,8 +68,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static apiParts.utils.DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME;
-import static apiParts.utils.DateTimeUtils.UTC_DATE_TIME;
+import static apiParts.utils.DateTimeUtils.*;
 
 public class AdminSteps {
 
@@ -352,8 +351,8 @@ public class AdminSteps {
                 .appointmentKind(AppointmentKind.SCHEDULED.getValue())
                 .status("")
                 .serviceUuid(AppointmentService.GENERAL_MEDICINE.getUuid())
-                .startDateTime(startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .endDateTime(endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
+                .startDateTime(startDateTime.format(OPENMRS_REQUEST_DATE_TIME))
+                .endDateTime(endDateTime.format(OPENMRS_REQUEST_DATE_TIME))
                 .locationUuid(Location.OUTPATIENT_CLINIC.getUuid())
                 .providers(List.of(
                         CreateAppointmentRequest.Provider.builder()
@@ -364,7 +363,7 @@ public class AdminSteps {
                 .comments(FAKER.text().text())
                 .dateAppointmentScheduled(
                         DateTimeUtils.now()
-                                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+                                .format(OPENMRS_REQUEST_DATE_TIME)
                 )
                 .build();
 
