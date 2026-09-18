@@ -7,8 +7,11 @@ import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
+import apiParts.models.order.DiscontinueOrderRequest;
+import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.ListOrdersResponse;
+import apiParts.models.order.Order;
 import apiParts.models.patient.*;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.GetProceduresResponse;
@@ -119,6 +122,18 @@ public enum Endpoint {
     ORDER_DELETE(
             "/order",
             BaseModel.class,
+            BaseModel.class),
+
+    // POST /order: action=DISCONTINUE (see apiParts.models.order.DiscontinueOrderRequest)
+    ORDER_POST(
+            "/order",
+            DiscontinueOrderRequest.class,
+            Order.class),
+
+    // POST /order/{uuid}/fulfillerdetails/, used with OrderFulfillerRequester (nested path)
+    ORDER_FULFILLER_DETAILS_POST(
+            "/order",
+            FulfillerDetailsRequest.class,
             BaseModel.class),
 
     PROCEDURE_POST(

@@ -17,6 +17,8 @@ public class ObsResponse {
     private Ref concept;
     private Ref person;         // patient
     private Ref encounter;
+    private Ref order;          // testorder the obs is a result of, null for vitals
+    private ObsStatus status;   // testorder results only, null for vitals
     private Object value;       // Double for NUMERIC, String for TEXT
     private Boolean voided;
 

@@ -7,6 +7,7 @@ import apiParts.models.encounter.Ref;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.models.order.GetOrderResponse;
+import apiParts.utils.DateTimeUtils;
 
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,15 @@ public class OrderAssertions {
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
+    // the single drug order of a patient with exactly one drug order (Active/Upcoming/Past Medications tests)
+    public static DrugOrderResponse onlyOrderOf(GetOrderResponse response) {
+        List<DrugOrderResponse> results = response.getResults();
+        if (results.size() != 1) {
+            throw new AssertionError("expected exactly one drug order, but GET /order returned " + results.size());
+        }
+        return results.get(0);
+    }
+
     // ======== HELPERS ========
     // null fields of request stay null in expected and are not checked
     private static DrugOrderResponse expectedOf(DrugOrder order) {
@@ -73,6 +83,9 @@ public class OrderAssertions {
                 .asNeeded(order.getAsNeeded())
                 .dosingInstructions(order.getDosingInstructions())
                 .orderReasonNonCoded(order.getOrderReasonNonCoded())
+                .urgency(order.getUrgency())
+                // builder bypasses setters of DrugOrderResponse - date is normalized here the same way
+                .scheduledDate(DateTimeUtils.toInstantString(order.getScheduledDate()))
                 .build();
     }
 

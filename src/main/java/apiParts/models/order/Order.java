@@ -1,5 +1,6 @@
 package apiParts.models.order;
 
+import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Order {
+public class Order extends BaseModel {
 
     private String uuid;
     private String orderNumber;
@@ -34,6 +35,9 @@ public class Order {
 
     private ResourceReference encounter;
     private ResourceReference orderer;
+
+    private FulfillerStatus fulfillerStatus;
+    private String fulfillerComment;
 
     private ResourceReference orderReason;
     private String orderReasonNonCoded;
