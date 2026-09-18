@@ -14,9 +14,10 @@ import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.queue.GetQueueResponse;
 import apiParts.models.queueEntry.CreateQueueEntryRequest;
-import apiParts.models.queueEntry.CreateQueueEntryResponse;
+//import apiParts.models.queueEntry.CreateQueueEntryResponse;
 import apiParts.models.queueEntry.EndQueueEntryRequest;
 import apiParts.models.queueEntry.GetQueueEntryResponse;
+import apiParts.models.queueEntry.QueueEntryResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitResponse;
@@ -187,12 +188,12 @@ public enum Endpoint {
     VISIT_QUEUE_ENTRY_POST(
             "/visit-queue-entry",
             CreateQueueEntryRequest.class,
-            CreateQueueEntryResponse.class),
+            QueueEntryResponse.class),
 
     QUEUE_ENTRY_UPDATE(
             "/queue-entry",
             EndQueueEntryRequest.class,
-            CreateQueueEntryResponse.class),
+            QueueEntryResponse.class),
 
     QUEUE_ENTRY_GET(
             "/queue-entry",

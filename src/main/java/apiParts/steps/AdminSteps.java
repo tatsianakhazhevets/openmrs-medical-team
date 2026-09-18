@@ -23,9 +23,7 @@ import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.procedure.ProcedureStatus;
 import apiParts.models.procedure.ProcedureType;
-import apiParts.models.queue.GetQueueResponse;
-import apiParts.models.queue.QueuePriority;
-import apiParts.models.queue.QueueStatus;
+import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
@@ -240,24 +238,8 @@ public class AdminSteps {
         ).delete(visitUUID, Map.of("purge", true));
     }
 
-    public static CreateQueueEntryResponse addPatientToQueue(String patientUUID, String visitUUID) {
-        GetQueueResponse getQueueResponse = new SuccessfulCrudRequester<GetQueueResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_GET,
-                ResponseSpecs.requestReturnsOk()
-        ).get(Map.of(
-                "v",
-                "custom:(uuid,display,name,description,service:(uuid,display),allowedPriorities:(uuid,display),allowedStatuses:(uuid,display),location:(uuid,display))"
-        ));
-        var queue = getQueueResponse.getResults().stream()
-                .filter(q ->
-                        "Outpatient Consultation".equals(q.getName())
-                                && "Outpatient Clinic".equals(q.getLocation().getDisplay())
-                )
-                .findFirst()
-                .orElseThrow(() -> new AssertionError(
-                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic' was not found"
-                ));
+    public static QueueEntryResponse addPatientToQueue(String patientUUID, String visitUUID) {
+        QueueResponse queue = getOutpatientConsultationQueue();
 
         var request = CreateQueueEntryRequest.builder()
                 .visit(Ref.of(visitUUID))
@@ -273,11 +255,44 @@ public class AdminSteps {
                         .build())
                 .build();
 
-        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
+        return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_QUEUE_ENTRY_POST,
                 ResponseSpecs.requestReturnsCreated()
         ).create(request);
+    }
+
+    public static QueueEntryResponse updateQueueEntry(
+            String queueEntryUUID,
+            QueueStatus status,
+            QueuePriority priority,
+            String priorityComment) {
+
+        var request = UpdateQueueEntryRequest.builder()
+                .status(status.toRef())
+                .priority(priority.toRef())
+                .priorityComment(priorityComment)
+                .build();
+
+        return new SuccessfulCrudRequester<QueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_UPDATE,
+                ResponseSpecs.requestReturnsOk()
+        ).update(queueEntryUUID, request);
+    }
+
+    public static QueueEntryResponse endQueueEntry(String queueEntryUUID) {
+        var endRequest = EndQueueEntryRequest.builder()
+                .endedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now()))
+                .build();
+
+        return new SuccessfulCrudRequester<QueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_UPDATE,
+                ResponseSpecs.requestReturnsOk()
+        ).update(queueEntryUUID, endRequest);
     }
 
     public static GetQueueEntryResponse getActiveQueueEntries() {
@@ -295,37 +310,25 @@ public class AdminSteps {
         ));
     }
 
-    public static CreateQueueEntryResponse updateQueueEntry(
-            String queueEntryUUID,
-            QueueStatus status,
-            QueuePriority priority,
-            String priorityComment) {
-
-        var request = UpdateQueueEntryRequest.builder()
-                .status(status.toRef())
-                .priority(priority.toRef())
-                .priorityComment(priorityComment)
-                .build();
-
-        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
+    public static QueueResponse getOutpatientConsultationQueue() {
+        GetQueueResponse response = new SuccessfulCrudRequester<GetQueueResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_UPDATE,
+                Endpoint.QUEUE_GET,
                 ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, request);
-    }
+        ).get(Map.of(
+                "v",
+                "custom:(uuid,display,name,description,service:(uuid,display),allowedPriorities:(uuid,display),allowedStatuses:(uuid,display),location:(uuid,display))"
+        ));
 
-    public static CreateQueueEntryResponse endQueueEntry(String queueEntryUUID) {
-        var endRequest = EndQueueEntryRequest.builder()
-                .endedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-                        .withZone(ZoneOffset.UTC)
-                        .format(Instant.now()))
-                .build();
-
-        return new SuccessfulCrudRequester<CreateQueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_UPDATE,
-                ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, endRequest);
+        return response.getResults().stream()
+                .filter(queue ->
+                        QueueType.OUTPATIENT_CONSULTATION.getDisplay().equals(queue.getName())
+                                && Location.OUTPATIENT_CLINIC.getDisplay().equals(queue.getLocation().getDisplay())
+                )
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic' was not found"
+                ));
     }
 
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer

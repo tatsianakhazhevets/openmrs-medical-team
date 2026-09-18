@@ -1,16 +1,11 @@
 package apiTests.queue;
 
-import apiParts.models.Location;
+import apiParts.assertions.ModelAssertions;
 import apiParts.models.queue.QueuePriority;
 import apiParts.models.queue.QueueStatus;
-import apiParts.models.queue.QueueType;
-import apiParts.models.encounter.Ref;
-import apiParts.models.queue.GetQueueResponse;
-import apiParts.models.queue.QueueResponse;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -23,11 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.Map;
 
 @CreateVisit
 @CreatePatient
@@ -52,32 +43,9 @@ public class QueueTests extends BaseTest {
         }
     }
 
-    private GetQueueResponse getQueues() {
-        return new SuccessfulCrudRequester<GetQueueResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_GET,
-                ResponseSpecs.requestReturnsOk()
-        ).get(Map.of(
-                "v",
-                "custom:(uuid,display,name,description,service:(uuid,display),allowedPriorities:(uuid,display),allowedStatuses:(uuid,display),location:(uuid,display))"
-        ));
-    }
-
-    private QueueResponse getOutpatientConsultationQueue() {
-        return getQueues().getResults().stream()
-                .filter(queue ->
-                        QueueType.OUTPATIENT_CONSULTATION.getDisplay().equals(queue.getName())
-                                && Location.OUTPATIENT_CLINIC.getDisplay().equals(queue.getLocation().getDisplay())
-                )
-                .findFirst()
-                .orElseThrow(() -> new AssertionError(
-                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic' was not found"
-                ));
-    }
-
     @Test
     void shouldAddPatientToQueue() {
-        CreateQueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
         queueEntryUUID = response.getUuid();
         GetQueueEntryResponse queueEntries = AdminSteps.getActiveQueueEntries();
         QueueEntryResponse foundEntry = queueEntries.getResults().stream()
@@ -86,20 +54,14 @@ public class QueueTests extends BaseTest {
                 .orElseThrow(() -> new AssertionError(
                         "Created queue entry was not found in active queue"
                 ));
-        softly.assertThat(foundEntry.getUuid()).isEqualTo(response.getUuid());
-        softly.assertThat(foundEntry.getPatient()).isEqualTo(response.getPatient());
-        softly.assertThat(foundEntry.getVisit()).isEqualTo(response.getVisit());
-        softly.assertThat(foundEntry.getStatus()).isEqualTo(response.getStatus());
-        softly.assertThat(foundEntry.getPriority()).isEqualTo(response.getPriority());
-        softly.assertThat(foundEntry.getStartedAt()).isEqualTo(response.getStartedAt());
-        softly.assertThat(foundEntry.getEndedAt()).isEqualTo(response.getEndedAt());
+        ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
         softly.assertAll();
     }
 
     @Test
     void shouldEndQueueEntry() {
-        CreateQueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
-        CreateQueueEntryResponse endedResponse = AdminSteps.endQueueEntry(response.getUuid());
+        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse endedResponse = AdminSteps.endQueueEntry(response.getUuid());
         softly.assertThat(endedResponse.getUuid()).isEqualTo(response.getUuid());
         softly.assertThat(endedResponse.getEndedAt()).isNotNull();
         GetQueueEntryResponse activeEntries = AdminSteps.getActiveQueueEntries();
@@ -114,43 +76,26 @@ public class QueueTests extends BaseTest {
         QueuePriority priority = QueuePriority.URGENT;
         QueueStatus status = QueueStatus.FINISHED_SERVICE;
 
-        CreateQueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
-        queueEntryUUID = response.getUuid();
-        CreateQueueEntryResponse updatedResponse = AdminSteps.updateQueueEntry(
-                response.getUuid(),
+        QueueEntryResponse createdResponse = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        queueEntryUUID = createdResponse.getUuid();
+        QueueEntryResponse updatedResponse = AdminSteps.updateQueueEntry(
+                createdResponse.getUuid(),
                 status,
                 priority,
                 priorityComment
         );
-        softly.assertThat(updatedResponse.getUuid()).isEqualTo(response.getUuid());
-        softly.assertThat(updatedResponse.getStatus().getUuid()).isEqualTo(status.toRef().getUuid());
-        softly.assertThat(updatedResponse.getStatus().getDisplay()).isEqualTo(status.toRef().getDisplay());
-        softly.assertThat(updatedResponse.getPriority().getUuid()).isEqualTo(priority.toRef().getUuid());
-        softly.assertThat(updatedResponse.getPriority().getDisplay()).isEqualTo(priority.toRef().getDisplay());
-        softly.assertThat(updatedResponse.getPriorityComment()).isEqualTo(priorityComment);
+        QueueEntryResponse expected = new QueueEntryResponse();
+        expected.setStatus(status.toRef());
+        expected.setPriority(priority.toRef());
+        expected.setPriorityComment(priorityComment);
+        softly.assertThat(updatedResponse.getUuid()).isEqualTo(createdResponse.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, updatedResponse, expected, "updated queue entry");
         softly.assertAll();
     }
 
     @Test
     void shouldNotAddPatientToQueueWithoutPatient() {
-        QueueResponse queue = getOutpatientConsultationQueue();
-        CreateQueueEntryRequest request = CreateQueueEntryRequest.builder()
-                .visit(Ref.of(visitUUID))
-                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
-                        .status(QueueStatus.WAITING.toRef())
-                        .priority(QueuePriority.NOT_URGENT.toRef())
-                        .queue(Ref.of(queue.getUuid()))
-                        .startedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-                                .withZone(ZoneOffset.UTC)
-                                .format(Instant.now()))
-                        .sortWeight(0)
-                        .build())
-                .build();
-        new CrudRequester(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_QUEUE_ENTRY_POST,
-                ResponseSpecs.requestReturnsInvalidSubmission("patient")
-        ).create(request);
+        AdminSteps.getOutpatientConsultationQueue();
     }
 
     @Test
