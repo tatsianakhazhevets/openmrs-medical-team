@@ -30,4 +30,27 @@ public class DateTimeUtils {
         String iso = dateTime.replaceFirst("([+-]\\d{2})(\\d{2})$", "$1:$2");
         return OffsetDateTime.parse(iso).toInstant().toString();
     }
+
+    public static OffsetDateTime nowPlusMinutes(long minutes) {
+        return OffsetDateTime.now()
+                .plusMinutes(minutes)
+                .withSecond(0)
+                .withNano(0);
+    }
+
+    public static OffsetDateTime nowPlusDays(long days) {
+        return OffsetDateTime.now()
+                .plusDays(days)
+                .withSecond(0)
+                .withNano(0);
+    }
+
+    public static OffsetDateTime now() {
+        return OffsetDateTime.now()
+                .withSecond(0)
+                .withNano(0);
+    }
+    public static OffsetDateTime nowMinusMonths(long months) {
+        return now().minusMonths(months);
+    }
 }

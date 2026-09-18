@@ -1,8 +1,8 @@
 package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.queue.QueuePriority;
-import apiParts.models.queue.QueueStatus;
+import apiParts.models.encounter.Ref;
+import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
@@ -18,6 +18,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 @CreateVisit
@@ -95,7 +98,26 @@ public class QueueTests extends BaseTest {
 
     @Test
     void shouldNotAddPatientToQueueWithoutPatient() {
-        AdminSteps.getOutpatientConsultationQueue();
+        QueueResponse queue = AdminSteps.getOutpatientConsultationQueue();
+
+        CreateQueueEntryRequest request = CreateQueueEntryRequest.builder()
+                .visit(Ref.of(visitUUID))
+                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
+                        .status(QueueStatus.WAITING.toRef())
+                        .priority(QueuePriority.NOT_URGENT.toRef())
+                        .queue(Ref.of(queue.getUuid()))
+                        .startedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+                                .withZone(ZoneOffset.UTC)
+                                .format(Instant.now()))
+                        .sortWeight(0)
+                        .build())
+                .build();
+
+        new CrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_QUEUE_ENTRY_POST,
+                ResponseSpecs.requestReturnsInvalidSubmission("patient")
+        ).create(request);
     }
 
     @Test
