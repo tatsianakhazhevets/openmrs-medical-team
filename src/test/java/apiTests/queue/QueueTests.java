@@ -9,6 +9,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateVisit;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 @CreateVisit
@@ -106,7 +106,7 @@ public class QueueTests extends BaseTest {
                         .status(QueueStatus.WAITING.toRef())
                         .priority(QueuePriority.NOT_URGENT.toRef())
                         .queue(Ref.of(queue.getUuid()))
-                        .startedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+                        .startedAt(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
                                 .withZone(ZoneOffset.UTC)
                                 .format(Instant.now()))
                         .sortWeight(0)

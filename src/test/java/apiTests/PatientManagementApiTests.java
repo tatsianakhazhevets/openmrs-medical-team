@@ -13,6 +13,8 @@ import apiParts.skelethon.requests.patient.PatientRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -168,8 +170,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanSearchPatient() {
-        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        CreatePatientResponse createPatientResponse = SessionStorage.getPatient();
         String searchQuery = createPatientResponse.getPerson().getPreferredName().getDisplay();
         Map<String, Object> queryParams = Map.of(
                 "q", searchQuery,
@@ -206,8 +209,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanUpdatePatient() {
-        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        CreatePatientResponse createPatientResponse = SessionStorage.getPatient();
 
         String updatedGivenName = faker.name().firstName();
         String updatedFamilyName = faker.name().lastName();
@@ -267,8 +271,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanDeletePatient() {
-        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        CreatePatientResponse createPatientResponse = SessionStorage.getPatient();
 
         softly.assertThat(createPatientResponse.getUuid())
                 .isNotNull();
@@ -305,8 +310,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanAddPatientIdentifier() {
-        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        CreatePatientResponse createPatientResponse = SessionStorage.getPatient();
 
         GetPatientResponse patientBefore =
                 new SuccessfulCrudRequester<GetPatientResponse>(
@@ -348,8 +354,9 @@ public class PatientManagementApiTests extends BaseTest {
 
     /// Fix needed: Expected status code <404> but was <200>.
     @Test
+    @CreatePatient
     public void adminCannotGetNonExistingPatientIdentifier() {
-        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        CreatePatientResponse createPatientResponse = SessionStorage.getPatient();
 
         new IdentifierRequester(
                 RequestSpecs.adminSpec(),
@@ -359,8 +366,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanUpdatePatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        CreatePatientResponse createdPatient = SessionStorage.getPatient();
 
         GetPatientResponse patientBefore =
                 new SuccessfulCrudRequester<GetPatientResponse>(
@@ -401,8 +409,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCannotUpdateNonExistingPatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        CreatePatientResponse createdPatient = SessionStorage.getPatient();
 
         PatientIdentifierRequest updateRequest =
                 PatientIdentifierRequest.builder()
@@ -418,8 +427,9 @@ public class PatientManagementApiTests extends BaseTest {
     }
 
     @Test
+    @CreatePatient
     public void adminCanDeletePatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        CreatePatientResponse createdPatient = SessionStorage.getPatient();
 
         PatientIdentifierRequest identifierRequest =
                 PatientIdentifierRequest.builder()
@@ -474,8 +484,9 @@ public class PatientManagementApiTests extends BaseTest {
 
     /// Fix needed: as Expected status code <404> but was <204>.
     @Test
+    @CreatePatient
     public void adminCannotDeleteNonExistingPatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        CreatePatientResponse createdPatient = SessionStorage.getPatient();
 
         new IdentifierRequester(
                 RequestSpecs.adminSpec(),

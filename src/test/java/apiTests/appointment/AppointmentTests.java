@@ -8,6 +8,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.testdata.AppointmentTestData;
 import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -42,27 +43,7 @@ public class AppointmentTests extends BaseTest {
     }
 
     private CreateAppointmentRequest.CreateAppointmentRequestBuilder appointmentRequest() {
-        OffsetDateTime startDateTime = DateTimeUtils.nowPlusMinutes(30);
-        OffsetDateTime endDateTime = startDateTime.plusMinutes(30);
-
-        return CreateAppointmentRequest.builder()
-                .appointmentKind(AppointmentKind.SCHEDULED.getValue())
-                .status("")
-                .serviceUuid(AppointmentService.GENERAL_MEDICINE.getUuid())
-                .startDateTime(startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .endDateTime(endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .locationUuid(Location.OUTPATIENT_CLINIC.getUuid())
-                .providers(List.of(
-                        CreateAppointmentRequest.Provider.builder()
-                                .uuid(AppointmentProvider.SUPER_USER.getUuid())
-                                .build()
-                ))
-                .patientUuid(patientUUID)
-                .comments(FAKER.text().text())
-                .dateAppointmentScheduled(
-                        DateTimeUtils.now()
-                                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
-                );
+        return AppointmentTestData.appointmentRequestBuilder(patientUUID);
     }
 
     @Test

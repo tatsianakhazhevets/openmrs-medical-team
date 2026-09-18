@@ -5,15 +5,22 @@ import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.order.CareSetting;
+import apiParts.models.order.DiscontinueDrugOrderRequest;
+import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.DosingUnit;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugRoute;
+import apiParts.models.order.FulfillerDetailsRequest;
+import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.OrderFrequency;
 import apiParts.models.order.TestOrder;
+import apiParts.utils.DateTimeUtils;
 
 import java.util.List;
+
+import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 /**
  * Requests of the standard order fixtures (see apiParts.steps.AdminSteps).
@@ -40,6 +47,11 @@ public class OrderTestData {
     private static final String LAB_ORDER_INSTRUCTIONS = RandomModelGenerator.randomSentence();
     private static final String LAB_ORDER_ACCESSION_NUMBER =
             String.valueOf(RandomModelGenerator.randomInt(1, MAX_ACCESSION_NUMBER));
+
+    // Upcoming Medications fixture: scheduled this many days ahead of now
+    private static final int SCHEDULED_DAYS_AHEAD = 2;
+    // Reason sent with DISCONTINUE drug orders; server requires a non-empty value, content is irrelevant
+    private static final String DISCONTINUE_REASON = "test indication";
 
     private OrderTestData() {
     }
@@ -90,6 +102,65 @@ public class OrderTestData {
                 .encounterType(EncounterType.ORDER)
                 .location(Location.INPATIENT_WARD)
                 .orders(List.of(validLabOrder(patientUUID, ordererUUID)))
+                .build();
+    }
+
+    // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
+    // (urgency=ON_SCHEDULED_DATE) - Upcoming Medications fixture
+    public static CreateEncounterRequest upcomingDrugOrderEncounterRequest(String patientUUID, String ordererUUID) {
+        DrugOrder order = validOutpatientDrugOrder(patientUUID, ordererUUID)
+                .urgency(DrugOrder.URGENCY_ON_SCHEDULED_DATE)
+                .scheduledDate(DateTimeUtils.nowPlusDays(SCHEDULED_DAYS_AHEAD).format(OPENMRS_REQUEST_DATE_TIME))
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+    }
+
+    // Discontinues a testorder (POST /order, action=DISCONTINUE), the way the laboratory
+    // stops a test order once its result has been captured
+    public static DiscontinueOrderRequest discontinueOrderRequest(
+            String orderUUID, String patientUUID, String encounterUUID, String ordererUUID) {
+        return DiscontinueOrderRequest.builder()
+                .previousOrder(orderUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .encounter(encounterUUID)
+                .patient(patientUUID)
+                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
+                .orderer(ordererUUID)
+                .build();
+    }
+
+    // Discontinues a drug order (POST /encounter, action=DISCONTINUE), the way the Medications page
+    // stops an active/upcoming medication
+    public static CreateEncounterRequest discontinueDrugOrderEncounterRequest(
+            String patientUUID, String orderUUID, Drug drug, String ordererUUID) {
+        DiscontinueDrugOrderRequest order = DiscontinueDrugOrderRequest.builder()
+                .previousOrder(orderUUID)
+                .careSetting(CareSetting.OUTPATIENT)
+                .patient(patientUUID)
+                .orderer(ordererUUID)
+                .drug(drug)
+                .orderReasonNonCoded(DISCONTINUE_REASON)
+                .build();
+
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
+    }
+
+    // POST /order/{uuid}/fulfillerdetails/ body: laboratory-side status update of a test order
+    public static FulfillerDetailsRequest fulfillerDetailsRequest(FulfillerStatus status, String comment) {
+        return FulfillerDetailsRequest.builder()
+                .fulfillerStatus(status)
+                .fulfillerComment(comment)
                 .build();
     }
 }

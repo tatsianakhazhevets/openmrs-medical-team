@@ -5,38 +5,18 @@ import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterRequest.Obs;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.GetObsResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.order.CareSetting;
-import apiParts.models.order.DiscontinueDrugOrderRequest;
 import apiParts.models.order.DiscontinueOrderRequest;
-import apiParts.models.order.DosingUnit;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
-import apiParts.models.order.DrugRoute;
-import apiParts.models.order.Drug;
-import apiParts.models.order.DrugOrder;
-import apiParts.models.order.DrugRoute;
-import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.GetOrderResponse;
-import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
-import apiParts.models.order.OrderFrequency;
-import apiParts.models.order.TestOrder;
-import apiParts.models.encounter.Ref;
 import apiParts.models.patient.*;
-import apiParts.models.procedure.BodySite;
-import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
-import apiParts.models.procedure.ProcedureStatus;
-import apiParts.models.procedure.ProcedureType;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.models.visit.CreateVisitRequest;
@@ -45,35 +25,23 @@ import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.appointment.AppointmentRequester;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
-import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.order.OrderFulfillerRequester;
 import apiParts.specs.RequestSpecs;
+import apiParts.specs.ResponseSpecs;
+import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
 import apiParts.testdata.ProcedureTestData;
+import apiParts.testdata.QueueTestData;
 import apiParts.testdata.VitalsTestData;
-import apiParts.specs.ResponseSpecs;
-import apiParts.utils.DateTimeUtils;
-import io.restassured.common.mapper.TypeRef;
-import net.datafaker.Faker;
-import org.apache.commons.lang3.StringUtils;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-
-import static apiParts.utils.DateTimeUtils.*;
 
 public class AdminSteps {
 
     private static volatile String currentProviderUuid;
-    private static final Faker FAKER = new Faker(new Locale("en", "US"));
 
     // adminSpec() is authenticated by itself (Basic auth header), no login call is needed
     public static CreatePatientResponse createPatient() {
@@ -87,37 +55,6 @@ public class AdminSteps {
                 Endpoint.LOGIN_GET,
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
-
-        String gender = FAKER.gender().binaryTypes(); // "Male" / "Female"
-        String shortGender = gender.equals("Male") ? "M" : "F";
-
-        CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
-                .person(PersonRequest.builder()
-                        .gender(shortGender)
-                        .birthdate(FAKER.timeAndDate().birthday(18, 65, "yyyy-MM-dd"))
-                        .birthdateEstimated(false)
-                        .dead(false)
-                        .names(List.of(
-                                PersonName.builder()
-                                        .givenName(FAKER.name().firstName())
-                                        .familyName(FAKER.name().lastName())
-                                        .build()))
-                        .addresses(List.of(
-                                PersonAddress.builder()
-                                        .address1(FAKER.address().streetAddress())
-                                        .cityVillage(FAKER.address().city())
-                                        .country(StringUtils.left(FAKER.address().country(), 50))  //was flaky because of "country": "British Indian Ocean Territory (Chagos Archipelago)"
-                                        .postalCode(FAKER.address().postcode())
-                                        .build()))
-                        .build())
-                .identifiers(List.of(
-                        PatientIdentifierRequest.builder()
-                                .identifier(getId())
-                                .identifierType("05a29f94-c0ed-11e2-94be-8c13b969e334") //MRS ID GET /openmrs/ws/rest/v1/patientidentifiertype?v=custom:(uuid,name,required,uniquenessBehavior,locationBehavior)
-                                .location("dbdaabf6-a326-4804-aba7-062073e05cd1") //Outpatient Clinic DOTO - move to ENUM?
-                                .preferred(true)
-                                .build()))
-                .build();
 
         return new SuccessfulCrudRequester<CreatePatientResponse>(
                 RequestSpecs.adminSpec(),
@@ -165,55 +102,15 @@ public class AdminSteps {
     // Request behind createDrugOrderEncounter, exposed so callers can build the expected
     // response model from it (see apiParts.assertions.OrderAssertions)
     public static CreateEncounterRequest drugOrderEncounterRequest(String patientUUID) {
-        DrugOrder order = DrugOrder.builder()
-                .patient(patientUUID)
-                .careSetting(CareSetting.OUTPATIENT)
-                .orderer(getCurrentProviderUuid())
-                .drug(Drug.ASPIRIN_325MG)
-                .dose(1.0)
-                .doseUnits(DosingUnit.TABLET)
-                .route(DrugRoute.ORAL)
-                .frequency(OrderFrequency.ONCE_DAILY)
-                .quantity(5.0)
-                .quantityUnits(DosingUnit.TABLET)
-                .numRefills(1)
-                .build();
-
-        return CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.ORDER)
-                .location(Location.OUTPATIENT_CLINIC)
-                .orders(List.of(order))
-                .build();
+        return OrderTestData.drugOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
     }
 
-    // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled 2 days ahead
+    // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
     // (urgency=ON_SCHEDULED_DATE) - Upcoming Medications fixture. Exposed as a request (not create+request
     // pair) since callers need the same instance both to POST /encounter and to build the expected
     // response model (see apiParts.assertions.OrderAssertions) - scheduledDate is time-sensitive.
     public static CreateEncounterRequest upcomingDrugOrderEncounterRequest(String patientUUID) {
-        DrugOrder order = DrugOrder.builder()
-                .patient(patientUUID)
-                .careSetting(CareSetting.OUTPATIENT)
-                .orderer(getCurrentProviderUuid())
-                .drug(Drug.ASPIRIN_325MG)
-                .dose(1.0)
-                .doseUnits(DosingUnit.TABLET)
-                .route(DrugRoute.ORAL)
-                .frequency(OrderFrequency.ONCE_DAILY)
-                .quantity(5.0)
-                .quantityUnits(DosingUnit.TABLET)
-                .numRefills(1)
-                .urgency(DrugOrder.URGENCY_ON_SCHEDULED_DATE)
-                .scheduledDate(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2).format(OPENMRS_REQUEST_DATE_TIME))
-                .build();
-
-        return CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.ORDER)
-                .location(Location.OUTPATIENT_CLINIC)
-                .orders(List.of(order))
-                .build();
+        return OrderTestData.upcomingDrugOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
     }
 
     // Valid inpatient lab order (Alkaline phosphatase test) as a standard fixture for order-related tests.
@@ -247,23 +144,11 @@ public class AdminSteps {
     public static QueueEntryResponse addPatientToQueue(String patientUUID, String visitUUID) {
         QueueResponse queue = getOutpatientConsultationQueue();
 
-        CreateQueueEntryRequest request = CreateQueueEntryRequest.builder()
-                .visit(Ref.of(visitUUID))
-                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
-                        .status(QueueStatus.WAITING.toRef())
-                        .priority(QueuePriority.NOT_URGENT.toRef())
-                        .queue(Ref.of(queue.getUuid()))
-                        .patient(Ref.of(patientUUID))
-                        .startedAt(OPENMRS_RESPONSE_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now()))
-                        .sortWeight(0)
-                        .build())
-                .build();
-
         return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_QUEUE_ENTRY_POST,
                 ResponseSpecs.requestReturnsCreated()
-        ).create(request);
+        ).create(QueueTestData.queueEntryRequest(queue.getUuid(), visitUUID, patientUUID));
     }
 
     public static QueueEntryResponse updateQueueEntry(
@@ -272,29 +157,19 @@ public class AdminSteps {
             QueuePriority priority,
             String priorityComment) {
 
-        UpdateQueueEntryRequest request = UpdateQueueEntryRequest.builder()
-                .status(status.toRef())
-                .priority(priority.toRef())
-                .priorityComment(priorityComment)
-                .build();
-
         return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_UPDATE,
                 ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, request);
+        ).update(queueEntryUUID, QueueTestData.updateQueueEntryRequest(status, priority, priorityComment));
     }
 
     public static QueueEntryResponse endQueueEntry(String queueEntryUUID) {
-        EndQueueEntryRequest endRequest = EndQueueEntryRequest.builder()
-                .endedAt(UTC_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now()))
-                .build();
-
         return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_UPDATE,
                 ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, endRequest);
+        ).update(queueEntryUUID, QueueTestData.endQueueEntryRequest());
     }
 
     public static GetQueueEntryResponse getActiveQueueEntries() {
@@ -333,8 +208,6 @@ public class AdminSteps {
                 ));
     }
 
-    // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer.
-    // The same for the whole run: fetched once and shared by all tests, including parallel ones
     public static CreateAppointmentResponse createAppointment(CreateAppointmentRequest request) {
         return new SuccessfulCrudRequester<CreateAppointmentResponse>(
                 RequestSpecs.adminSpec(),
@@ -344,30 +217,7 @@ public class AdminSteps {
     }
 
     public static CreateAppointmentResponse createAppointment(String patientUUID) {
-        OffsetDateTime startDateTime = DateTimeUtils.nowPlusMinutes(30);
-        OffsetDateTime endDateTime = startDateTime.plusMinutes(30);
-
-        CreateAppointmentRequest request = CreateAppointmentRequest.builder()
-                .appointmentKind(AppointmentKind.SCHEDULED.getValue())
-                .status("")
-                .serviceUuid(AppointmentService.GENERAL_MEDICINE.getUuid())
-                .startDateTime(startDateTime.format(OPENMRS_REQUEST_DATE_TIME))
-                .endDateTime(endDateTime.format(OPENMRS_REQUEST_DATE_TIME))
-                .locationUuid(Location.OUTPATIENT_CLINIC.getUuid())
-                .providers(List.of(
-                        CreateAppointmentRequest.Provider.builder()
-                                .uuid(AppointmentProvider.SUPER_USER.getUuid())
-                                .build()
-                ))
-                .patientUuid(patientUUID)
-                .comments(FAKER.text().text())
-                .dateAppointmentScheduled(
-                        DateTimeUtils.now()
-                                .format(OPENMRS_REQUEST_DATE_TIME)
-                )
-                .build();
-
-        return createAppointment(request);
+        return createAppointment(AppointmentTestData.appointmentRequest(patientUUID));
     }
 
     public static CreateAppointmentResponse cancelAppointment(
@@ -385,18 +235,7 @@ public class AdminSteps {
     }
 
     public static CreateAppointmentResponse cancelAppointment(String appointmentUUID) {
-        AppointmentStatusChangeRequest request = AppointmentStatusChangeRequest.builder()
-                .toStatus(AppointmentStatus.CANCELLED.getValue())
-                .onDate(
-                        OffsetDateTime.now()
-                                .format(DateTimeFormatter.ofPattern(
-                                        "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-                                ))
-                )
-                .timeZone("Asia/Yerevan")
-                .build();
-
-        return cancelAppointment(appointmentUUID, request);
+        return cancelAppointment(appointmentUUID, AppointmentTestData.cancelStatusChangeRequest());
     }
 
     public static CreateAppointmentResponse updateAppointment(
@@ -413,21 +252,12 @@ public class AdminSteps {
     }
 
     public static List<CreateAppointmentResponse> searchAppointments(String patientUUID) {
-        AppointmentSearchRequest request = AppointmentSearchRequest.builder()
-                .patientUuid(patientUUID)
-                .startDate(
-                        DateTimeUtils.nowMinusMonths(6)
-                                .toInstant()
-                                .toString()
-                )
-                .build();
-
         return new AppointmentRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENTS_SEARCH,
                 ResponseSpecs.requestReturnsOk()
         )
-                .search(request)
+                .search(AppointmentTestData.searchRequest(patientUUID))
                 .extract()
                 .jsonPath()
                 .getList("", CreateAppointmentResponse.class);
@@ -505,14 +335,7 @@ public class AdminSteps {
     // Request behind discontinueOrder, exposed so callers can send it themselves
     // (e.g. to exercise auth/error paths with a custom ResponseSpecification)
     public static DiscontinueOrderRequest discontinueOrderRequest(String orderUUID, String patientUUID, String encounterUUID) {
-        return DiscontinueOrderRequest.builder()
-                .previousOrder(orderUUID)
-                .careSetting(CareSetting.OUTPATIENT)
-                .encounter(encounterUUID)
-                .patient(patientUUID)
-                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
-                .orderer(getCurrentProviderUuid())
-                .build();
+        return OrderTestData.discontinueOrderRequest(orderUUID, patientUUID, encounterUUID, getCurrentProviderUuid());
     }
 
     // Discontinues a testorder (POST /order, action=DISCONTINUE), the way the laboratory
@@ -528,21 +351,7 @@ public class AdminSteps {
     // Request behind discontinueDrugOrderEncounter, exposed so callers can build the expected
     // response model from it (see apiParts.assertions.OrderAssertions)
     public static CreateEncounterRequest discontinueDrugOrderEncounterRequest(String patientUUID, String orderUUID, Drug drug) {
-        DiscontinueDrugOrderRequest order = DiscontinueDrugOrderRequest.builder()
-                .previousOrder(orderUUID)
-                .careSetting(CareSetting.OUTPATIENT)
-                .patient(patientUUID)
-                .orderer(getCurrentProviderUuid())
-                .drug(drug)
-                .orderReasonNonCoded("test indication")
-                .build();
-
-        return CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.ORDER)
-                .location(Location.OUTPATIENT_CLINIC)
-                .orders(List.of(order))
-                .build();
+        return OrderTestData.discontinueDrugOrderEncounterRequest(patientUUID, orderUUID, drug, getCurrentProviderUuid());
     }
 
     // Discontinues a drug order (POST /encounter, action=DISCONTINUE), the way the Medications page
@@ -558,16 +367,11 @@ public class AdminSteps {
     // Updates the fulfiller status of a testorder (POST /order/{uuid}/fulfillerdetails/), the way
     // the laboratory reports progress on a test order (e.g. IN_PROGRESS, then COMPLETED)
     public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status, String comment) {
-        FulfillerDetailsRequest request = FulfillerDetailsRequest.builder()
-                .fulfillerStatus(status)
-                .fulfillerComment(comment)
-                .build();
-
         new OrderFulfillerRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_FULFILLER_DETAILS_POST,
                 ResponseSpecs.requestReturnsCreated())
-                .updateFulfillerDetails(orderUUID, request);
+                .updateFulfillerDetails(orderUUID, OrderTestData.fulfillerDetailsRequest(status, comment));
     }
 
     // ======== HELPERS ========

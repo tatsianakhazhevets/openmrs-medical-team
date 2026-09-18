@@ -12,6 +12,9 @@ import apiParts.skelethon.requests.encounter.SuccessfulEncounterRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.utils.DateTimeUtils;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,7 +23,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -28,23 +30,26 @@ import java.util.stream.Stream;
 
 import static apiParts.models.errors.EncounterErrorMessages.*;
 
+@CreatePatient
 public class EncounterApiTests extends BaseTest {
 
     Faker faker = new Faker(new Locale("en", "US"));
 
     String nonExistingUuid = UUID.randomUUID().toString();
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-    String encounterDatetime = OffsetDateTime.now().withHour(10).withMinute(0).withSecond(0).withNano(0).format(formatter);
-    String updatedEncounterDatetime = OffsetDateTime.parse(encounterDatetime, formatter).plusHours(1).format(formatter);
-    String updatedEncounterDatetimeExp = OffsetDateTime.parse(updatedEncounterDatetime, formatter).withOffsetSameInstant(ZoneOffset.UTC).format(formatter);
+    String encounterDatetime = OffsetDateTime.now().withHour(10).withMinute(0).withSecond(0).withNano(0)
+            .format(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME);
+    String updatedEncounterDatetime = OffsetDateTime.parse(encounterDatetime, DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME)
+            .plusHours(1).format(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME);
+    String updatedEncounterDatetimeExp = OffsetDateTime.parse(updatedEncounterDatetime, DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME)
+            .withOffsetSameInstant(ZoneOffset.UTC).format(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME);
     double normalTemperature = faker.number().randomDouble(1, 36, 37);
 
     @Test
     public void adminCanCreateEncounter() {
-        CreatePatientResponse patient = AdminSteps.createPatient();
+        String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patient.getUuid())
+                .patient(patientUUID)
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
@@ -65,7 +70,7 @@ public class EncounterApiTests extends BaseTest {
                         .get(createdEncounterResponse.getUuid());
 
         softly.assertThat(receivedEncounterResponse.getUuid()).isEqualTo(createdEncounterResponse.getUuid());
-        softly.assertThat(receivedEncounterResponse.getPatient().getUuid()).isEqualTo(patient.getUuid());
+        softly.assertThat(receivedEncounterResponse.getPatient().getUuid()).isEqualTo(patientUUID);
         softly.assertThat(receivedEncounterResponse.getEncounterType().getUuid())
                 .isEqualTo(EncounterType.VITALS.getUuid());
         softly.assertThat(receivedEncounterResponse.getLocation().getUuid())
@@ -75,10 +80,10 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateEncounterWithObservation() {
-        CreatePatientResponse patient = AdminSteps.createPatient();
+        String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patient.getUuid())
+                .patient(patientUUID)
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
@@ -98,7 +103,7 @@ public class EncounterApiTests extends BaseTest {
                 .get(createdEncounterResponse.getUuid());
 
         softly.assertThat(receivedEncounterResponse.getUuid()).isEqualTo(createdEncounterResponse.getUuid());
-        softly.assertThat(receivedEncounterResponse.getPatient().getUuid()).isEqualTo(patient.getUuid());
+        softly.assertThat(receivedEncounterResponse.getPatient().getUuid()).isEqualTo(patientUUID);
         softly.assertThat(receivedEncounterResponse.getObs()).hasSize(1);
         softly.assertThat(receivedEncounterResponse.getObs().get(0).getUuid())
                 .isEqualTo(createdEncounterResponse.getObs().get(0).getUuid());
@@ -144,6 +149,8 @@ public class EncounterApiTests extends BaseTest {
                 .create(encounterRequest);
     }
 
+    // @MethodSource providers run before any per-test extension (e.g. @CreatePatient's
+    // BeforeEachCallback), so a dedicated patient is created here rather than relying on SessionStorage
     private static Stream<Arguments> invalidTypesEncounterRequests() {
 
         CreatePatientResponse patient = AdminSteps.createPatient();
@@ -195,10 +202,10 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanUpdateEncounter() {
-        CreatePatientResponse patient = AdminSteps.createPatient();
+        String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest createRequest = CreateEncounterRequest.builder()
-                .patient(patient.getUuid())
+                .patient(patientUUID)
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
@@ -222,7 +229,7 @@ public class EncounterApiTests extends BaseTest {
                         .update(createdEncounterResponse.getUuid(), updateRequest);
         softly.assertThat(updatedEncounterResponse.getUuid()).isEqualTo(createdEncounterResponse.getUuid());
         softly.assertThat(updatedEncounterResponse.getEncounterDatetime()).isEqualTo(updatedEncounterDatetimeExp);
-        softly.assertThat(updatedEncounterResponse.getPatient().getUuid()).isEqualTo(patient.getUuid());
+        softly.assertThat(updatedEncounterResponse.getPatient().getUuid()).isEqualTo(patientUUID);
         softly.assertThat(updatedEncounterResponse.getEncounterType().getUuid())
                 .isEqualTo(EncounterType.VITALS.getUuid());
         softly.assertThat(updatedEncounterResponse.getVoided()).isFalse();
@@ -244,10 +251,10 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanDeleteEncounter() {
-        CreatePatientResponse patient = AdminSteps.createPatient();
+        String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest encounterRequest = CreateEncounterRequest.builder()
-                .patient(patient.getUuid())
+                .patient(patientUUID)
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
