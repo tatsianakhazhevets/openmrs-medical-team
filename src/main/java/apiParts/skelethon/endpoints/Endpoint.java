@@ -241,7 +241,29 @@ public enum Endpoint {
     APPOINTMENTS_SEARCH(
             "/appointments/search",
             AppointmentSearchRequest.class,
-            CreateAppointmentResponse.class);
+            CreateAppointmentResponse.class),
+
+    // --- Added to try out NestedCrudRequester. Existing constants are untouched. ---
+    // Nested CRUD: {parentUuid} is a placeholder for the owner uuid, filled in via pathParam.
+    // One constant per resource: the HTTP method is chosen by the method being called,
+    // so separate _POST/_UPDATE/_DELETE constants are not needed here.
+    PATIENT_ALLERGY_NESTED(
+            "/patient/{parentUuid}/allergy",
+            AllergyRequest.class,
+            AllergyResponse.class),
+
+    PATIENT_IDENTIFIER_NESTED(
+            "/patient/{parentUuid}/identifier",
+            PatientIdentifierRequest.class,
+            PatientIdentifierResponse.class),
+
+    // Flat CRUD for encounter: the url is no longer hardcoded inside the requester.
+    // The existing ENCOUNTER_UPDATE is unusable with CrudRequester because it holds
+    // the literal "/encounter/{uuid}", which nothing substitutes.
+    ENCOUNTER_CRUD(
+            "/encounter",
+            CreateEncounterRequest.class,
+            CreateEncounterResponse.class);
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;

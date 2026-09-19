@@ -10,6 +10,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.identifier.IdentifierRequester;
 import apiParts.skelethon.requests.patient.PatientRequester;
+import apiParts.skelethon.requests.nested.NestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -494,4 +495,68 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsNoContent())
                 .delete(createdPatient.getUuid(), nonExistingUuid, queryParam);
     }
+
+    // ==== COPY of adminCanDeletePatientIdentifier built on NestedCrudRequester.
+    //      Original untouched. ====
+    // Differences from the original:
+    //  - creating and deleting an identifier went through DIFFERENT classes
+    //    (PatientRequester and IdentifierRequester) - now both go through
+    //    a single NestedCrudRequester;
+    //  - PATIENT_IDENTIFIER_POST / PATIENT_IDENTIFIER_DELETE replaced by one constant
+    //    PATIENT_IDENTIFIER_NESTED: the HTTP method is set by the call, not by the enum.
+    @Test
+    public void adminCanDeletePatientIdentifierViaNestedCrud() {
+        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        String newIdentifier = getPatientIdentifier();
+
+        PatientIdentifierRequest identifierRequest =
+                PatientIdentifierRequest.builder()
+                        .identifier(newIdentifier)
+                        .identifierType(IdentifierType.MRS_ID.getUuid())
+                        .location(Location.OUTPATIENT_CLINIC.getUuid())
+                        .preferred(false)
+                        .build();
+
+        // POST /patient/{patientUuid}/identifier
+        new NestedCrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_IDENTIFIER_NESTED,
+                ResponseSpecs.requestReturnsCreated())
+                .create(createdPatient.getUuid(), identifierRequest);
+
+        GetPatientResponse patientBefore = new SuccessfulCrudRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(createdPatient.getUuid());
+
+        int identifiersBefore = patientBefore.getIdentifiers().size();
+
+        String identifierUuid = patientBefore.getIdentifiers()
+                .stream()
+                .filter(id -> id.getDisplay().endsWith(newIdentifier))
+                .findFirst()
+                .orElseThrow()
+                .getUuid();
+
+        // DELETE /patient/{patientUuid}/identifier/{identifierUuid}?purge=true
+        new NestedCrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_IDENTIFIER_NESTED,
+                ResponseSpecs.requestReturnsNoContent())
+                .delete(createdPatient.getUuid(), identifierUuid, queryParam);
+
+        GetPatientResponse patientAfter = new SuccessfulCrudRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(createdPatient.getUuid());
+
+        softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore - 1);
+        softly.assertThat(patientAfter.getIdentifiers()
+                        .stream()
+                        .noneMatch(id -> id.getUuid().equals(identifierUuid)))
+                .isTrue();
+    }
+
 }
