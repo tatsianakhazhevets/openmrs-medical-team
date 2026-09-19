@@ -1,12 +1,14 @@
 package apiTests;
 
 import apiParts.models.allergy.*;
+import apiParts.models.patient.CreatePatientResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.allergy.AllergyRequester;
 import apiParts.skelethon.requests.allergy.SuccessfulAllergyRequester;
 import apiParts.skelethon.requests.nested.SuccessfulNestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiParts.steps.AdminSteps;
 import apiParts.testdata.AllergyTestData;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
