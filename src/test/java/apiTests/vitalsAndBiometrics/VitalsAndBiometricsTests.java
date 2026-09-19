@@ -14,6 +14,10 @@ import apiParts.models.errors.ObsFieldError;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
+import apiParts.models.encounter.ObsResponse;
+import apiParts.models.encounter.ObsSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -239,6 +243,43 @@ public class VitalsAndBiometricsTests extends BaseTest {
                 Arguments.of(concept, concept.valueOf(concept.low() - step), ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
                 Arguments.of(concept, concept.valueOf(concept.high() + step), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
         );
+    }
+
+
+    // ==== Search-based variant of getPatientObs(). Original helper untouched. ====
+    // GET /obs?patient=... answers a collection, so it is a search, not a CRUD get.
+    @Test
+    public void addedVitalsAreFoundBySearchViaSearchRequester() {
+        List<Obs> obs = List.of(
+                Obs.of(VitalsConcept.TEMPERATURE, RandomModelGenerator.randomDouble(36, 37, 1)));
+
+        var request = CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.VITALS)
+                .location(Location.OUTPATIENT_CLINIC)
+                .obs(obs)
+                .build();
+
+        new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(request);
+
+        SearchResult<ObsResponse> patientObs = new SuccessfulSearchRequester<ObsResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.OBS_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(ObsSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build());
+
+        ModelAssertions.assertListMatchesExpected(softly,
+                patientObs.results(),
+                ObsAssertions.expectedObsOf(request),
+                ObsAssertions::conceptUuidOf,
+                "vitals found by search");
     }
 
 }

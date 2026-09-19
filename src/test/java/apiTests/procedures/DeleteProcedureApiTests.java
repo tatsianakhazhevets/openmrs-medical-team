@@ -9,6 +9,8 @@ import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.procedure.ProcedureSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
@@ -120,4 +122,43 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .get(Map.of("patient", patientUUID, "v", "full", "includeAll", includeAll));
     }
+
+    // ==== Search-based variant of the soft-delete check. Originals untouched. ====
+    // includeAll used to be a raw boolean inside Map.of; here it is a typed field,
+    // which is what the whole difference between the two searches hinges on.
+    @Test
+    public void deletedProcedureIsHiddenFromSearchViaSearchRequester() {
+        new SuccessfulCrudRequester<BaseModel>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURE_DELETE,
+                ResponseSpecs.requestReturnsNoContent())
+                .delete(procedure.getUuid());
+
+        var searcher = new SuccessfulSearchRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURES_GET,
+                ResponseSpecs.requestReturnsOk());
+
+        softly.assertThat(searcher.search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .includeAll(false)
+                        .build())
+                        .isEmpty())
+                .as("voided procedure is hidden from the default search")
+                .isTrue();
+
+        ProcedureResponse voided = searcher.search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .includeAll(true)
+                        .build())
+                .requireOne(found -> found.getUuid().equals(procedure.getUuid()),
+                        "voided procedure " + procedure.getUuid());
+
+        softly.assertThat(voided.getVoided())
+                .as("procedure is returned by includeAll search and is marked voided")
+                .isTrue();
+    }
+
 }

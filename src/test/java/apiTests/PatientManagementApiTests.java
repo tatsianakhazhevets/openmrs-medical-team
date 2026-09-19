@@ -8,8 +8,11 @@ import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.skelethon.requests.identifier.IdentifierRequester;
 import apiParts.skelethon.requests.patient.PatientRequester;
+import apiParts.skelethon.requests.nested.NestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -494,4 +497,116 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsNoContent())
                 .delete(createdPatient.getUuid(), nonExistingUuid, queryParam);
     }
+
+    // ==== COPY of adminCanDeletePatientIdentifier built on NestedCrudRequester.
+    //      Original untouched. ====
+    // Differences from the original:
+    //  - creating and deleting an identifier went through DIFFERENT classes
+    //    (PatientRequester and IdentifierRequester) - now both go through
+    //    a single NestedCrudRequester;
+    //  - PATIENT_IDENTIFIER_POST / PATIENT_IDENTIFIER_DELETE replaced by one constant
+    //    PATIENT_IDENTIFIER_NESTED: the HTTP method is set by the call, not by the enum.
+    @Test
+    public void adminCanDeletePatientIdentifierViaNestedCrud() {
+        CreatePatientResponse createdPatient = AdminSteps.createPatient();
+        String newIdentifier = getPatientIdentifier();
+
+        PatientIdentifierRequest identifierRequest =
+                PatientIdentifierRequest.builder()
+                        .identifier(newIdentifier)
+                        .identifierType(IdentifierType.MRS_ID.getUuid())
+                        .location(Location.OUTPATIENT_CLINIC.getUuid())
+                        .preferred(false)
+                        .build();
+
+        // POST /patient/{patientUuid}/identifier
+        new NestedCrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_IDENTIFIER_NESTED,
+                ResponseSpecs.requestReturnsCreated())
+                .create(createdPatient.getUuid(), identifierRequest);
+
+        GetPatientResponse patientBefore = new SuccessfulCrudRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(createdPatient.getUuid());
+
+        int identifiersBefore = patientBefore.getIdentifiers().size();
+
+        String identifierUuid = patientBefore.getIdentifiers()
+                .stream()
+                .filter(id -> id.getDisplay().endsWith(newIdentifier))
+                .findFirst()
+                .orElseThrow()
+                .getUuid();
+
+        // DELETE /patient/{patientUuid}/identifier/{identifierUuid}?purge=true
+        new NestedCrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_IDENTIFIER_NESTED,
+                ResponseSpecs.requestReturnsNoContent())
+                .delete(createdPatient.getUuid(), identifierUuid, queryParam);
+
+        GetPatientResponse patientAfter = new SuccessfulCrudRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(createdPatient.getUuid());
+
+        softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore - 1);
+        softly.assertThat(patientAfter.getIdentifiers()
+                        .stream()
+                        .noneMatch(id -> id.getUuid().equals(identifierUuid)))
+                .isTrue();
+    }
+
+
+    // ==== COPY of adminCanSearchPatient on SuccessfulSearchRequester. Original untouched. ====
+    // GET /patient?q=... is a free-text search: it answers a collection, and a query
+    // matching nobody answers 200 with an empty list rather than 404. That is the
+    // difference in contract that keeps it out of CrudEndpoint - see the sibling test below.
+    @Test
+    public void adminCanSearchPatientViaSearchRequester() {
+        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        String searchQuery = createPatientResponse.getPerson().getPreferredName().getDisplay();
+
+        GetPatientResponse found = new SuccessfulSearchRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_SEARCH_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(PatientSearchParams.builder()
+                        .query(searchQuery)
+                        .representation("default")
+                        .limit(10)
+                        .build())
+                .requireOne(patient -> patient.getUuid().equals(createPatientResponse.getUuid()),
+                        "created patient " + createPatientResponse.getUuid());
+
+        softly.assertThat(found.getUuid()).isEqualTo(createPatientResponse.getUuid());
+    }
+
+    // ==== COPY of adminCannotFindNonExistingPatient on SuccessfulSearchRequester. ====
+    // The original carries the note "Fix needed: Expected status code <404> but was <200>".
+    // There is nothing to fix in the API: 200 + empty results IS the search contract.
+    // Expressed through SearchResult this reads as an assertion instead of a puzzle.
+    @Test
+    public void adminCannotFindNonExistingPatientViaSearchRequester() {
+        String searchQuery = "non-existing-patient-" + System.currentTimeMillis();
+
+        SearchResult<GetPatientResponse> searchResult = new SuccessfulSearchRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_SEARCH_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(PatientSearchParams.builder()
+                        .query(searchQuery)
+                        .representation("default")
+                        .limit(10)
+                        .build());
+
+        softly.assertThat(searchResult.isEmpty())
+                .as("a search matching nobody answers 200 with an empty list, not 404")
+                .isTrue();
+    }
+
 }
