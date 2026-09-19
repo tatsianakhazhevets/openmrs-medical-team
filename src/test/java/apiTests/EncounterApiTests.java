@@ -9,6 +9,7 @@ import apiParts.models.patient.CreatePatientResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.encounter.EncounterRequester;
 import apiParts.skelethon.requests.encounter.SuccessfulEncounterRequester;
+import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -284,4 +285,47 @@ public class EncounterApiTests extends BaseTest {
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .delete(nonExistingUuid);
     }
+
+    // ==== COPY of adminCanUpdateEncounter built on the plain CrudRequester.
+    //      Original untouched. ====
+    // Encounter is NOT a nested resource: /encounter/{uuid} has a single variable
+    // segment, so this needs the standard SuccessfulCrudRequester, not NestedCrud.
+    // EncounterRequester added nothing but a hardcoded "/encounter" inside the class.
+    @Test
+    public void adminCanUpdateEncounterViaCrud() {
+        CreatePatientResponse patient = AdminSteps.createPatient();
+
+        CreateEncounterRequest createRequest = CreateEncounterRequest.builder()
+                .patient(patient.getUuid())
+                .encounterType(EncounterType.VITALS)
+                .encounterDatetime(encounterDatetime)
+                .location(Location.OUTPATIENT_CLINIC)
+                .build();
+
+        // POST /encounter
+        CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_CRUD,
+                ResponseSpecs.requestReturnsCreated())
+                .create(createRequest);
+
+        CreateEncounterRequest updateRequest = CreateEncounterRequest.builder()
+                .encounterDatetime(updatedEncounterDatetime)
+                .build();
+
+        // POST /encounter/{uuid}
+        CreateEncounterResponse updatedEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_CRUD,
+                ResponseSpecs.requestReturnsOk())
+                .update(createdEncounterResponse.getUuid(), updateRequest);
+
+        softly.assertThat(updatedEncounterResponse.getUuid()).isEqualTo(createdEncounterResponse.getUuid());
+        softly.assertThat(updatedEncounterResponse.getEncounterDatetime()).isEqualTo(updatedEncounterDatetimeExp);
+        softly.assertThat(updatedEncounterResponse.getPatient().getUuid()).isEqualTo(patient.getUuid());
+        softly.assertThat(updatedEncounterResponse.getEncounterType().getUuid())
+                .isEqualTo(EncounterType.VITALS.getUuid());
+        softly.assertThat(updatedEncounterResponse.getVoided()).isFalse();
+    }
+
 }
