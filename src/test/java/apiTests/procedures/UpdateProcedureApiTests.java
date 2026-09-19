@@ -11,6 +11,8 @@ import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.procedure.ProcedureSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
@@ -272,4 +274,26 @@ public class UpdateProcedureApiTests extends BaseTest {
     private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
         return mutation;
     }
+
+    // ==== Search-based variant of getPatientProcedures(). Original helper untouched. ====
+    // The procedure comes from @CreateProcedure, so this only exercises the lookup.
+    @Test
+    public void procedureFromPreconditionIsFoundBySearchViaSearchRequester() {
+        ProcedureResponse found = new SuccessfulSearchRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURES_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build())
+                .requireOne(candidate -> candidate.getUuid().equals(procedure.getUuid()),
+                        "procedure " + procedure.getUuid());
+
+        ModelAssertions.assertMatchesExpected(softly,
+                found,
+                ProcedureAssertions.expectedProcedureOf(createRequest),
+                "procedure found by search");
+    }
+
 }

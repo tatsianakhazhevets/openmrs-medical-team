@@ -5,6 +5,7 @@ import apiParts.models.Location;
 import apiParts.models.appointment.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -205,4 +206,29 @@ public class AppointmentTests extends BaseTest {
                 ResponseSpecs.requestReturnsBadRequest()
         ).create(request);
     }
+
+    // ==== COPY of shouldSearchAppointmentsByPatient on SuccessfulSearchRequester.
+    //      Original untouched. ====
+    // This is the project's only POST-with-body search, and its response is a BARE
+    // JSON ARRAY rather than the usual {"results": [...]} wrapper. AdminSteps has to
+    // work around that by hand with extract().jsonPath().getList("", X.class);
+    // SuccessfulSearchRequester recognises both shapes, so the test does not care.
+    @Test
+    void shouldSearchAppointmentsByPatientViaSearchRequester() {
+        CreateAppointmentResponse appointment = AdminSteps.createAppointment(patientUUID);
+        appointmentUUID = appointment.getUuid();
+
+        CreateAppointmentResponse foundAppointment =
+                new SuccessfulSearchRequester<CreateAppointmentResponse>(
+                        RequestSpecs.adminSpec(),
+                        Endpoint.APPOINTMENTS_SEARCH,
+                        ResponseSpecs.requestReturnsOk())
+                        .searchByBody(AppointmentTestData.searchRequest(patientUUID))
+                        .requireOne(found -> found.getUuid().equals(appointment.getUuid()),
+                                "created appointment " + appointment.getUuid());
+
+        AppointmentAssertions.assertMatchesPostAndGet(softly, appointment, foundAppointment);
+        softly.assertAll();
+    }
+
 }

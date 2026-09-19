@@ -8,6 +8,8 @@ import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.skelethon.requests.identifier.IdentifierRequester;
 import apiParts.skelethon.requests.patient.PatientRequester;
 import apiParts.skelethon.requests.nested.NestedCrudRequester;
@@ -556,6 +558,54 @@ public class PatientManagementApiTests extends BaseTest {
         softly.assertThat(patientAfter.getIdentifiers()
                         .stream()
                         .noneMatch(id -> id.getUuid().equals(identifierUuid)))
+                .isTrue();
+    }
+
+
+    // ==== COPY of adminCanSearchPatient on SuccessfulSearchRequester. Original untouched. ====
+    // GET /patient?q=... is a free-text search: it answers a collection, and a query
+    // matching nobody answers 200 with an empty list rather than 404. That is the
+    // difference in contract that keeps it out of CrudEndpoint - see the sibling test below.
+    @Test
+    public void adminCanSearchPatientViaSearchRequester() {
+        CreatePatientResponse createPatientResponse = AdminSteps.createPatient();
+        String searchQuery = createPatientResponse.getPerson().getPreferredName().getDisplay();
+
+        GetPatientResponse found = new SuccessfulSearchRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_SEARCH_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(PatientSearchParams.builder()
+                        .query(searchQuery)
+                        .representation("default")
+                        .limit(10)
+                        .build())
+                .requireOne(patient -> patient.getUuid().equals(createPatientResponse.getUuid()),
+                        "created patient " + createPatientResponse.getUuid());
+
+        softly.assertThat(found.getUuid()).isEqualTo(createPatientResponse.getUuid());
+    }
+
+    // ==== COPY of adminCannotFindNonExistingPatient on SuccessfulSearchRequester. ====
+    // The original carries the note "Fix needed: Expected status code <404> but was <200>".
+    // There is nothing to fix in the API: 200 + empty results IS the search contract.
+    // Expressed through SearchResult this reads as an assertion instead of a puzzle.
+    @Test
+    public void adminCannotFindNonExistingPatientViaSearchRequester() {
+        String searchQuery = "non-existing-patient-" + System.currentTimeMillis();
+
+        SearchResult<GetPatientResponse> searchResult = new SuccessfulSearchRequester<GetPatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_SEARCH_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(PatientSearchParams.builder()
+                        .query(searchQuery)
+                        .representation("default")
+                        .limit(10)
+                        .build());
+
+        softly.assertThat(searchResult.isEmpty())
+                .as("a search matching nobody answers 200 with an empty list, not 404")
                 .isTrue();
     }
 

@@ -11,6 +11,9 @@ import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.procedure.ProcedureSearchParams;
+import apiParts.skelethon.requests.search.SearchRequester;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
@@ -210,4 +213,41 @@ public class GetProcedureApiTests extends BaseTest {
     private static String format(OffsetDateTime dateTime) {
         return dateTime.format(OPENMRS_REQUEST_DATE_TIME);
     }
+
+    // ==== Search-based variant of getPatientProcedures(). Original helper untouched. ====
+    // GET /procedure?patient=... answers a collection, so it is a search, not a CRUD get.
+    // Map.of("patient", patientUUID, "v", "full") becomes typed params, and the
+    // stream/filter/orElseThrow lookup becomes requireOne().
+    @Test
+    public void adminCanFindCreatedProcedureViaSearch() {
+        ProcedureResponse created = createProcedure(validProcedure().build());
+
+        ProcedureResponse found = new SuccessfulSearchRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURES_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build())
+                .requireOne(procedure -> procedure.getUuid().equals(created.getUuid()),
+                        "created procedure " + created.getUuid());
+
+        softly.assertThat(found.getUuid()).isEqualTo(created.getUuid());
+    }
+
+    // ==== COPY of adminCannotGetProceduresWithoutPatient on the raw SearchRequester. ====
+    // Negative case belongs on the raw requester: a 400 body must not be run
+    // through deserialization into GetProceduresResponse.
+    @Test
+    public void adminCannotGetProceduresWithoutPatientViaSearch() {
+        new SearchRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURES_GET,
+                ResponseSpecs.requestReturnsBadRequestWithMessage(ProcedureErrorMessage.OPERATION_NOT_SUPPORTED))
+                .search(ProcedureSearchParams.builder()
+                        .representation("full")
+                        .build());
+    }
+
 }
