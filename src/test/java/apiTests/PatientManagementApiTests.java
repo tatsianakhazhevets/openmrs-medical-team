@@ -1,5 +1,6 @@
 package apiTests;
 
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.Location;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
@@ -35,7 +36,8 @@ public class PatientManagementApiTests extends BaseTest {
     Faker faker = new Faker(new Locale("en", "US"));
 
     String gender = faker.gender().binaryTypes();
-    String shortGender = faker.gender().binaryTypes();;
+    String shortGender = faker.gender().binaryTypes();
+    ;
     String givenName = faker.name().firstName();
     String familyName = faker.name().lastName();
     String birthdate = faker.timeAndDate().birthday(18, 65, "yyyy-MM-dd");
@@ -44,49 +46,13 @@ public class PatientManagementApiTests extends BaseTest {
     String address = faker.address().streetAddress();
     String country = StringUtils.left(faker.address().country(), 50);
     String identifier = AdminSteps.getPatientIdentifier();
-    String nonExistingUuid = UUID.randomUUID().toString();;
+    String nonExistingUuid = UUID.randomUUID().toString();
+    ;
     Map<String, Boolean> queryParam = Map.of("purge", true);
 
     @Test
     public void adminCanCreatePatient() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username(RequestSpecs.ADMIN_USERNAME)
-                .password(RequestSpecs.ADMIN_PASSWORD)
-                .build();
-
-        new SuccessfulAuthRequester<LoginAdminResponse>(
-                RequestSpecs.unAuthSpec(),
-                Endpoint.LOGIN_GET,
-                ResponseSpecs.requestReturnsOk())
-                .login(loginAdminRequest);
-
-        CreatePatientRequest createPatientRequest = CreatePatientRequest.builder()
-                .person(PersonRequest.builder()
-                        .gender(shortGender)
-                        .birthdate(birthdate)
-                        .birthdateEstimated(false)
-                        .dead(false)
-                        .names(List.of(
-                                PersonName.builder()
-                                        .givenName(givenName)
-                                        .familyName(familyName)
-                                        .build()))
-                        .addresses(List.of(
-                                PersonAddress.builder()
-                                        .address1(address)
-                                        .cityVillage(city)
-                                        .country(country)
-                                        .postalCode(postalCode)
-                                        .build()))
-                        .build())
-                .identifiers(List.of(
-                        PatientIdentifierRequest.builder()
-                                .identifier(identifier)
-                                .identifierType(IdentifierType.MRS_ID.getUuid())
-                                .location(Location.OUTPATIENT_CLINIC.getUuid())
-                                .preferred(true)
-                                .build()))
-                .build();
+        CreatePatientRequest createPatientRequest = RandomModelGenerator.generate(CreatePatientRequest.class);
 
         CreatePatientResponse createdPatientResponse = new SuccessfulCrudRequester<CreatePatientResponse>(
                 RequestSpecs.adminSpec(),
@@ -104,17 +70,26 @@ public class PatientManagementApiTests extends BaseTest {
 
         softly.assertThat(getPatientResponse.getUuid()).isEqualTo(createdPatientResponse.getUuid());
         softly.assertThat(getPatientResponse.getPerson()).isNotNull();
-        softly.assertThat(getPatientResponse.getPerson().getUuid()).isEqualTo(createdPatientResponse.getUuid());
-        softly.assertThat(getPatientResponse.getPerson().getGender()).isEqualTo(shortGender);
-        softly.assertThat(getPatientResponse.getPerson().getBirthdate()).startsWith(birthdate);
-        softly.assertThat(getPatientResponse.getPerson().getBirthdateEstimated()).isFalse();
-        softly.assertThat(getPatientResponse.getPerson().getDead()).isFalse();
+        softly.assertThat(getPatientResponse.getPerson().getUuid())
+                .isEqualTo(createdPatientResponse.getUuid());
+        softly.assertThat(getPatientResponse.getPerson().getGender())
+                .isEqualTo(createPatientRequest.getPerson().getGender());
+        softly.assertThat(getPatientResponse.getPerson().getBirthdate())
+                .startsWith(createPatientRequest.getPerson().getBirthdate());
+        softly.assertThat(getPatientResponse.getPerson().getBirthdateEstimated())
+                .isEqualTo(createPatientRequest.getPerson().getBirthdateEstimated());
+        softly.assertThat(getPatientResponse.getPerson().getDead())
+                .isEqualTo(createPatientRequest.getPerson().getDead());
         softly.assertThat(getPatientResponse.getPerson().getPreferredName()).isNotNull();
-        softly.assertThat(getPatientResponse.getPerson().getPreferredName().getDisplay()).isEqualTo(givenName + " " + familyName);
+        softly.assertThat(getPatientResponse.getPerson().getPreferredName().getDisplay())
+                .isEqualTo(createPatientRequest.getPerson().getNames().get(0).getGivenName() + " "
+                        + createPatientRequest.getPerson().getNames().get(0).getFamilyName());
         softly.assertThat(getPatientResponse.getPerson().getPreferredAddress()).isNotNull();
-        softly.assertThat(getPatientResponse.getPerson().getPreferredAddress().getDisplay()).isEqualTo(address);
+        softly.assertThat(getPatientResponse.getPerson().getPreferredAddress().getDisplay())
+                .isEqualTo(createPatientRequest.getPerson().getAddresses().get(0).getAddress1());
         softly.assertThat(getPatientResponse.getIdentifiers()).isNotEmpty();
-        softly.assertThat(getPatientResponse.getIdentifiers().get(0).getDisplay()).endsWith(identifier);
+        softly.assertThat(getPatientResponse.getIdentifiers().get(0).getDisplay())
+                .endsWith(createPatientRequest.getIdentifiers().get(0).getIdentifier());
     }
 
     @Test
