@@ -6,6 +6,10 @@ import com.mifmif.common.regex.Generex;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -33,6 +37,8 @@ public class RandomModelGenerator {
     private static final int DEFAULT_COLLECTION_MIN_SIZE = 1;
     private static final int DEFAULT_COLLECTION_MAX_SIZE = 3;
     private static final int LETTERS_IN_ALPHABET = 26;
+    private static final DateTimeFormatter OPENMRS_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     public static <T> T generate(Class<T> clazz) {
         return generate(clazz, new HashMap<>(), 0);
@@ -42,12 +48,45 @@ public class RandomModelGenerator {
         return generate(clazz, overrides, 0);
     }
 
-    private static <T> T generate(Class<T> clazz, Map<String, Object> overrides, int depth) {
+    private static Object generateIdentifierField(
+            Field identifierField,
+            Object instance
+    ) {
+        try {
+            IdentifierGeneratingRule rule =
+                    identifierField.getAnnotation(IdentifierGeneratingRule.class);
+
+            Field typeField =
+                    instance.getClass().getDeclaredField(rule.typeField());
+
+            typeField.setAccessible(true);
+
+            String identifierTypeUuid =
+                    (String) typeField.get(instance);
+
+            return IdentifierGenerator.generate(identifierTypeUuid);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to generate identifier for: "
+                            + instance.getClass().getName(),
+                    e
+            );
+        }
+    }
+
+    private static <T> T generate(
+            Class<T> clazz,
+            Map<String, Object> overrides,
+            int depth
+    ) {
         if (depth > MAX_DEPTH) return null;
 
         try {
             T instance = createInstance(clazz);
 
+            // Сначала генерируем все поля,
+            // кроме тех, которые зависят от других полей
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
 
@@ -56,14 +95,34 @@ public class RandomModelGenerator {
                     continue;
                 }
 
+                if (field.isAnnotationPresent(IdentifierGeneratingRule.class)) {
+                    continue;
+                }
+
                 Object value = generateFieldValue(field, depth);
+                field.set(instance, value);
+            }
+
+            // Теперь identifierType уже заполнен,
+            // поэтому можем генерировать identifier
+            for (Field field : clazz.getDeclaredFields()) {
+                field.setAccessible(true);
+
+                if (!field.isAnnotationPresent(IdentifierGeneratingRule.class)) {
+                    continue;
+                }
+
+                Object value = generateIdentifierField(field, instance);
                 field.set(instance, value);
             }
 
             return instance;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate model for: " + clazz.getName(), e);
+            throw new RuntimeException(
+                    "Failed to generate model for: " + clazz.getName(),
+                    e
+            );
         }
     }
 
@@ -154,6 +213,23 @@ public class RandomModelGenerator {
             return generateFromRegex(stringRule.regex());
         }
 
+        EnumGeneratingRule enumRule = field.getAnnotation(EnumGeneratingRule.class);
+        if (enumRule != null && type.equals(String.class)) {
+            return generateFromEnum(enumRule);
+        }
+
+        BooleanGeneratingRule booleanRule = field.getAnnotation(BooleanGeneratingRule.class);
+
+        if (booleanRule != null && (type.equals(boolean.class) || type.equals(Boolean.class))) {
+            return booleanRule.value();
+        }
+
+        DateGeneratingRule dateRule = field.getAnnotation(DateGeneratingRule.class);
+
+        if (dateRule != null && type.equals(String.class)) {
+            return generateDate(dateRule);
+        }
+
         DoubleGeneratingRule doubleRule = field.getAnnotation(DoubleGeneratingRule.class);
         if (doubleRule != null && (type.equals(double.class) || type.equals(Double.class))) {
             return randomDouble(doubleRule.min(), doubleRule.max(), doubleRule.range());
@@ -183,11 +259,26 @@ public class RandomModelGenerator {
 
     private static Object generateCollection(Field field, int depth) {
         try {
-            ParameterizedType genericType = (ParameterizedType) field.getGenericType();
-            Class<?> itemType = (Class<?>) genericType.getActualTypeArguments()[0];
+            ParameterizedType genericType =
+                    (ParameterizedType) field.getGenericType();
+
+            Class<?> itemType =
+                    (Class<?>) genericType.getActualTypeArguments()[0];
+
+            CollectionGeneratingRule rule =
+                    field.getAnnotation(CollectionGeneratingRule.class);
+
+            int minSize = DEFAULT_COLLECTION_MIN_SIZE;
+            int maxSize = DEFAULT_COLLECTION_MAX_SIZE;
+
+            if (rule != null) {
+                minSize = rule.minSize();
+                maxSize = rule.maxSize();
+            }
 
             List<Object> list = new ArrayList<>();
-            int size = randomInt(DEFAULT_COLLECTION_MIN_SIZE, DEFAULT_COLLECTION_MAX_SIZE);
+
+            int size = randomInt(minSize, maxSize);
 
             for (int i = 0; i < size; i++) {
                 list.add(generate(itemType, null, depth + 1));
@@ -204,6 +295,44 @@ public class RandomModelGenerator {
         Generex generex = new Generex(regex);
         return generex.random();
     }
+
+    private static String generateFromEnum(EnumGeneratingRule rule) {
+        try {
+            Enum<?>[] values = rule.enumClass().getEnumConstants();
+
+            Enum<?> randomValue =
+                    values[ThreadLocalRandom.current().nextInt(values.length)];
+
+            return (String) rule.enumClass()
+                    .getMethod(rule.valueMethod())
+                    .invoke(randomValue);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to generate value from enum: "
+                            + rule.enumClass().getName(),
+                    e
+            );
+        }
+    }
+
+
+    private static String generateDate(DateGeneratingRule rule) {
+        LocalDate start = LocalDate.of(rule.minYear(), 1, 1);
+        LocalDate end = LocalDate.of(rule.maxYear(), 12, 31);
+
+        long daysBetween = ChronoUnit.DAYS.between(start, end);
+
+        LocalDate randomDate = start.plusDays(
+                ThreadLocalRandom.current().nextLong(daysBetween + 1)
+        );
+
+        return randomDate
+                .atStartOfDay()
+                .atOffset(ZoneOffset.UTC)
+                .format(OPENMRS_DATE_FORMAT);
+    }
+
 
     private static <T> T createInstance(Class<T> clazz) throws Exception {
         Constructor<T> constructor = clazz.getDeclaredConstructor();
