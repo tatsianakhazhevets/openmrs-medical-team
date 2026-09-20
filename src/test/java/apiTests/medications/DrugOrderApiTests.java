@@ -21,6 +21,9 @@ import apiParts.models.order.OrderFrequency;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.models.order.OrderSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -303,4 +306,37 @@ public class DrugOrderApiTests extends BaseTest {
     private static UnaryOperator<DrugOrderBuilder> mutate(UnaryOperator<DrugOrderBuilder> mutation) {
         return mutation;
     }
+
+    // ==== Search-based variant of getPatientOrders(). Original helper untouched. ====
+    // Same call, but "t" and "v" are fields instead of string keys in a Map,
+    // so a typo is a compile error rather than a differently filtered request.
+    @Test
+    public void createdDrugOrderIsFoundBySearchViaSearchRequester() {
+        DrugOrder order = validOutpatientOrder().build();
+        CreateEncounterRequest encounterRequest = encounterWith(order);
+
+        CreateEncounterResponse encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(encounterRequest);
+
+        softly.assertThat(encounter.getOrders()).as("created drug order").hasSize(1);
+        String orderUUID = encounter.getOrders().get(0).getUuid();
+
+        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build())
+                .requireOne(found -> found.getUuid().equals(orderUUID),
+                        "created order " + orderUUID);
+
+        softly.assertThat(savedOrder.getUuid()).isEqualTo(orderUUID);
+    }
+
 }

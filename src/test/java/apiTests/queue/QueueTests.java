@@ -1,11 +1,14 @@
 package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.models.Location;
 import apiParts.models.encounter.Ref;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
+import apiParts.models.queueEntry.QueueEntrySearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -133,4 +136,28 @@ public class QueueTests extends BaseTest {
                 ResponseSpecs.requestReturnsNotFound()
         ).update(NON_EXISTING_QUEUE_ENTRY_UUID, request);
     }
+
+    // ==== Search-based variant of AdminSteps.getActiveQueueEntries(). Original untouched. ====
+    // The long custom:(...) projection moves out of an inline Map into a params object,
+    // and the stream/filter/orElseThrow lookup becomes requireOne().
+    @Test
+    void addedQueueEntryIsFoundBySearchViaSearchRequester() {
+        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        queueEntryUUID = response.getUuid();
+
+        QueueEntryResponse foundEntry = new SuccessfulSearchRequester<QueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(QueueEntrySearchParams.builder()
+                        .representation(QueueEntrySearchParams.ACTIVE_ENTRY_REPRESENTATION)
+                        .location(Location.OUTPATIENT_CLINIC.getUuid())
+                        .isEnded(false)
+                        .build())
+                .requireOne(entry -> entry.getUuid().equals(response.getUuid()),
+                        "created queue entry " + response.getUuid());
+
+        ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
+    }
+
 }

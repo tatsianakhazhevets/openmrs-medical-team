@@ -13,6 +13,9 @@ import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
+import apiParts.skelethon.requests.search.SearchRequester;
+import apiParts.models.order.DrugOrderResponse;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -116,6 +119,53 @@ public class GetOrderApiTests extends BaseTest {
         softly.assertThat(labEncounter.getOrders().get(0).getDisplay())
                 .as("lab order display")
                 .isEqualTo("Alkaline phosphatase");
+    }
+
+
+    // ==== COPY of authRequiredToFetchListOfOrders built on the raw SearchRequester.
+    //      Original untouched. ====
+    // Negative scenarios belong on the raw requester: it never tries to deserialize
+    // a body that a 401 does not have.
+    @Test
+    public void authRequiredToFetchListOfOrdersViaSearch() {
+        OrderSearchParams searchParams = OrderSearchParams.builder()
+                .patient(SessionStorage.getPatient().getUuid())
+                .careSetting(CareSetting.INPATIENT.name())
+                .limit(1)
+                .representation("default")
+                .build();
+
+        new SearchRequester(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LIST_ORDERS_GET,
+                ResponseSpecs.requestReturnsUnauthorized())
+                .search(searchParams);
+    }
+
+    // ==== Search-based variant of the lookup done inside adminCanCheckSpecificOrderDetails.
+    //      Original untouched. ====
+    // Replaces Map.of("patient", ..., "t", "drugorder", "v", "full") with typed params,
+    // and getResults().stream().filter(...).findFirst().orElseThrow(...) with requireOne().
+    @Test
+    @CreateOrder(DRUG)
+    public void adminCanFindCreatedOrderViaSearch() {
+        String patientUUID = SessionStorage.getPatient().getUuid();
+        String orderUUID = SessionStorage.getOrderUuid();
+
+        OrderSearchParams searchParams = OrderSearchParams.builder()
+                .patient(patientUUID)
+                .type("drugorder")
+                .representation("full")
+                .build();
+
+        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(searchParams)
+                .requireOne(order -> order.getUuid().equals(orderUUID), "created order " + orderUUID);
+
+        softly.assertThat(savedOrder.getUuid()).isEqualTo(orderUUID);
     }
 
 }

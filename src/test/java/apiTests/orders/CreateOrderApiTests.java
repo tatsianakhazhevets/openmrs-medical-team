@@ -14,6 +14,9 @@ import apiParts.models.order.TestOrder;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.models.order.OrderSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -181,6 +184,45 @@ public class CreateOrderApiTests extends BaseTest {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsServerError())
                 .create(request);
+    }
+
+
+    // ==== Search-based variant of the "order was persisted" check. Originals untouched. ====
+    // GET /order?patient=...&t=drugorder answers a collection, so it is a search.
+    // Map.of(...) becomes typed params and the stream lookup becomes requireOne().
+    @Test
+    public void createdDrugOrderIsReturnedBySearchViaSearchRequester() {
+        var patientResponse = AdminSteps.createPatient();
+        String patientUUID = patientResponse.getUuid();
+
+        CreateEncounterRequest drugOrderRequest =
+                OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
+
+        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(drugOrderRequest);
+
+        softly.assertThat(encounter.getOrders()).as("created drug order").hasSize(1);
+        String orderUUID = encounter.getOrders().get(0).getUuid();
+
+        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build())
+                .requireOne(order -> order.getUuid().equals(orderUUID),
+                        "created order " + orderUUID);
+
+        ModelAssertions.assertMatchesExpected(softly,
+                savedOrder,
+                OrderAssertions.expectedOrdersOf(drugOrderRequest).get(0),
+                "drug order found by search");
     }
 
 }

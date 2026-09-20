@@ -1,6 +1,7 @@
 package apiParts.models.order;
 
 import apiParts.models.BaseModel;
+import apiParts.models.search.SearchResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ListOrdersResponse extends BaseModel {
+public class ListOrdersResponse extends BaseModel implements SearchResponse<Order> {
 
     private List<Order> results;
     private List<Link> links;

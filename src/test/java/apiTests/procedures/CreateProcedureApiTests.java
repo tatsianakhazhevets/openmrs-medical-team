@@ -18,6 +18,8 @@ import apiParts.models.procedure.ProcedureType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.procedure.ProcedureSearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
@@ -277,4 +279,33 @@ public class CreateProcedureApiTests extends BaseTest {
     private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
         return mutation;
     }
+
+    // ==== Search-based variant of the "procedure was persisted" check. Originals untouched. ====
+    @Test
+    public void createdProcedureIsReturnedBySearchViaSearchRequester() {
+        CreateProcedureRequest request = validProcedure().build();
+
+        ProcedureResponse created = new SuccessfulCrudRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURE_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(request);
+
+        ProcedureResponse found = new SuccessfulSearchRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURES_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build())
+                .requireOne(procedure -> procedure.getUuid().equals(created.getUuid()),
+                        "created procedure " + created.getUuid());
+
+        ModelAssertions.assertMatchesExpected(softly,
+                found,
+                ProcedureAssertions.expectedProcedureOf(request),
+                "procedure found by search");
+    }
+
 }

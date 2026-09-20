@@ -1,5 +1,6 @@
 package apiParts.models.order;
 
+import apiParts.models.search.SearchParams;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,10 +14,11 @@ import lombok.Builder;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderSearchParams {
+public class OrderSearchParams implements SearchParams {
 
     private String patient;
     private String careSetting;
+    private String type;
     private Integer limit;
     private Integer startIndex;
     private String representation;
@@ -26,10 +28,12 @@ public class OrderSearchParams {
      * {@code CrudEndpoint#get(Map)}, so a single generic requester can be reused
      * instead of a dedicated endpoint/requester pair for every query-param GET.
      */
+    @Override
     public Map<String, Object> toQueryParams() {
         Map<String, Object> queryParams = new LinkedHashMap<>();
         putIfPresent(queryParams, "patient", patient);
         putIfPresent(queryParams, "caresetting", careSetting);
+        putIfPresent(queryParams, "t", type);
         putIfPresent(queryParams, "limit", limit);
         putIfPresent(queryParams, "startIndex", startIndex);
         putIfPresent(queryParams, "v", representation);
