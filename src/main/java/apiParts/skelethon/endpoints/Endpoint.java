@@ -69,21 +69,6 @@ public enum Endpoint {
             GetIdentifierRequest.class,
             GetIdentifierResponse.class),
 
-    PATIENT_IDENTIFIER_POST(
-            "/patient",
-            PatientIdentifierRequest.class,
-            PatientIdentifierResponse.class),
-
-    PATIENT_IDENTIFIER_UPDATE(
-            "/patient",
-            PatientIdentifierRequest.class,
-            PatientIdentifierResponse.class),
-
-    PATIENT_IDENTIFIER_DELETE(
-            "/patient",
-            BaseModel.class,
-            BaseModel.class),
-
     ENCOUNTER_POST(
             "/encounter",
             CreateEncounterRequest.class,
@@ -92,11 +77,6 @@ public enum Endpoint {
     ENCOUNTER_GET(
             "/encounter",
             BaseModel.class,
-            CreateEncounterResponse.class),
-
-    ENCOUNTER_UPDATE(
-            "/encounter/{uuid}",
-            CreateEncounterRequest.class,
             CreateEncounterResponse.class),
 
     ENCOUNTER_DELETE(
@@ -129,12 +109,6 @@ public enum Endpoint {
             "/order",
             DiscontinueOrderRequest.class,
             Order.class),
-
-    // POST /order/{uuid}/fulfillerdetails/, used with OrderFulfillerRequester (nested path)
-    ORDER_FULFILLER_DETAILS_POST(
-            "/order",
-            FulfillerDetailsRequest.class,
-            BaseModel.class),
 
     PROCEDURE_POST(
             "/procedure",
@@ -179,27 +153,6 @@ public enum Endpoint {
             BaseModel.class,
             GetVisitResponse.class),
 
-    ALLERGY_POST(
-            "/allergy",
-            AllergyRequest.class,
-            AllergyResponse.class),
-
-    PATIENT_ALLERGY_GET(
-            "/allergy",
-            BaseModel.class,
-            AllergyResponse.class
-    ),
-
-    ALLERGY_UPDATE(
-            "/allergy",
-            AllergyRequest.class,
-            AllergyResponse.class),
-
-    ALLERGY_DELETE(
-            "/allergy",
-            BaseModel.class,
-            AllergyResponse.class),
-
     VISIT_QUEUE_ENTRY_POST(
             "/visit-queue-entry",
             CreateQueueEntryRequest.class,
@@ -225,28 +178,14 @@ public enum Endpoint {
             CreateAppointmentRequest.class,
             CreateAppointmentResponse.class),
 
-    APPOINTMENT_SUMMARY_GET(
-            "/appointment/appointmentSummary",
-            BaseModel.class,
-            GetAppointmentSummaryResponse.class),
-    APPOINTMENTS_GET("/appointments",
-            BaseModel.class,
-            CreateAppointmentResponse.class),
-
-    APPOINTMENT_STATUS_CHANGE(
-            "/appointments",
-            AppointmentStatusChangeRequest.class,
-            CreateAppointmentResponse.class),
-
     APPOINTMENTS_SEARCH(
             "/appointments/search",
             AppointmentSearchRequest.class,
             CreateAppointmentResponse.class),
 
-    // --- Added to try out NestedCrudRequester. Existing constants are untouched. ---
-    // Nested CRUD: {parentUuid} is a placeholder for the owner uuid, filled in via pathParam.
-    // One constant per resource: the HTTP method is chosen by the method being called,
-    // so separate _POST/_UPDATE/_DELETE constants are not needed here.
+    // Nested CRUD (NestedCrudRequester): {parentUuid} is a placeholder for the owner uuid,
+    // filled in via pathParam. One constant per resource: the HTTP method is chosen by the
+    // method being called, so separate _POST/_UPDATE/_DELETE constants are not needed.
     PATIENT_ALLERGY_NESTED(
             "/patient/{parentUuid}/allergy",
             AllergyRequest.class,
@@ -257,13 +196,23 @@ public enum Endpoint {
             PatientIdentifierRequest.class,
             PatientIdentifierResponse.class),
 
-    // Flat CRUD for encounter: the url is no longer hardcoded inside the requester.
-    // The existing ENCOUNTER_UPDATE is unusable with CrudRequester because it holds
-    // the literal "/encounter/{uuid}", which nothing substitutes.
+    // Flat CRUD for encounter (CrudRequester) - one constant for create/get/update/delete.
     ENCOUNTER_CRUD(
             "/encounter",
             CreateEncounterRequest.class,
-            CreateEncounterResponse.class);
+            CreateEncounterResponse.class),
+
+    // Action endpoints (ActionRequester): {resourceUuid} is the resource the command is performed on.
+    APPOINTMENT_CHANGE_STATUS(
+            "/appointments/{resourceUuid}/status-change",
+            AppointmentStatusChangeRequest.class,
+            CreateAppointmentResponse.class),
+
+    // trailing slash kept on purpose: the tests were written and verified against it
+    ORDER_FULFILLER_DETAILS(
+            "/order/{resourceUuid}/fulfillerdetails/",
+            FulfillerDetailsRequest.class,
+            BaseModel.class);
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;

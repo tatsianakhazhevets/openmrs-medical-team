@@ -13,7 +13,7 @@ import apiParts.models.order.Order;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
-import apiParts.skelethon.requests.order.OrderFulfillerRequester;
+import apiParts.skelethon.requests.action.ActionRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -114,11 +114,11 @@ public class LaboratoryApiTests extends BaseTest {
                 .fulfillerStatus(FulfillerStatus.IN_PROGRESS)
                 .build();
 
-        new OrderFulfillerRequester(
+        new ActionRequester(
                 RequestSpecs.unAuthSpec(),
-                Endpoint.ORDER_FULFILLER_DETAILS_POST,
+                Endpoint.ORDER_FULFILLER_DETAILS,
                 ResponseSpecs.requestReturnsUnauthorized())
-                .updateFulfillerDetails(orderUUID, request);
+                .perform(orderUUID, request);
     }
 
     @Test
@@ -127,11 +127,11 @@ public class LaboratoryApiTests extends BaseTest {
                 .fulfillerStatus(FulfillerStatus.IN_PROGRESS)
                 .build();
 
-        new OrderFulfillerRequester(
+        new ActionRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ORDER_FULFILLER_DETAILS_POST,
+                Endpoint.ORDER_FULFILLER_DETAILS,
                 ResponseSpecs.requestReturnsNotFound())
-                .updateFulfillerDetails(UUID.randomUUID().toString(), request);
+                .perform(UUID.randomUUID().toString(), request);
     }
 
     @Test

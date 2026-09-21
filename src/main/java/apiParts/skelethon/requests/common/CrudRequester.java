@@ -41,37 +41,6 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
     }
 
     @Override
-    public ValidatableResponse get(int id) {
-        return given()
-                .spec(requestSpecification)
-                .get(endpoint.getUrl() + "/" + id)
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
-    @Override
-    public ValidatableResponse get() {
-        return given()
-                .spec(requestSpecification)
-                .get(endpoint.getUrl())
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
-    @Override
-    public ValidatableResponse get(Map<String, ?> queryParams) {
-        return given()
-                .spec(requestSpecification)
-                .queryParams(queryParams)
-                .get(endpoint.getUrl())
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
-    @Override
     public ValidatableResponse get(String uuid) {
         return given()
                 .spec(requestSpecification)
@@ -92,17 +61,6 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
                 .spec(responseSpecification);
     }
 
-    @Override
-    public ValidatableResponse update(int id, BaseModel model) {
-        return given()
-                .spec(requestSpecification)
-                .body(model)
-                .put(endpoint.getUrl() + "/" + id)
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
     //WITH POST METHOD
     @Override
     public ValidatableResponse update(String uuid, BaseModel model) {
@@ -110,16 +68,6 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
                 .spec(requestSpecification)
                 .body(model)
                 .post(endpoint.getUrl() + "/" + uuid)
-                .then()
-                .assertThat()
-                .spec(responseSpecification);
-    }
-
-    @Override
-    public ValidatableResponse delete(int id) {
-        return given()
-                .spec(requestSpecification)
-                .delete(endpoint.getUrl() + "/" + id)
                 .then()
                 .assertThat()
                 .spec(responseSpecification);
@@ -134,6 +82,7 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
                 .assertThat()
                 .spec(responseSpecification);
     }
+
     @Override
     public ValidatableResponse delete(String uuid, Map<String, ?> queryParams) {
         return given()

@@ -2,7 +2,6 @@ package apiParts.assertions;
 
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.GetObsResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.encounter.Ref;
 
@@ -43,9 +42,9 @@ public class ObsAssertions {
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    // obs uuids returned by GET /obs
-    public static Set<String> uuidsOf(GetObsResponse response) {
-        return response.getResults().stream()
+    // obs uuids from a search result (SuccessfulSearchRequester already unwrapped {"results": [...]})
+    public static Set<String> uuidsOf(List<ObsResponse> results) {
+        return results.stream()
                 .map(ObsResponse::getUuid)
                 .collect(Collectors.toCollection(TreeSet::new));
     }

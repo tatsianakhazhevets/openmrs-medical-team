@@ -6,11 +6,11 @@ import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.errors.ProcedureGlobalError;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.CreateProcedureRequest.CreateProcedureRequestBuilder;
-import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
@@ -31,7 +31,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -133,7 +132,7 @@ public class UpdateProcedureApiTests extends BaseTest {
                 getProcedure(),
                 ProcedureAssertions.expectedProcedureOf(mutation.apply(createRequest.toBuilder()).build()),
                 "updated procedure");
-        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures()))
+        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures().results()))
                 .as("update does not create new procedure")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -244,13 +243,16 @@ public class UpdateProcedureApiTests extends BaseTest {
         return saved;
     }
 
-    private GetProceduresResponse getPatientProcedures() {
-        return new SuccessfulCrudRequester<GetProceduresResponse>(
+    private SearchResult<ProcedureResponse> getPatientProcedures() {
+        return new SuccessfulSearchRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURES_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "v", "full"));
+                .search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build());
     }
 
     private static Stream<Arguments> emptyOrNonExistent(String field,
@@ -274,26 +276,4 @@ public class UpdateProcedureApiTests extends BaseTest {
     private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
         return mutation;
     }
-
-    // ==== Search-based variant of getPatientProcedures(). Original helper untouched. ====
-    // The procedure comes from @CreateProcedure, so this only exercises the lookup.
-    @Test
-    public void procedureFromPreconditionIsFoundBySearchViaSearchRequester() {
-        ProcedureResponse found = new SuccessfulSearchRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURES_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(ProcedureSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .build())
-                .requireOne(candidate -> candidate.getUuid().equals(procedure.getUuid()),
-                        "procedure " + procedure.getUuid());
-
-        ModelAssertions.assertMatchesExpected(softly,
-                found,
-                ProcedureAssertions.expectedProcedureOf(createRequest),
-                "procedure found by search");
-    }
-
 }

@@ -16,11 +16,11 @@ import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrder.DrugOrderBuilder;
 import apiParts.models.order.DrugRoute;
 import apiParts.models.order.DurationUnit;
-import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.OrderFrequency;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
@@ -44,7 +44,6 @@ import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -170,11 +169,11 @@ public class DrugOrderApiTests extends BaseTest {
         var patientOrders = getPatientOrders();
 
         ModelAssertions.assertListMatchesExpected(softly,
-                patientOrders.getResults(),
+                patientOrders.results(),
                 OrderAssertions.expectedOrdersOf(request),
                 OrderAssertions::drugUuidOf,
                 "drug orders saved for patient");
-        softly.assertThat(OrderAssertions.uuidsOf(patientOrders))
+        softly.assertThat(OrderAssertions.uuidsOf(patientOrders.results()))
                 .as("order uuids from GET match POST /encounter")
                 .isEqualTo(OrderAssertions.uuidsOf(encounter));
     }
@@ -198,7 +197,7 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(order));
 
-        var orders = getPatientOrders().getResults();
+        var orders = getPatientOrders().results();
         assertThat(orders)
                 .as("precondition: patient has exactly one drug order")
                 .hasSize(1);
@@ -227,7 +226,7 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(order));
 
-        softly.assertThat(getPatientOrders().getResults())
+        softly.assertThat(getPatientOrders().results())
                 .as("invalid order is not saved")
                 .isEmpty();
     }
@@ -249,7 +248,7 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(validOutpatientOrder().build()));
 
-        softly.assertThat(getPatientOrders().getResults())
+        softly.assertThat(getPatientOrders().results())
                 .as("only first order is saved")
                 .hasSize(1);
     }
@@ -293,50 +292,21 @@ public class DrugOrderApiTests extends BaseTest {
                 .build();
     }
 
-    private GetOrderResponse getPatientOrders() {
-        return new SuccessfulCrudRequester<GetOrderResponse>(
+    private SearchResult<DrugOrderResponse> getPatientOrders() {
+        return new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "t", "drugorder", "v", "full"));
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build());
     }
 
     // only for type inference of lambdas inside Arguments.of(...)
     private static UnaryOperator<DrugOrderBuilder> mutate(UnaryOperator<DrugOrderBuilder> mutation) {
         return mutation;
     }
-
-    // ==== Search-based variant of getPatientOrders(). Original helper untouched. ====
-    // Same call, but "t" and "v" are fields instead of string keys in a Map,
-    // so a typo is a compile error rather than a differently filtered request.
-    @Test
-    public void createdDrugOrderIsFoundBySearchViaSearchRequester() {
-        DrugOrder order = validOutpatientOrder().build();
-        CreateEncounterRequest encounterRequest = encounterWith(order);
-
-        CreateEncounterResponse encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(encounterRequest);
-
-        softly.assertThat(encounter.getOrders()).as("created drug order").hasSize(1);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
-
-        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(OrderSearchParams.builder()
-                        .patient(patientUUID)
-                        .type("drugorder")
-                        .representation("full")
-                        .build())
-                .requireOne(found -> found.getUuid().equals(orderUUID),
-                        "created order " + orderUUID);
-
-        softly.assertThat(savedOrder.getUuid()).isEqualTo(orderUUID);
-    }
-
 }

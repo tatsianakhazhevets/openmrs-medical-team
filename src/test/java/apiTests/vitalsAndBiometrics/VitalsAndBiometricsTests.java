@@ -9,7 +9,6 @@ import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.GetObsResponse;
 import apiParts.models.errors.ObsFieldError;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
@@ -32,7 +31,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -91,19 +89,22 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .create(request);
 
-        var patientObs = new SuccessfulCrudRequester<GetObsResponse>(
+        var patientObs = new SuccessfulSearchRequester<ObsResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.OBS_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "v", "full"));
+                .search(ObsSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build());
 
         ModelAssertions.assertListMatchesExpected(softly,
-                patientObs.getResults(),
+                patientObs.results(),
                 ObsAssertions.expectedObsOf(request),
                 ObsAssertions::conceptUuidOf,
                 "obs saved for patient");
-        softly.assertThat(ObsAssertions.uuidsOf(patientObs))
+        softly.assertThat(ObsAssertions.uuidsOf(patientObs.results()))
                 .as("obs uuids from GET match POST /encounter")
                 .isEqualTo(ObsAssertions.uuidsOf(encounter));
     }
@@ -139,7 +140,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(encounter.getUuid());
 
-        softly.assertThat(getPatientObs().getResults())
+        softly.assertThat(getPatientObs().results())
                 .as("obs of deleted encounter are not returned for patient")
                 .isEmpty();
     }
@@ -156,7 +157,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs().results()))
                 .as("patient obs are not affected")
                 .isEqualTo(ObsAssertions.uuidsOf(encounter));
     }
@@ -173,7 +174,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(encounter.getUuid());
 
-        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs().results()))
                 .as("obs are still returned after unauthorized delete")
                 .isEqualTo(ObsAssertions.uuidsOf(encounter));
     }
@@ -195,25 +196,28 @@ public class VitalsAndBiometricsTests extends BaseTest {
         Set<String> expectedObsUUIDs = new TreeSet<>(ObsAssertions.uuidsOf(encounter));
         expectedObsUUIDs.remove(deletedObsUUID);
 
-        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+        softly.assertThat(ObsAssertions.uuidsOf(getPatientObs().results()))
                 .as("only deleted obs is gone, other obs remain")
                 .isEqualTo(expectedObsUUIDs);
     }
 
     // ======== HELPERS ========
-    private GetObsResponse getPatientObs() {
-        return new SuccessfulCrudRequester<GetObsResponse>(
+    private SearchResult<ObsResponse> getPatientObs() {
+        return new SuccessfulSearchRequester<ObsResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.OBS_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "v", "full"));
+                .search(ObsSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build());
     }
 
     // Precondition (hard assert): all obs of created encounter are saved for patient
     private void assertPatientHasObsOf(CreateEncounterResponse encounter) {
         Set<String> expectedObsUUIDs = ObsAssertions.uuidsOf(encounter);
-        assertThat(ObsAssertions.uuidsOf(getPatientObs()))
+        assertThat(ObsAssertions.uuidsOf(getPatientObs().results()))
                 .as("precondition: patient has %d obs of created encounter", expectedObsUUIDs.size())
                 .isEqualTo(expectedObsUUIDs);
     }
@@ -244,42 +248,4 @@ public class VitalsAndBiometricsTests extends BaseTest {
                 Arguments.of(concept, concept.valueOf(concept.high() + step), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
         );
     }
-
-
-    // ==== Search-based variant of getPatientObs(). Original helper untouched. ====
-    // GET /obs?patient=... answers a collection, so it is a search, not a CRUD get.
-    @Test
-    public void addedVitalsAreFoundBySearchViaSearchRequester() {
-        List<Obs> obs = List.of(
-                Obs.of(VitalsConcept.TEMPERATURE, RandomModelGenerator.randomDouble(36, 37, 1)));
-
-        var request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(obs)
-                .build();
-
-        new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(request);
-
-        SearchResult<ObsResponse> patientObs = new SuccessfulSearchRequester<ObsResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.OBS_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(ObsSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .build());
-
-        ModelAssertions.assertListMatchesExpected(softly,
-                patientObs.results(),
-                ObsAssertions.expectedObsOf(request),
-                ObsAssertions::conceptUuidOf,
-                "vitals found by search");
-    }
-
 }

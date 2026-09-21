@@ -8,7 +8,6 @@ import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
 import apiParts.models.order.CareSetting;
-import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.TestOrder;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 public class CreateOrderApiTests extends BaseTest {
 
@@ -49,16 +47,16 @@ public class CreateOrderApiTests extends BaseTest {
         String orderUUID = encounter.getOrders().get(0).getUuid();
 
         // verify the order was actually persisted and matches what was sent
-        var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
+        var savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID, "t", "drugorder", "v", "full"));
-
-        var savedOrder = patientOrders.getResults().stream()
-                .filter(result -> result.getUuid().equals(orderUUID))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("created order " + orderUUID + " not found in GET /order response"));
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build())
+                .requireOne(order -> order.getUuid().equals(orderUUID), "created order " + orderUUID);
 
         ModelAssertions.assertMatchesExpected(softly,
                 savedOrder,
@@ -101,13 +99,17 @@ public class CreateOrderApiTests extends BaseTest {
 
         // verify the order was actually persisted
         String orderUUID = labEncounter.getOrders().get(0).getUuid();
-        var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
+        var patientOrders = new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID, "t", "testorder", "v", "full"));
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("testorder")
+                        .representation("full")
+                        .build());
 
-        softly.assertThat(patientOrders.getResults())
+        softly.assertThat(patientOrders.results())
                 .as("created lab order is retrievable via GET /order")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
     }
@@ -185,44 +187,4 @@ public class CreateOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsServerError())
                 .create(request);
     }
-
-
-    // ==== Search-based variant of the "order was persisted" check. Originals untouched. ====
-    // GET /order?patient=...&t=drugorder answers a collection, so it is a search.
-    // Map.of(...) becomes typed params and the stream lookup becomes requireOne().
-    @Test
-    public void createdDrugOrderIsReturnedBySearchViaSearchRequester() {
-        var patientResponse = AdminSteps.createPatient();
-        String patientUUID = patientResponse.getUuid();
-
-        CreateEncounterRequest drugOrderRequest =
-                OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
-
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(drugOrderRequest);
-
-        softly.assertThat(encounter.getOrders()).as("created drug order").hasSize(1);
-        String orderUUID = encounter.getOrders().get(0).getUuid();
-
-        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(OrderSearchParams.builder()
-                        .patient(patientUUID)
-                        .type("drugorder")
-                        .representation("full")
-                        .build())
-                .requireOne(order -> order.getUuid().equals(orderUUID),
-                        "created order " + orderUUID);
-
-        ModelAssertions.assertMatchesExpected(softly,
-                savedOrder,
-                OrderAssertions.expectedOrdersOf(drugOrderRequest).get(0),
-                "drug order found by search");
-    }
-
 }

@@ -6,14 +6,12 @@ import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.GetObsResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.FulfillerStatus;
-import apiParts.models.order.GetOrderResponse;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
 import apiParts.models.procedure.ProcedureResponse;
@@ -23,10 +21,16 @@ import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.appointment.AppointmentRequester;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
-import apiParts.skelethon.requests.order.OrderFulfillerRequester;
+import apiParts.skelethon.requests.action.SuccessfulActionRequester;
+import apiParts.skelethon.requests.action.ActionRequester;
+import apiParts.models.encounter.ObsSearchParams;
+import apiParts.models.order.OrderSearchParams;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.models.search.SearchResult;
+import apiParts.models.search.SearchParams;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.AppointmentTestData;
@@ -172,40 +176,30 @@ public class AdminSteps {
         ).update(queueEntryUUID, QueueTestData.endQueueEntryRequest());
     }
 
-    public static GetQueueEntryResponse getActiveQueueEntries() {
-        return new SuccessfulCrudRequester<GetQueueEntryResponse>(
+    public static SearchResult<QueueEntryResponse> getActiveQueueEntries() {
+        return new SuccessfulSearchRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_GET,
                 ResponseSpecs.requestReturnsOk()
-        ).get(Map.of(
-                "v",
-                "custom:(uuid,queue:(uuid,display),status:(uuid,display),patient:(uuid,display),visit:(uuid,display),priority:(uuid,display),sortWeight,startedAt,endedAt)",
-                "location",
-                Location.OUTPATIENT_CLINIC.getUuid(),
-                "isEnded",
-                "false"
-        ));
+        ).search(QueueEntrySearchParams.builder()
+                .representation(QueueEntrySearchParams.ACTIVE_ENTRY_REPRESENTATION)
+                .location(Location.OUTPATIENT_CLINIC.getUuid())
+                .isEnded(false)
+                .build());
     }
 
     public static QueueResponse getOutpatientConsultationQueue() {
-        GetQueueResponse response = new SuccessfulCrudRequester<GetQueueResponse>(
+        return new SuccessfulSearchRequester<QueueResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_GET,
                 ResponseSpecs.requestReturnsOk()
-        ).get(Map.of(
-                "v",
-                "custom:(uuid,display,name,description,service:(uuid,display),allowedPriorities:(uuid,display),allowedStatuses:(uuid,display),location:(uuid,display))"
-        ));
-
-        return response.getResults().stream()
-                .filter(queue ->
-                        QueueType.OUTPATIENT_CONSULTATION.getDisplay().equals(queue.getName())
-                                && Location.OUTPATIENT_CLINIC.getDisplay().equals(queue.getLocation().getDisplay())
-                )
-                .findFirst()
-                .orElseThrow(() -> new AssertionError(
-                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic' was not found"
-                ));
+        ).search(QueueSearchParams.builder()
+                        .representation(QueueSearchParams.QUEUE_LOOKUP_REPRESENTATION)
+                        .build())
+                .requireOne(queue ->
+                                QueueType.OUTPATIENT_CONSULTATION.getDisplay().equals(queue.getName())
+                                        && Location.OUTPATIENT_CLINIC.getDisplay().equals(queue.getLocation().getDisplay()),
+                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic'");
     }
 
     public static CreateAppointmentResponse createAppointment(CreateAppointmentRequest request) {
@@ -224,14 +218,13 @@ public class AdminSteps {
             String appointmentUUID,
             AppointmentStatusChangeRequest request) {
 
-        return new AppointmentRequester(
+        // POST /appointments/{uuid}/status-change - a command on the appointment, not CRUD
+        return new SuccessfulActionRequester<CreateAppointmentResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.APPOINTMENT_STATUS_CHANGE,
+                Endpoint.APPOINTMENT_CHANGE_STATUS,
                 ResponseSpecs.requestReturnsOk()
         )
-                .changeStatus(appointmentUUID, request)
-                .extract()
-                .as(CreateAppointmentResponse.class);
+                .perform(appointmentUUID, request);
     }
 
     public static CreateAppointmentResponse cancelAppointment(String appointmentUUID) {
@@ -241,26 +234,26 @@ public class AdminSteps {
     public static CreateAppointmentResponse updateAppointment(
             CreateAppointmentRequest request) {
 
-        return new AppointmentRequester(
+        // The appointments module updates via POST /appointment with the uuid INSIDE the body -
+        // the same request as create, so CrudEndpoint.update(uuid, ...) (POST /appointment/{uuid}) does not fit.
+        return new SuccessfulCrudRequester<CreateAppointmentResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENT_POST,
                 ResponseSpecs.requestReturnsOk()
         )
-                .update(request)
-                .extract()
-                .as(CreateAppointmentResponse.class);
+                .create(request);
     }
 
+    // POST /appointments/search answers a bare JSON array (no {"results": [...]} wrapper);
+    // SuccessfulSearchRequester recognises that shape by itself
     public static List<CreateAppointmentResponse> searchAppointments(String patientUUID) {
-        return new AppointmentRequester(
+        return new SuccessfulSearchRequester<CreateAppointmentResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENTS_SEARCH,
                 ResponseSpecs.requestReturnsOk()
         )
-                .search(AppointmentTestData.searchRequest(patientUUID))
-                .extract()
-                .jsonPath()
-                .getList("", CreateAppointmentResponse.class);
+                .searchByBody(AppointmentTestData.searchRequest(patientUUID))
+                .results();
     }
 
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer
@@ -284,28 +277,40 @@ public class AdminSteps {
     }
 
     // Test orders (testorder) for a patient, as returned by GET /order?patient={uuid}&t=testorder&v=full
-    public static GetOrderResponse fetchTestOrders(String patientUUID) {
-        return new SuccessfulCrudRequester<GetOrderResponse>(
+    public static SearchResult<DrugOrderResponse> fetchTestOrders(String patientUUID) {
+        return new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID, "t", "testorder", "v", "full"));
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("testorder")
+                        .representation("full")
+                        .build());
     }
 
     // Drug orders (drugorder) for a patient, as returned by GET /order?careSetting={uuid}&orderTypes={uuid}&v=full.
     // Unlike t=drugorder (which only ever returns currently active orders), careSetting+orderTypes also returns
     // stopped orders - required to see Past Medications. excludeDiscontinueOrders=true still hides the DISCONTINUE
     // stub order created by discontinueDrugOrderEncounter, leaving only the original (now stopped) order
-    public static GetOrderResponse fetchMedications(String patientUUID) {
-        return new SuccessfulCrudRequester<GetOrderResponse>(
+    //
+    // Params are passed as-is (SearchParams is a functional interface) rather than through
+    // OrderSearchParams on purpose: this query sends "careSetting", while OrderSearchParams
+    // maps its careSetting field to "caresetting". Which spelling the server honours needs
+    // checking before the two are merged - see the note in the refactoring PR.
+    public static SearchResult<DrugOrderResponse> fetchMedications(String patientUUID) {
+        SearchParams medications = () -> Map.<String, Object>of(
+                "patient", patientUUID,
+                "careSetting", CareSetting.OUTPATIENT.getUuid(),
+                "orderTypes", DrugOrder.ORDER_TYPE_UUID,
+                "v", "full",
+                "excludeDiscontinueOrders", "true");
+
+        return new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID,
-                        "careSetting", CareSetting.OUTPATIENT.getUuid(),
-                        "orderTypes", DrugOrder.ORDER_TYPE_UUID,
-                        "v", "full",
-                        "excludeDiscontinueOrders", "true"));
+                .search(medications);
     }
 
     // Single order by uuid, as returned by GET /order/{uuid}?v=full. Unlike fetchTestOrders,
@@ -320,16 +325,15 @@ public class AdminSteps {
 
     // Single obs by uuid for a patient, as returned by GET /obs?patient={uuid}&v=full
     public static ObsResponse fetchObs(String patientUUID, String obsUUID) {
-        GetObsResponse patientObs = new SuccessfulCrudRequester<GetObsResponse>(
+        return new SuccessfulSearchRequester<ObsResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.OBS_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID, "v", "full"));
-
-        return patientObs.getResults().stream()
-                .filter(obs -> obs.getUuid().equals(obsUUID))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("obs " + obsUUID + " not found in GET /obs response"));
+                .search(ObsSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build())
+                .requireOne(obs -> obs.getUuid().equals(obsUUID), "obs " + obsUUID);
     }
 
     // Request behind discontinueOrder, exposed so callers can send it themselves
@@ -367,11 +371,11 @@ public class AdminSteps {
     // Updates the fulfiller status of a testorder (POST /order/{uuid}/fulfillerdetails/), the way
     // the laboratory reports progress on a test order (e.g. IN_PROGRESS, then COMPLETED)
     public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status, String comment) {
-        new OrderFulfillerRequester(
+        new ActionRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ORDER_FULFILLER_DETAILS_POST,
+                Endpoint.ORDER_FULFILLER_DETAILS,
                 ResponseSpecs.requestReturnsCreated())
-                .updateFulfillerDetails(orderUUID, OrderTestData.fulfillerDetailsRequest(status, comment));
+                .perform(orderUUID, OrderTestData.fulfillerDetailsRequest(status, comment));
     }
 
     // ======== HELPERS ========

@@ -2,7 +2,6 @@ package apiParts.assertions;
 
 import apiParts.models.encounter.Ref;
 import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.utils.DateTimeUtils;
 
@@ -47,11 +46,6 @@ public class ProcedureAssertions {
         return responses.stream()
                 .map(ProcedureResponse::getUuid)
                 .collect(Collectors.toCollection(TreeSet::new));
-    }
-
-    // procedure uuids returned by GET /procedure
-    public static Set<String> uuidsOf(GetProceduresResponse response) {
-        return uuidsOf(response.getResults());
     }
 
     // what POST /procedure and GET /procedure/{uuid} should return for the request

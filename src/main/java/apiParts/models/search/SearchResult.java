@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 /**
  * What a successful search returns.
  *
- * Holds the lookup mechanics that currently sit in the tests as
+ * Holds the lookup mechanics that used to be repeated in every test as
  * getResults().stream().filter(...).findFirst().orElseThrow(...).
  *
  * Note the semantics: a search that matches nothing is a normal 200 with an

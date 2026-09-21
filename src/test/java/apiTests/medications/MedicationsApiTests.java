@@ -42,12 +42,12 @@ public class MedicationsApiTests extends BaseTest {
 
         var medications = AdminSteps.fetchMedications(patientUUID);
         ModelAssertions.assertListMatchesExpected(softly,
-                medications.getResults(),
+                medications.results(),
                 OrderAssertions.expectedOrdersOf(request),
                 OrderAssertions::drugUuidOf,
                 "active drug order saved for patient");
 
-        var saved = OrderAssertions.onlyOrderOf(medications);
+        var saved = OrderAssertions.onlyOrderOf(medications.results());
         softly.assertThat(saved.getUrgency())
                 .as("active order defaults to ROUTINE urgency")
                 .isEqualTo(DrugOrder.URGENCY_ROUTINE);
@@ -70,12 +70,12 @@ public class MedicationsApiTests extends BaseTest {
 
         var medications = AdminSteps.fetchMedications(patientUUID);
         ModelAssertions.assertListMatchesExpected(softly,
-                medications.getResults(),
+                medications.results(),
                 OrderAssertions.expectedOrdersOf(request),
                 OrderAssertions::drugUuidOf,
                 "upcoming drug order saved for patient");
 
-        var saved = OrderAssertions.onlyOrderOf(medications);
+        var saved = OrderAssertions.onlyOrderOf(medications.results());
         softly.assertThat(saved.getUrgency())
                 .as("upcoming order urgency")
                 .isEqualTo(DrugOrder.URGENCY_ON_SCHEDULED_DATE);
@@ -100,11 +100,11 @@ public class MedicationsApiTests extends BaseTest {
                 .isNotEqualTo(originalOrderUUID);
 
         var medications = AdminSteps.fetchMedications(patientUUID);
-        softly.assertThat(OrderAssertions.uuidsOf(medications))
+        softly.assertThat(OrderAssertions.uuidsOf(medications.results()))
                 .as("excludeDiscontinueOrders hides the DISCONTINUE stub, original order remains")
                 .containsExactly(originalOrderUUID);
 
-        var saved = OrderAssertions.onlyOrderOf(medications);
+        var saved = OrderAssertions.onlyOrderOf(medications.results());
         softly.assertThat(saved.getDateStopped())
                 .as("original order is stopped once discontinued")
                 .isNotNull();

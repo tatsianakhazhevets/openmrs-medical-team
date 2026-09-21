@@ -4,11 +4,11 @@ import apiParts.assertions.ModelAssertions;
 import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.BaseModel;
 import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
@@ -21,7 +21,6 @@ import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,7 +41,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         createRequest = ProcedureTestData.procedureRequest(patientUUID);
         procedure = SessionStorage.getProcedure();
 
-        assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false)))
+        assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false).results()))
                 .as("precondition: patient has created procedure")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -56,10 +55,10 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(procedure.getUuid());
 
-        softly.assertThat(getPatientProcedures(false).getResults())
+        softly.assertThat(getPatientProcedures(false).results())
                 .as("deleted procedure is not returned by search")
                 .isEmpty();
-        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(true)))
+        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(true).results()))
                 .as("deleted procedure is returned by search with includeAll=true (soft delete)")
                 .isEqualTo(Set.of(procedure.getUuid()));
 
@@ -82,7 +81,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false)))
+        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false).results()))
                 .as("existing procedure is not affected")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -99,7 +98,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         softly.assertThat(getProcedure(procedure.getUuid()).getVoided())
                 .as("procedure is not deleted (not voided)")
                 .isFalse();
-        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false)))
+        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures(false).results()))
                 .as("procedure is still returned by search")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -114,51 +113,16 @@ public class DeleteProcedureApiTests extends BaseTest {
                 .get(uuid);
     }
 
-    private GetProceduresResponse getPatientProcedures(boolean includeAll) {
-        return new SuccessfulCrudRequester<GetProceduresResponse>(
+    private SearchResult<ProcedureResponse> getPatientProcedures(boolean includeAll) {
+        return new SuccessfulSearchRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURES_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "v", "full", "includeAll", includeAll));
-    }
-
-    // ==== Search-based variant of the soft-delete check. Originals untouched. ====
-    // includeAll used to be a raw boolean inside Map.of; here it is a typed field,
-    // which is what the whole difference between the two searches hinges on.
-    @Test
-    public void deletedProcedureIsHiddenFromSearchViaSearchRequester() {
-        new SuccessfulCrudRequester<BaseModel>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_DELETE,
-                ResponseSpecs.requestReturnsNoContent())
-                .delete(procedure.getUuid());
-
-        var searcher = new SuccessfulSearchRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURES_GET,
-                ResponseSpecs.requestReturnsOk());
-
-        softly.assertThat(searcher.search(ProcedureSearchParams.builder()
+                .search(ProcedureSearchParams.builder()
                         .patient(patientUUID)
                         .representation("full")
-                        .includeAll(false)
-                        .build())
-                        .isEmpty())
-                .as("voided procedure is hidden from the default search")
-                .isTrue();
-
-        ProcedureResponse voided = searcher.search(ProcedureSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .includeAll(true)
-                        .build())
-                .requireOne(found -> found.getUuid().equals(procedure.getUuid()),
-                        "voided procedure " + procedure.getUuid());
-
-        softly.assertThat(voided.getVoided())
-                .as("procedure is returned by includeAll search and is marked voided")
-                .isTrue();
+                        .includeAll(includeAll)
+                        .build());
     }
-
 }

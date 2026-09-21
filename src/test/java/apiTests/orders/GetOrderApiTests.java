@@ -8,11 +8,11 @@ import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
 import apiParts.models.order.CareSetting;
-import apiParts.models.order.GetOrderResponse;
-import apiParts.models.order.ListOrdersResponse;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
+import apiParts.models.order.Order;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.skelethon.requests.search.SearchRequester;
 import apiParts.models.order.DrugOrderResponse;
@@ -26,7 +26,6 @@ import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 
 import static common.annotations.CreateOrder.Type.DRUG;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,13 +42,13 @@ public class GetOrderApiTests extends BaseTest {
                 .representation("default")
                 .build();
 
-        ListOrdersResponse response = new SuccessfulCrudRequester<ListOrdersResponse>(
+        SearchResult<Order> orders = new SuccessfulSearchRequester<Order>(
                 RequestSpecs.adminSpec(),
                 Endpoint.LIST_ORDERS_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(searchParams.toQueryParams());
+                .search(searchParams);
 
-        assertThat(response).isNotNull();
+        assertThat(orders.results()).isNotNull();
     }
 
     @Test
@@ -61,11 +60,11 @@ public class GetOrderApiTests extends BaseTest {
                 .representation("default")
                 .build();
 
-        new SuccessfulCrudRequester<ListOrdersResponse>(
+        new SearchRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.LIST_ORDERS_GET,
                 ResponseSpecs.requestReturnsUnauthorized())
-                .get(searchParams.toQueryParams());
+                .search(searchParams);
     }
 
     // Precondition: patient with a standard drug order encounter
@@ -76,16 +75,16 @@ public class GetOrderApiTests extends BaseTest {
         CreateEncounterRequest drugOrderRequest = OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
         String orderUUID = SessionStorage.getOrderUuid();
 
-        var patientOrders = new SuccessfulCrudRequester<GetOrderResponse>(
+        var savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_GET,
                 ResponseSpecs.requestReturnsOk())
-                .get(Map.of("patient", patientUUID, "t", "drugorder", "v", "full"));
-
-        var savedOrder = patientOrders.getResults().stream()
-                .filter(result -> result.getUuid().equals(orderUUID))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("created order " + orderUUID + " not found in GET /order response"));
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build())
+                .requireOne(order -> order.getUuid().equals(orderUUID), "created order " + orderUUID);
 
         ModelAssertions.assertMatchesExpected(softly,
                 savedOrder,
@@ -120,52 +119,4 @@ public class GetOrderApiTests extends BaseTest {
                 .as("lab order display")
                 .isEqualTo("Alkaline phosphatase");
     }
-
-
-    // ==== COPY of authRequiredToFetchListOfOrders built on the raw SearchRequester.
-    //      Original untouched. ====
-    // Negative scenarios belong on the raw requester: it never tries to deserialize
-    // a body that a 401 does not have.
-    @Test
-    public void authRequiredToFetchListOfOrdersViaSearch() {
-        OrderSearchParams searchParams = OrderSearchParams.builder()
-                .patient(SessionStorage.getPatient().getUuid())
-                .careSetting(CareSetting.INPATIENT.name())
-                .limit(1)
-                .representation("default")
-                .build();
-
-        new SearchRequester(
-                RequestSpecs.unAuthSpec(),
-                Endpoint.LIST_ORDERS_GET,
-                ResponseSpecs.requestReturnsUnauthorized())
-                .search(searchParams);
-    }
-
-    // ==== Search-based variant of the lookup done inside adminCanCheckSpecificOrderDetails.
-    //      Original untouched. ====
-    // Replaces Map.of("patient", ..., "t", "drugorder", "v", "full") with typed params,
-    // and getResults().stream().filter(...).findFirst().orElseThrow(...) with requireOne().
-    @Test
-    @CreateOrder(DRUG)
-    public void adminCanFindCreatedOrderViaSearch() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-        String orderUUID = SessionStorage.getOrderUuid();
-
-        OrderSearchParams searchParams = OrderSearchParams.builder()
-                .patient(patientUUID)
-                .type("drugorder")
-                .representation("full")
-                .build();
-
-        DrugOrderResponse savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(searchParams)
-                .requireOne(order -> order.getUuid().equals(orderUUID), "created order " + orderUUID);
-
-        softly.assertThat(savedOrder.getUuid()).isEqualTo(orderUUID);
-    }
-
 }
