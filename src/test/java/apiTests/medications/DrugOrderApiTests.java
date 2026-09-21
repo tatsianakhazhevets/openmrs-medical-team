@@ -2,7 +2,6 @@ package apiTests.medications;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.assertions.OrderAssertions;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
@@ -18,8 +17,8 @@ import apiParts.models.order.DrugRoute;
 import apiParts.models.order.DurationUnit;
 import apiParts.models.order.OrderFrequency;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.CrudRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.models.order.OrderSearchParams;
@@ -28,6 +27,7 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiParts.testdata.OrderTestData;
+import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -165,17 +165,27 @@ public class DrugOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
+        ModelAssertions.assertThatModels(softly, request, encounter)
+                .as("POST /encounter response")
+                .match();
+        softly.assertThat(encounter.getOrders())
+                .as("orders in POST /encounter response")
+                .hasSize(request.getOrders().size());
 
         var patientOrders = getPatientOrders();
 
-        ModelAssertions.assertListMatchesExpected(softly,
-                patientOrders.results(),
-                OrderAssertions.expectedOrdersOf(request),
-                OrderAssertions::drugUuidOf,
-                "drug orders saved for patient");
-        softly.assertThat(OrderAssertions.uuidsOf(patientOrders.results()))
+        ModelAssertions.assertThatModels(softly, request.getOrders(), patientOrders.results())
+                .as("drug orders saved for patient")
+                .match();
+        // concept may be omitted in request ("without concept" case) - server takes it from drug
+        softly.assertThat(patientOrders.results().stream().map(order -> order.getConcept().getUuid()).toList())
+                .as("concept of drug order is the concept of its drug")
+                .containsExactlyElementsOf(request.getOrders().stream()
+                        .map(order -> ((DrugOrder) order).getDrug().getConceptUuid())
+                        .toList());
+        softly.assertThat(Uuids.of(patientOrders.results()))
                 .as("order uuids from GET match POST /encounter")
-                .isEqualTo(OrderAssertions.uuidsOf(encounter));
+                .isEqualTo(Uuids.of(encounter.getOrders()));
     }
 
     @ParameterizedTest(name = "{0} {1}, {2} -> dateActivated + {3} - 1s")
@@ -190,17 +200,24 @@ public class DrugOrderApiTests extends BaseTest {
                 .durationUnits(unit)
                 .build();
 
-        new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var request = encounterWith(order);
+        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
-                .create(encounterWith(order));
+                .create(request);
+        ModelAssertions.assertThatModels(softly, request, encounter)
+                .as("POST /encounter response")
+                .match();
 
         var orders = getPatientOrders().results();
         assertThat(orders)
                 .as("precondition: patient has exactly one drug order")
                 .hasSize(1);
+        ModelAssertions.assertThatModels(softly, List.of(order), orders)
+                .as("drug order saved for patient")
+                .match();
         var saved = orders.get(0);
         assertThat(saved.getAutoExpireDate())
                 .as("autoExpireDate is calculated")
@@ -218,6 +235,7 @@ public class DrugOrderApiTests extends BaseTest {
                                                   UnaryOperator<DrugOrderBuilder> mutation,
                                                   DrugOrderFieldError error) {
         var order = mutation.apply(validOutpatientOrder()).build();
+        var before = getPatientOrders().results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -226,9 +244,8 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(order));
 
-        softly.assertThat(getPatientOrders().results())
-                .as("invalid order is not saved")
-                .isEmpty();
+        ModelAssertions.assertUnchanged(softly, before, getPatientOrders().results(),
+                "patient drug orders after invalid POST /encounter");
     }
 
     @Test
@@ -240,6 +257,7 @@ public class DrugOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(encounterWith(validOutpatientOrder().build()));
+        var before = getPatientOrders().results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -248,9 +266,8 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(validOutpatientOrder().build()));
 
-        softly.assertThat(getPatientOrders().results())
-                .as("only first order is saved")
-                .hasSize(1);
+        ModelAssertions.assertUnchanged(softly, before, getPatientOrders().results(),
+                "patient drug orders after second active order for the same drug");
     }
 
     // ======== HELPERS ========

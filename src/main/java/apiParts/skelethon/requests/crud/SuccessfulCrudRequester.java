@@ -1,4 +1,4 @@
-package apiParts.skelethon.requests.common;
+package apiParts.skelethon.requests.crud;
 
 import apiParts.models.BaseModel;
 import apiParts.skelethon.base_request.HttpRequest;

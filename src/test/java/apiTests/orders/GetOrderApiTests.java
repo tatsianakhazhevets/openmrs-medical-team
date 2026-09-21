@@ -10,7 +10,7 @@ import apiParts.models.encounter.Ref;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.models.order.Order;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;

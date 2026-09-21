@@ -1,5 +1,6 @@
 package apiParts.models.order;
 
+import apiParts.models.HasUuid;
 import apiParts.models.encounter.Ref;
 import apiParts.utils.DateTimeUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DrugOrderResponse {
+public class DrugOrderResponse implements HasUuid {
     private String uuid;
     private String orderNumber;         // e.g. "ORD-89"
     private String display;             // e.g. "(NEW) Aspirin 325mg: 3.0 Tablet Oral Once daily"
@@ -52,7 +53,8 @@ public class DrugOrderResponse {
 
     // Server converts offset to UTC (-04:00 -> +0000): normalize to Instant on deserialization,
     // so the same moment sent (request) and returned (response) in different offsets is equal in comparison.
-    // Builder bypasses setters - expected value is normalized the same way in OrderAssertions.
+    // Builder bypasses setters - expected value is normalized the same way in OrderAssertions
+    // and by @instant converter (model-comparison.yml).
     public void setScheduledDate(String scheduledDate) {
         this.scheduledDate = DateTimeUtils.toInstantString(scheduledDate);
     }

@@ -1,7 +1,7 @@
 package apiTests.orders;
 
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.CrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;

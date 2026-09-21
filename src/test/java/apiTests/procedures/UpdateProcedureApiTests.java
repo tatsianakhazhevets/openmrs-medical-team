@@ -2,20 +2,20 @@ package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.errors.ProcedureGlobalError;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.CreateProcedureRequest.CreateProcedureRequestBuilder;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.CrudRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
+import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
@@ -120,19 +120,23 @@ public class UpdateProcedureApiTests extends BaseTest {
     @MethodSource("validUpdates")
     public void adminCanUpdateProcedure(String caseName, UnaryOperator<CreateProcedureRequestBuilder> mutation) {
         var updateRequest = mutation.apply(CreateProcedureRequest.builder()).build();
+        // procedure from @CreateProcedure + change
+        var expected = mutation.apply(createRequest.toBuilder()).build();
 
-        new SuccessfulCrudRequester<ProcedureResponse>(
+        var updated = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURE_UPDATE,
                 ResponseSpecs.requestReturnsOk()
         )
                 .update(procedure.getUuid(), updateRequest);
+        ModelAssertions.assertThatModels(softly, expected, updated)
+                .as("POST /procedure/{uuid} response")
+                .match();
 
-        ModelAssertions.assertMatchesExpected(softly,
-                getProcedure(),
-                ProcedureAssertions.expectedProcedureOf(mutation.apply(createRequest.toBuilder()).build()),
-                "updated procedure");
-        softly.assertThat(ProcedureAssertions.uuidsOf(getPatientProcedures().results()))
+        ModelAssertions.assertThatModels(softly, expected, getProcedure())
+                .as("updated procedure")
+                .match();
+        softly.assertThat(Uuids.of(getPatientProcedures().results()))
                 .as("update does not create new procedure")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -148,7 +152,7 @@ public class UpdateProcedureApiTests extends BaseTest {
                 .estimatedStartDate(estimatedStartDate)
                 .build();
 
-        new SuccessfulCrudRequester<ProcedureResponse>(
+        var updated = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURE_UPDATE,
                 ResponseSpecs.requestReturnsOk()
@@ -165,10 +169,12 @@ public class UpdateProcedureApiTests extends BaseTest {
                 .startDateTime(format(periodStart.atStartOfDay().atOffset(ZoneOffset.UTC)))
                 .build();
 
-        ModelAssertions.assertMatchesExpected(softly,
-                getProcedure(),
-                ProcedureAssertions.expectedProcedureOf(expected),
-                "procedure with estimatedStartDate");
+        ModelAssertions.assertThatModels(softly, expected, updated)
+                .as("POST /procedure/{uuid} response")
+                .match();
+        ModelAssertions.assertThatModels(softly, expected, getProcedure())
+                .as("procedure with estimatedStartDate")
+                .match();
     }
 
     @ParameterizedTest(name = "{0} -> {2}")
@@ -177,6 +183,7 @@ public class UpdateProcedureApiTests extends BaseTest {
                                                           UnaryOperator<CreateProcedureRequestBuilder> mutation,
                                                           ProcedureGlobalError error) {
         var updateRequest = mutation.apply(CreateProcedureRequest.builder()).build();
+        var before = getProcedure();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -185,10 +192,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(procedure.getUuid(), updateRequest);
 
-        ModelAssertions.assertMatchesExpected(softly,
-                getProcedure(),
-                ProcedureAssertions.expectedProcedureOf(createRequest),
-                "procedure is not changed");
+        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "procedure after invalid update");
     }
 
     @Test
@@ -196,6 +200,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         var updateRequest = CreateProcedureRequest.builder()
                 .notes(RandomModelGenerator.randomSentence())
                 .build();
+        var before = getProcedure();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -204,10 +209,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(UUID.randomUUID().toString(), updateRequest);
 
-        ModelAssertions.assertMatchesExpected(softly,
-                getProcedure(),
-                ProcedureAssertions.expectedProcedureOf(createRequest),
-                "existing procedure is not changed");
+        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "existing procedure after update of non-existent one");
     }
 
     @Test
@@ -215,6 +217,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         var updateRequest = CreateProcedureRequest.builder()
                 .notes(RandomModelGenerator.randomSentence())
                 .build();
+        var before = getProcedure();
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -223,10 +226,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(procedure.getUuid(), updateRequest);
 
-        ModelAssertions.assertMatchesExpected(softly,
-                getProcedure(),
-                ProcedureAssertions.expectedProcedureOf(createRequest),
-                "procedure is not changed");
+        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "procedure after unauthorized update");
     }
 
     // ======== HELPERS ========

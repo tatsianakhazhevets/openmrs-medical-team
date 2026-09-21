@@ -6,7 +6,7 @@ import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;

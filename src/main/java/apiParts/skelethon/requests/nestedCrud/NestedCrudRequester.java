@@ -1,4 +1,4 @@
-package apiParts.skelethon.requests.nested;
+package apiParts.skelethon.requests.nestedCrud;
 
 import apiParts.models.BaseModel;
 import apiParts.skelethon.base_request.HttpRequest;

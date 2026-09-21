@@ -1,13 +1,12 @@
 package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.Location;
 import apiParts.models.encounter.Ref;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.models.search.SearchResult;
-import apiParts.skelethon.requests.common.CrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
