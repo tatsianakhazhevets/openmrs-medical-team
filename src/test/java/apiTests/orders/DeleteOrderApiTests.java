@@ -27,7 +27,7 @@ public class DeleteOrderApiTests extends BaseTest {
         String orderUUID = SessionStorage.getOrderUuid();
 
         var ordersBeforeDelete = AdminSteps.fetchTestOrders(patientUUID);
-        assertThat(ordersBeforeDelete.getResults())
+        assertThat(ordersBeforeDelete.results())
                 .as("order is present before delete")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
 
@@ -38,7 +38,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 .delete(orderUUID);
 
         var ordersAfterDelete = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterDelete.getResults())
+        softly.assertThat(ordersAfterDelete.results())
                 .as("voided order is no longer returned in GET /order")
                 .noneMatch(order -> order.getUuid().equals(orderUUID));
     }
@@ -58,7 +58,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 .delete(orderUUID, Map.of("purge", true));
 
         var ordersAfterFailedPurge = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterFailedPurge.getResults())
+        softly.assertThat(ordersAfterFailedPurge.results())
                 .as("order still present after failed purge attempt")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
     }
@@ -86,7 +86,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 .delete(orderUUID);
 
         var ordersAfterUnauthorizedDelete = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterUnauthorizedDelete.getResults())
+        softly.assertThat(ordersAfterUnauthorizedDelete.results())
                 .as("order still present after unauthorized delete attempt")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
     }

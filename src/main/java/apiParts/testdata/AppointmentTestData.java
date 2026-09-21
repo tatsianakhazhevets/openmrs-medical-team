@@ -9,6 +9,7 @@ import apiParts.models.appointment.AppointmentService;
 import apiParts.models.appointment.AppointmentStatus;
 import apiParts.models.appointment.AppointmentStatusChangeRequest;
 import apiParts.models.appointment.CreateAppointmentRequest;
+import apiParts.steps.AdminSteps;
 import apiParts.utils.DateTimeUtils;
 
 import java.time.OffsetDateTime;
@@ -49,7 +50,7 @@ public class AppointmentTestData {
                 .locationUuid(Location.OUTPATIENT_CLINIC.getUuid())
                 .providers(List.of(
                         CreateAppointmentRequest.Provider.builder()
-                                .uuid(AppointmentProvider.SUPER_USER.getUuid())
+                                .uuid(AdminSteps.getCurrentProviderUuid())
                                 .build()
                 ))
                 .patientUuid(patientUUID)

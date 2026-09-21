@@ -6,7 +6,6 @@ import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
-import apiParts.models.order.GetOrderResponse;
 import apiParts.utils.DateTimeUtils;
 
 import java.util.List;
@@ -43,16 +42,15 @@ public class OrderAssertions {
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    // order uuids returned by GET /order
-    public static Set<String> uuidsOf(GetOrderResponse response) {
-        return response.getResults().stream()
+    // order uuids from a search result (SuccessfulSearchRequester already unwrapped {"results": [...]})
+    public static Set<String> uuidsOf(List<DrugOrderResponse> results) {
+        return results.stream()
                 .map(DrugOrderResponse::getUuid)
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    // the single drug order of a patient with exactly one drug order (Active/Upcoming/Past Medications tests)
-    public static DrugOrderResponse onlyOrderOf(GetOrderResponse response) {
-        List<DrugOrderResponse> results = response.getResults();
+    // the single drug order in a search result (Active/Upcoming/Past Medications tests)
+    public static DrugOrderResponse onlyOrderOf(List<DrugOrderResponse> results) {
         if (results.size() != 1) {
             throw new AssertionError("expected exactly one drug order, but GET /order returned " + results.size());
         }

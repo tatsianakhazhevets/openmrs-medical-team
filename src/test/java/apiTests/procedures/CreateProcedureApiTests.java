@@ -10,7 +10,6 @@ import apiParts.models.order.DurationUnit;
 import apiParts.models.procedure.BodySite;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.CreateProcedureRequest.CreateProcedureRequestBuilder;
-import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.procedure.ProcedureStatus;
@@ -18,6 +17,7 @@ import apiParts.models.procedure.ProcedureType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
@@ -34,7 +34,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
@@ -160,11 +159,11 @@ public class CreateProcedureApiTests extends BaseTest {
         var patientProcedures = getPatientProcedures();
 
         ModelAssertions.assertListMatchesExpected(softly,
-                patientProcedures.getResults(),
+                patientProcedures.results(),
                 ProcedureAssertions.expectedProceduresOf(request),
                 ProcedureAssertions::procedureCodedUuidOf,
                 "procedures saved for patient");
-        softly.assertThat(ProcedureAssertions.uuidsOf(patientProcedures))
+        softly.assertThat(ProcedureAssertions.uuidsOf(patientProcedures.results()))
                 .as("procedure uuids from GET match POST /procedure")
                 .isEqualTo(ProcedureAssertions.uuidsOf(procedure));
     }
@@ -183,7 +182,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().getResults())
+        softly.assertThat(getPatientProcedures().results())
                 .as("invalid procedure is not saved")
                 .isEmpty();
     }
@@ -210,7 +209,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().getResults())
+        softly.assertThat(getPatientProcedures().results())
                 .as("procedure with invalid startDateTime is not saved")
                 .isEmpty();
     }
@@ -227,7 +226,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().getResults())
+        softly.assertThat(getPatientProcedures().results())
                 .as("procedure of unauthorized user is not saved")
                 .isEmpty();
     }
@@ -244,13 +243,16 @@ public class CreateProcedureApiTests extends BaseTest {
                 .status(COMPLETED.getUuid());
     }
 
-    private GetProceduresResponse getPatientProcedures() {
-        return new SuccessfulCrudRequester<GetProceduresResponse>(
+    private SearchResult<ProcedureResponse> getPatientProcedures() {
+        return new SuccessfulSearchRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURES_GET,
                 ResponseSpecs.requestReturnsOk()
         )
-                .get(Map.of("patient", patientUUID, "v", "full"));
+                .search(ProcedureSearchParams.builder()
+                        .patient(patientUUID)
+                        .representation("full")
+                        .build());
     }
 
     private static Stream<Arguments> emptyOrNonExistent(String field,
@@ -279,33 +281,4 @@ public class CreateProcedureApiTests extends BaseTest {
     private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
         return mutation;
     }
-
-    // ==== Search-based variant of the "procedure was persisted" check. Originals untouched. ====
-    @Test
-    public void createdProcedureIsReturnedBySearchViaSearchRequester() {
-        CreateProcedureRequest request = validProcedure().build();
-
-        ProcedureResponse created = new SuccessfulCrudRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(request);
-
-        ProcedureResponse found = new SuccessfulSearchRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURES_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(ProcedureSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .build())
-                .requireOne(procedure -> procedure.getUuid().equals(created.getUuid()),
-                        "created procedure " + created.getUuid());
-
-        ModelAssertions.assertMatchesExpected(softly,
-                found,
-                ProcedureAssertions.expectedProcedureOf(request),
-                "procedure found by search");
-    }
-
 }

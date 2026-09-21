@@ -24,9 +24,10 @@ public class OrderSearchParams implements SearchParams {
     private String representation;
 
     /**
-     * Converts the non-null fields into query parameters accepted by
-     * {@code CrudEndpoint#get(Map)}, so a single generic requester can be reused
-     * instead of a dedicated endpoint/requester pair for every query-param GET.
+     * Converts the non-null fields into query parameters for SearchRequester.
+     *
+     * Note: careSetting goes out as "caresetting", while AdminSteps.fetchMedications sends
+     * "careSetting". Which spelling the server honours has not been verified yet.
      */
     @Override
     public Map<String, Object> toQueryParams() {

@@ -30,21 +30,6 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     }
 
     @Override
-    public T get(int id) {
-        return (T) crudRequester.get(id).extract().as(endpoint.getResponseModel());
-    }
-
-    @Override
-    public T get() {
-        return (T) crudRequester.get().extract().as(endpoint.getResponseModel());
-    }
-
-    @Override
-    public T get(Map<String, ?> queryParams) {
-        return (T) crudRequester.get(queryParams).extract().as(endpoint.getResponseModel());
-    }
-
-    @Override
     public T get(String uuid) {
         return (T) crudRequester.get(uuid).extract().as(endpoint.getResponseModel());
     }
@@ -55,17 +40,8 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     }
 
     @Override
-    public T update(int id, BaseModel model) {
-        return (T) crudRequester.update(id, model).extract().as(endpoint.getResponseModel());
-    }
-    @Override
     public T update(String uuid, BaseModel model) {
         return (T) crudRequester.update(uuid, model).extract().as(endpoint.getResponseModel());
-    }
-
-    @Override
-    public ValidatableResponse delete(int id) {
-        return (ValidatableResponse) crudRequester.delete(id);
     }
 
     @Override
