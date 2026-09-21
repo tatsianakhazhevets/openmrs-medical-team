@@ -1,6 +1,7 @@
 package apiParts.models.procedure;
 
 import apiParts.models.BaseModel;
+import apiParts.models.HasUuid;
 import apiParts.models.encounter.Ref;
 import apiParts.utils.DateTimeUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -18,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProcedureResponse extends BaseModel {
+public class ProcedureResponse extends BaseModel implements HasUuid {
     private String uuid;
     private String display;             // name of procedureCoded, e.g. "Laparoscopic cholecystectomy"
 
@@ -44,7 +45,7 @@ public class ProcedureResponse extends BaseModel {
 
     // Server converts offset to UTC (+03:00 -> +0000): normalize to Instant on deserialization,
     // so the same moment sent and returned in different offsets is equal in comparison.
-    // Builder bypasses setters - expected values are normalized in ProcedureAssertions.
+    // Request dates are normalized the same way by @instant converter (model-comparison.yml).
     public void setStartDateTime(String startDateTime) {
         this.startDateTime = DateTimeUtils.toInstantString(startDateTime);
     }

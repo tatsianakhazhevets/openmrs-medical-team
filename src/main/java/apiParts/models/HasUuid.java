@@ -1,8 +1,8 @@
 package apiParts.models;
 
 /**
- * Enum of OpenMRS metadata identified by uuid (implemented via Lombok @Getter).
- * Lets helpers map any such enum to a {@link apiParts.models.encounter.Ref}.
+ * OpenMRS resource identified by uuid: metadata enums (implemented via Lombok @Getter)
+ * and response models (implemented via Lombok @Data), see {@link apiParts.utils.Uuids}.
  */
 public interface HasUuid {
     String getUuid();

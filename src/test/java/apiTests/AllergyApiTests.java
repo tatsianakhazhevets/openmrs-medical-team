@@ -1,10 +1,9 @@
 package apiTests;
 
 import apiParts.models.allergy.*;
-import apiParts.models.patient.CreatePatientResponse;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.nested.NestedCrudRequester;
-import apiParts.skelethon.requests.nested.SuccessfulNestedCrudRequester;
+import apiParts.skelethon.requests.nestedCrud.NestedCrudRequester;
+import apiParts.skelethon.requests.nestedCrud.SuccessfulNestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -14,7 +13,6 @@ import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.UUID;

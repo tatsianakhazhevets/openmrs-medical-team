@@ -22,7 +22,7 @@ import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.action.SuccessfulActionRequester;
 import apiParts.skelethon.requests.action.ActionRequester;
 import apiParts.models.encounter.ObsSearchParams;

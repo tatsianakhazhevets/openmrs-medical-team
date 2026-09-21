@@ -1,5 +1,6 @@
 package apiParts.models.encounter;
 
+import apiParts.models.HasUuid;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ObsResponse {
+public class ObsResponse implements HasUuid {
     private String uuid;
     private String display;     // e.g. "Pulse: 68.0"
     private Ref concept;

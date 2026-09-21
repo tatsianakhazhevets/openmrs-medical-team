@@ -2,7 +2,6 @@ package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.HasUuid;
 import apiParts.models.errors.ProcedureErrorMessage;
 import apiParts.models.errors.ProcedureGlobalError;
@@ -15,14 +14,15 @@ import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.procedure.ProcedureStatus;
 import apiParts.models.procedure.ProcedureType;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.CrudRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
+import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -34,6 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
@@ -155,17 +157,18 @@ public class CreateProcedureApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
+        ModelAssertions.assertThatModels(softly, request, procedure)
+                .as("POST /procedure response")
+                .match();
 
         var patientProcedures = getPatientProcedures();
 
-        ModelAssertions.assertListMatchesExpected(softly,
-                patientProcedures.results(),
-                ProcedureAssertions.expectedProceduresOf(request),
-                ProcedureAssertions::procedureCodedUuidOf,
-                "procedures saved for patient");
-        softly.assertThat(ProcedureAssertions.uuidsOf(patientProcedures.results()))
+        ModelAssertions.assertThatModels(softly, List.of(request), patientProcedures.results())
+                .as("procedures saved for patient")
+                .match();
+        softly.assertThat(Uuids.of(patientProcedures.results()))
                 .as("procedure uuids from GET match POST /procedure")
-                .isEqualTo(ProcedureAssertions.uuidsOf(procedure));
+                .isEqualTo(Set.of(procedure.getUuid()));
     }
 
     @ParameterizedTest(name = "{0} -> {2}")
@@ -174,6 +177,7 @@ public class CreateProcedureApiTests extends BaseTest {
                                                   UnaryOperator<CreateProcedureRequestBuilder> mutation,
                                                   ProcedureGlobalError error) {
         var request = mutation.apply(validProcedure()).build();
+        var before = getPatientProcedures().results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -182,9 +186,8 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().results())
-                .as("invalid procedure is not saved")
-                .isEmpty();
+        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+                "patient procedures after invalid POST /procedure");
     }
 
     // Not ISO-8601 value fails on conversion before validation: 400 without globalErrors
@@ -201,6 +204,7 @@ public class CreateProcedureApiTests extends BaseTest {
         var request = validProcedure()
                 .startDateTime(startDateTime)
                 .build();
+        var before = getPatientProcedures().results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -209,15 +213,15 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().results())
-                .as("procedure with invalid startDateTime is not saved")
-                .isEmpty();
+        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+                "patient procedures after POST /procedure with invalid startDateTime");
     }
 
     // Server returns 400 "Privileges required: Get Patients" (not 401): it fails on converting patient uuid
     @Test
     public void unauthorizedUserCannotCreateProcedure() {
         var request = validProcedure().build();
+        var before = getPatientProcedures().results();
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -226,9 +230,8 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        softly.assertThat(getPatientProcedures().results())
-                .as("procedure of unauthorized user is not saved")
-                .isEmpty();
+        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+                "patient procedures after unauthorized POST /procedure");
     }
 
     // ======== HELPERS ========

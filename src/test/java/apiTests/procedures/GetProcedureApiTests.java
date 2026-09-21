@@ -2,14 +2,13 @@ package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.errors.ProcedureErrorMessage;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.common.CrudRequester;
-import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SearchRequester;
@@ -17,6 +16,7 @@ import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.ProcedureTestData;
+import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
@@ -85,10 +85,9 @@ public class GetProcedureApiTests extends BaseTest {
         softly.assertThat(savedProcedure.getUuid())
                 .as("procedure uuid from GET matches POST /procedure")
                 .isEqualTo(procedure.getUuid());
-        ModelAssertions.assertMatchesExpected(softly,
-                savedProcedure,
-                ProcedureAssertions.expectedProcedureOf(request),
-                "procedure returned by GET /procedure/{uuid}");
+        ModelAssertions.assertThatModels(softly, request, savedProcedure)
+                .as("procedure returned by GET /procedure/{uuid}")
+                .match();
     }
 
     // each procedure has its own procedureCoded - it is the sort key for list comparison,
@@ -113,14 +112,12 @@ public class GetProcedureApiTests extends BaseTest {
 
         var patientProcedures = getPatientProcedures();
 
-        ModelAssertions.assertListMatchesExpected(softly,
-                patientProcedures.results(),
-                ProcedureAssertions.expectedProceduresOf(requests),
-                ProcedureAssertions::procedureCodedUuidOf,
-                "procedures returned for patient");
-        softly.assertThat(ProcedureAssertions.uuidsOf(patientProcedures.results()))
+        ModelAssertions.assertThatModels(softly, requests, patientProcedures.results())
+                .as("procedures returned for patient")
+                .match();
+        softly.assertThat(Uuids.of(patientProcedures.results()))
                 .as("procedure uuids from GET match POST /procedure")
-                .isEqualTo(ProcedureAssertions.uuidsOf(procedures));
+                .isEqualTo(Uuids.of(procedures));
     }
 
     @Test
