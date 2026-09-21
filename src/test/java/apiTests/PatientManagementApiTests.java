@@ -1,14 +1,20 @@
 package apiTests;
 
 import apiParts.generators.RandomModelGenerator;
+import apiParts.generators.RandomUuidGenerator;
 import apiParts.models.Location;
 import apiParts.models.patient.*;
+import apiParts.models.search.SearchResult;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.search.SearchResult;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.skelethon.requests.nestedCrud.NestedCrudRequester;
+import apiParts.skelethon.requests.common.CrudRequester;
+import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.nested.NestedCrudRequester;
+import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -23,8 +29,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import static apiParts.steps.AdminSteps.getPatientIdentifier;
 import static apiParts.models.errors.PatientErrorMessages.*;
+import static apiParts.steps.AdminSteps.getPatientIdentifier;
 
 public class PatientManagementApiTests extends BaseTest {
 
@@ -89,16 +95,8 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCannotCreatePatientWithoutPerson() {
-        CreatePatientRequest createPatientRequest =
-                CreatePatientRequest.builder()
-                        .identifiers(List.of(
-                                PatientIdentifierRequest.builder()
-                                        .identifier(identifier)
-                                        .identifierType(IdentifierType.MRS_ID.getUuid())
-                                        .location(Location.OUTPATIENT_CLINIC.getUuid())
-                                        .preferred(true)
-                                        .build()))
-                        .build();
+        CreatePatientRequest createPatientRequest = RandomModelGenerator.generate(CreatePatientRequest.class);
+        createPatientRequest.setPerson(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -110,21 +108,8 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCannotCreatePatientWithoutIdentifiers() {
-
-        CreatePatientRequest createPatientRequest =
-                CreatePatientRequest.builder()
-                        .person(PersonRequest.builder()
-                                .gender(gender)
-                                .birthdate(birthdate)
-                                .birthdateEstimated(false)
-                                .dead(false)
-                                .names(List.of(
-                                        PersonName.builder()
-                                                .givenName(givenName)
-                                                .familyName(familyName)
-                                                .build()))
-                                .build())
-                        .build();
+        CreatePatientRequest createPatientRequest = RandomModelGenerator.generate(CreatePatientRequest.class);
+        createPatientRequest.setIdentifiers(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -135,6 +120,8 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCannotGetPatientWithNonExistingUuid() {
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
+
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_GET,
