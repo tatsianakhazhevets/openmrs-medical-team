@@ -168,6 +168,10 @@ public class RandomModelGenerator {
         return faker.lorem().word();
     }
 
+    public static String randomWord(String word) {
+        return faker.lorem().word();
+    }
+
     /**
      * Free text for notes, dosingInstructions, etc.
      */

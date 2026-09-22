@@ -22,6 +22,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class PatientSearchParams implements SearchParams {
 
+    public static final String DEFAULT_REPRESENTATION = "default";
+    public static final int DEFAULT_LIMIT = 10;
+
     private String query;
     private String representation;
     private Integer limit;
