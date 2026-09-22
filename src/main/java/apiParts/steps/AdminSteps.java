@@ -49,7 +49,7 @@ public class AdminSteps {
 
     // adminSpec() is authenticated by itself (Basic auth header), no login call is needed
     public static CreatePatientResponse createPatient() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+       LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
                 .username("admin")
                 .password("Admin123")
                 .build();
@@ -60,6 +60,14 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
+        return new SuccessfulCrudRequester<CreatePatientResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_POST,
+                ResponseSpecs.requestReturnsCreated())
+                .create(PatientTestData.createPatientRequest(getId()));
+    }
+
+    public static CreatePatientResponse createPatientWithoutInvokedIdentifier() {
         return new SuccessfulCrudRequester<CreatePatientResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,

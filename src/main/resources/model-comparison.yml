@@ -79,3 +79,19 @@ rules:
       - quantityUnits: quantityUnits.uuid
       - durationUnits: durationUnits.uuid
       - scheduledDate: scheduledDate@instant
+
+  - request: CreatePatientRequest
+    response: CreatePatientResponse
+    fields:
+      - person.gender
+      - person.birthdate
+      - person.birthdateEstimated
+      - person.dead
+
+  - request: CreatePatientRequest
+    response: GetPatientResponse
+    fields:
+      - person.gender
+      - person.birthdate
+      - person.birthdateEstimated
+      - person.dead
