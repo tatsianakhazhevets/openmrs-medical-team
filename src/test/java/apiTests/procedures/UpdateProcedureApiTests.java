@@ -1,6 +1,7 @@
 package apiTests.procedures;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.assertions.ProcedureAssertions;
 import apiParts.models.errors.ProcedureGlobalError;
 import apiParts.models.procedure.CreateProcedureRequest;
@@ -12,7 +13,7 @@ import apiParts.skelethon.requests.common.CrudRequester;
 import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
+import apiParts.testdata.ProcedureTestData;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
@@ -49,8 +50,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @CreateProcedure
 public class UpdateProcedureApiTests extends BaseTest {
     // startDateTime of procedure from @CreateProcedure - dates in cases are relative to it
-    private static final OffsetDateTime START = AdminSteps.PROCEDURE_START;
-    private static final String NON_CODED_PROCEDURE = "Procedure non coded";
+    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
+    private static final String NON_CODED_PROCEDURE = RandomModelGenerator.randomSentence();
+
+    // Any duration is handled by the same server logic
+    private static final int MIN_DURATION = 1;
+    private static final int MAX_DURATION = 10;
 
     private String patientUUID;
     private CreateProcedureRequest createRequest;
@@ -60,26 +65,34 @@ public class UpdateProcedureApiTests extends BaseTest {
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
-        createRequest = AdminSteps.procedureRequest(patientUUID);
+        createRequest = ProcedureTestData.procedureRequest(patientUUID);
         procedure = SessionStorage.getProcedure();
     }
 
     // Each case = one change. The same mutation builds partial update request (empty builder)
     // and expected procedure (request of procedure from @CreateProcedure + change)
+    // The same mutation is applied twice (update request and expected procedure), so generated
+    // values are taken here and captured by the lambda - a call inside it would give two results
     static Stream<Arguments> validUpdates() {
+        int daysEarlier = randomDuration();
+        int hoursLater = randomDuration();
+        int duration = randomDuration();
+        String notes = RandomModelGenerator.randomSentence();
+        String otherNotes = RandomModelGenerator.randomSentence();
+
         return Stream.of(
                 Arguments.of("procedureCoded", mutate(b -> b.procedureCoded(X_RAY_CHEST.getUuid()))),
                 Arguments.of("procedureType", mutate(b -> b.procedureType(SURGICAL.getUuid()))),
                 Arguments.of("bodySite", mutate(b -> b.bodySite(CHEST.getUuid()))),
                 Arguments.of("status", mutate(b -> b.status(IN_PROGRESS.getUuid()))),
-                Arguments.of("startDateTime", mutate(b -> b.startDateTime(format(START.minusDays(1))))),
-                Arguments.of("endDateTime", mutate(b -> b.endDateTime(format(START.plusHours(2))))),
-                Arguments.of("duration with durationUnit", mutate(b -> b.duration(2).durationUnit(DAYS.getUuid()))),
-                Arguments.of("notes", mutate(b -> b.notes("updated notes"))),
+                Arguments.of("startDateTime", mutate(b -> b.startDateTime(format(START.minusDays(daysEarlier))))),
+                Arguments.of("endDateTime", mutate(b -> b.endDateTime(format(START.plusHours(hoursLater))))),
+                Arguments.of("duration with durationUnit", mutate(b -> b.duration(duration).durationUnit(DAYS.getUuid()))),
+                Arguments.of("notes", mutate(b -> b.notes(notes))),
                 Arguments.of("several fields", mutate(b -> b
                         .bodySite(CHEST.getUuid())
                         .status(IN_PROGRESS.getUuid())
-                        .notes("updated notes")))
+                        .notes(otherNotes)))
         );
     }
 
@@ -95,7 +108,7 @@ public class UpdateProcedureApiTests extends BaseTest {
                 Stream.of(
                         Arguments.of("endDateTime before startDateTime",
                                 mutate(b -> b.endDateTime(format(START.minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
-                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(3)), DURATION_UNIT_REQUIRED),
+                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(randomDuration())), DURATION_UNIT_REQUIRED),
                         Arguments.of("procedureNonCoded to procedure with procedureCoded",
                                 mutate(b -> b.procedureNonCoded(NON_CODED_PROCEDURE)), PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE)
                 )
@@ -180,7 +193,7 @@ public class UpdateProcedureApiTests extends BaseTest {
     @Test
     public void adminCannotUpdateNonExistentProcedure() {
         var updateRequest = CreateProcedureRequest.builder()
-                .notes("updated notes")
+                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         new CrudRequester(
@@ -199,7 +212,7 @@ public class UpdateProcedureApiTests extends BaseTest {
     @Test
     public void unauthorizedUserCannotUpdateProcedure() {
         var updateRequest = CreateProcedureRequest.builder()
-                .notes("updated notes")
+                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         new CrudRequester(
@@ -245,6 +258,10 @@ public class UpdateProcedureApiTests extends BaseTest {
                 Arguments.of(field + " = \"\"", mutate(b -> setter.apply(b, "")), error),
                 Arguments.of(field + " = non-existent uuid", mutate(b -> setter.apply(b, UUID.randomUUID().toString())), error)
         );
+    }
+
+    private static int randomDuration() {
+        return RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
     }
 
     private static String format(OffsetDateTime dateTime) {

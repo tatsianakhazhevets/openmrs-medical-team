@@ -1,6 +1,7 @@
 package apiTests.medications;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.assertions.OrderAssertions;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
@@ -23,6 +24,7 @@ import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.testdata.OrderTestData;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -36,19 +38,32 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAmount;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static apiParts.models.errors.DrugOrderFieldError.*;
+import static apiParts.utils.DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CreatePatient
 public class DrugOrderApiTests extends BaseTest {
-    private static final DateTimeFormatter OPENMRS_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    // Any duration inside these bounds is handled by the same server logic
+    private static final int MIN_DURATION = 1;
+    private static final int MAX_DURATION = 10;
+    private static final int MINUTES_PER_DAY = 24 * 60;
+
+    // Dose below one unit: server must keep the fractional part as sent
+    private static final double MIN_FRACTIONAL_DOSE = 0.1;
+    private static final double MAX_FRACTIONAL_DOSE = 0.9;
+    private static final int DOSE_SCALE = 1;
+
+    // Lower bounds for invalid values: anything below zero must be rejected
+    private static final double MIN_INVALID_DOSE = -100;
+    private static final int MIN_INVALID_NUM_REFILLS = -100;
 
     private String patientUUID;
     private String ordererUUID;
@@ -64,17 +79,21 @@ public class DrugOrderApiTests extends BaseTest {
     static Stream<Arguments> validDrugOrders() {
         return Stream.of(
                 Arguments.of("valid outpatient order", mutate(b -> b)),
-                Arguments.of("fractional dose = 0.5", mutate(b -> b.dose(0.5))),
+                Arguments.of("fractional dose", mutate(b -> b.dose(
+                        RandomModelGenerator.randomDouble(MIN_FRACTIONAL_DOSE, MAX_FRACTIONAL_DOSE, DOSE_SCALE)))),
                 Arguments.of("quantityUnits from dispensing set", mutate(b -> b.quantityUnits(DosingUnit.BOTTLE))),
                 Arguments.of("inpatient without quantity, quantityUnits, numRefills", mutate(b -> b
                         .careSetting(CareSetting.INPATIENT)
                         .quantity(null).quantityUnits(null).numRefills(null))),
-                Arguments.of("duration with durationUnits", mutate(b -> b.duration(5).durationUnits(DurationUnit.DAYS))),
-                Arguments.of("durationUnits without duration", mutate(b -> b.durationUnits(DurationUnit.DAYS))),
+                Arguments.of("duration with durationUnits", mutate(b -> b
+                        .duration(randomDuration())
+                        .durationUnits(RandomModelGenerator.oneOf(DurationUnit.class)))),
+                Arguments.of("durationUnits without duration", mutate(b -> b
+                        .durationUnits(RandomModelGenerator.oneOf(DurationUnit.class)))),
                 Arguments.of("without concept - server takes it from drug", mutate(b -> b.concept(null))),
                 Arguments.of("free text dosing with dosingInstructions only", mutate(b -> b
                         .dosingType(DrugOrder.FREE_TEXT_DOSING)
-                        .dosingInstructions("1 tablet after meal")
+                        .dosingInstructions(RandomModelGenerator.randomSentence())
                         .dose(null).doseUnits(null).route(null).frequency(null))),
                 Arguments.of("asNeeded without asNeededCondition", mutate(b -> b.asNeeded(true))),
 
@@ -84,20 +103,14 @@ public class DrugOrderApiTests extends BaseTest {
         );
     }
 
-    // autoExpireDate = dateActivated + duration - 1 second (server ends order "a moment before")
-    // OCCURRENCES: duration = number of doses, period = doses / frequency per day
+    // autoExpireDate = dateActivated + duration - 1 second (server ends order "a moment before").
+    // Every duration unit with the default frequency + OCCURRENCES with the second one:
+    // it is the only unit whose period depends on frequency
     static Stream<Arguments> durations() {
-        return Stream.of(
-                Arguments.of(30, DurationUnit.SECONDS, OrderFrequency.ONCE_DAILY, Duration.ofSeconds(30)),
-                Arguments.of(30, DurationUnit.MINUTES, OrderFrequency.ONCE_DAILY, Duration.ofMinutes(30)),
-                Arguments.of(3, DurationUnit.HOURS, OrderFrequency.ONCE_DAILY, Duration.ofHours(3)),
-                Arguments.of(5, DurationUnit.DAYS, OrderFrequency.ONCE_DAILY, Period.ofDays(5)),
-                Arguments.of(2, DurationUnit.WEEKS, OrderFrequency.ONCE_DAILY, Period.ofWeeks(2)),
-                Arguments.of(1, DurationUnit.MONTHS, OrderFrequency.ONCE_DAILY, Period.ofMonths(1)),
-                Arguments.of(1, DurationUnit.YEARS, OrderFrequency.ONCE_DAILY, Period.ofYears(1)),
-                Arguments.of(3, DurationUnit.OCCURRENCES, OrderFrequency.ONCE_DAILY, Period.ofDays(3)),
-                Arguments.of(3, DurationUnit.OCCURRENCES, OrderFrequency.TWICE_DAILY, Duration.ofHours(36))
-        );
+        return Stream.concat(
+                Arrays.stream(DurationUnit.values())
+                        .map(unit -> durationCase(unit, OrderFrequency.ONCE_DAILY)),
+                Stream.of(durationCase(DurationUnit.OCCURRENCES, OrderFrequency.TWICE_DAILY)));
     }
 
     // Each case = valid outpatient order + one change -> expected validation error
@@ -105,7 +118,8 @@ public class DrugOrderApiTests extends BaseTest {
         return Stream.of(
                 // Simple dosing: required fields and dose > 0
                 Arguments.of("dose = 0", mutate(b -> b.dose(0.0)), DOSE_ZERO_OR_LESS),
-                Arguments.of("dose = -1", mutate(b -> b.dose(-1.0)), DOSE_ZERO_OR_LESS),
+                Arguments.of("negative dose", mutate(b -> b.dose(
+                        RandomModelGenerator.randomNegativeDouble(MIN_INVALID_DOSE, DOSE_SCALE))), DOSE_ZERO_OR_LESS),
                 Arguments.of("simple dosing without dose", mutate(b -> b.dose(null)), DOSE_IS_NULL_FOR_SIMPLE_DOSING),
                 Arguments.of("simple dosing without route", mutate(b -> b.route(null)), ROUTE_IS_NULL_FOR_SIMPLE_DOSING),
                 Arguments.of("doseUnits from dispensing set only", mutate(b -> b.doseUnits(DosingUnit.BOTTLE)),
@@ -124,7 +138,8 @@ public class DrugOrderApiTests extends BaseTest {
                 Arguments.of("outpatient without numRefills", mutate(b -> b.numRefills(null)), NUM_REFILLS_IS_NULL_FOR_OUTPATIENT),
 
                 // Duration
-                Arguments.of("duration without durationUnits", mutate(b -> b.duration(5)), DURATION_UNITS_REQUIRED_WITH_DURATION),
+                Arguments.of("duration without durationUnits", mutate(b -> b.duration(randomDuration())),
+                        DURATION_UNITS_REQUIRED_WITH_DURATION),
 
                 // Drug and concept
                 Arguments.of("concept does not match drug",
@@ -132,7 +147,8 @@ public class DrugOrderApiTests extends BaseTest {
 
                 // KNOWN ISSUES: server accepts these (201), test is expected to fail until fixed
                 Arguments.of("[known issue] quantity = 0", mutate(b -> b.quantity(0.0)), QUANTITY_ZERO_OR_LESS),
-                Arguments.of("[known issue] numRefills = -1", mutate(b -> b.numRefills(-1)), NUM_REFILLS_NEGATIVE)
+                Arguments.of("[known issue] negative numRefills", mutate(b -> b.numRefills(
+                        RandomModelGenerator.randomNegativeInt(MIN_INVALID_NUM_REFILLS))), NUM_REFILLS_NEGATIVE)
         );
     }
 
@@ -188,8 +204,8 @@ public class DrugOrderApiTests extends BaseTest {
                 .as("autoExpireDate is calculated")
                 .isNotNull();
 
-        var dateActivated = OffsetDateTime.parse(saved.getDateActivated(), OPENMRS_DATE);
-        softly.assertThat(OffsetDateTime.parse(saved.getAutoExpireDate(), OPENMRS_DATE))
+        var dateActivated = OffsetDateTime.parse(saved.getDateActivated(), OPENMRS_RESPONSE_DATE_TIME);
+        softly.assertThat(OffsetDateTime.parse(saved.getAutoExpireDate(), OPENMRS_RESPONSE_DATE_TIME))
                 .as("autoExpireDate = dateActivated (%s) + %s - 1 second", dateActivated, expectedPeriod)
                 .isEqualTo(dateActivated.plus(expectedPeriod).minusSeconds(1));
     }
@@ -236,20 +252,33 @@ public class DrugOrderApiTests extends BaseTest {
     }
 
     // ======== HELPERS ========
-    // Valid outpatient order with simple dosing: baseline for all cases
+    // Valid outpatient order with simple dosing: baseline for all cases, same fixture as @CreateOrder(DRUG)
     private DrugOrderBuilder validOutpatientOrder() {
-        return DrugOrder.builder()
-                .patient(patientUUID)
-                .careSetting(CareSetting.OUTPATIENT)
-                .orderer(ordererUUID)
-                .drug(Drug.ASPIRIN_325MG)
-                .dose(1.0)
-                .doseUnits(DosingUnit.TABLET)
-                .route(DrugRoute.ORAL)
-                .frequency(OrderFrequency.ONCE_DAILY)
-                .quantity(5.0)
-                .quantityUnits(DosingUnit.TABLET)
-                .numRefills(1);
+        return OrderTestData.validOutpatientDrugOrder(patientUUID, ordererUUID);
+    }
+
+    private static int randomDuration() {
+        return RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
+    }
+
+    private static Arguments durationCase(DurationUnit unit, OrderFrequency frequency) {
+        int duration = randomDuration();
+        return Arguments.of(duration, unit, frequency, periodOf(duration, unit, frequency));
+    }
+
+    // Period the server adds to dateActivated for the given duration
+    private static TemporalAmount periodOf(int duration, DurationUnit unit, OrderFrequency frequency) {
+        return switch (unit) {
+            case SECONDS -> Duration.ofSeconds(duration);
+            case MINUTES -> Duration.ofMinutes(duration);
+            case HOURS -> Duration.ofHours(duration);
+            case DAYS -> Period.ofDays(duration);
+            case WEEKS -> Period.ofWeeks(duration);
+            case MONTHS -> Period.ofMonths(duration);
+            case YEARS -> Period.ofYears(duration);
+            // duration = number of doses, period = doses / frequency per day: 3 doses twice a day = 36 hours
+            case OCCURRENCES -> Duration.ofMinutes((long) duration * MINUTES_PER_DAY / frequency.getDosesPerDay());
+        };
     }
 
     private CreateEncounterRequest encounterWith(DrugOrder order) {

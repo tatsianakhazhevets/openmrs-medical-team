@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
  * Handled by CreateOrderExtension, registered in apiTests.BaseTest after CreatePatientExtension.
  * <p>
  * Access: SessionStorage.getOrderUuid(), getOrderEncounter().
- * Expected model: AdminSteps.drugOrderEncounterRequest / labOrderEncounterRequest(patientUUID).
+ * Expected model: OrderTestData.drugOrderEncounterRequest / labOrderEncounterRequest(patientUUID, ordererUUID).
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

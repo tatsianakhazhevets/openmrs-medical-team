@@ -1,6 +1,9 @@
 package apiTests.visits;
 
+import apiParts.assertions.ModelAssertions;
+import apiParts.assertions.VisitAssertions;
 import apiParts.models.Attribute;
+import apiParts.models.EncounterType;
 import apiParts.models.visit.VisitAttributeType;
 import apiParts.models.visit.VisitLocation;
 import apiParts.models.visit.VisitType;
@@ -14,6 +17,9 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreateEncounter;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,21 +29,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@CreatePatient
 public class VisitsTests extends BaseTest {
     private static final Faker FAKER = new Faker(new Locale("en", "US"));
     private static final String NON_EXISTENT_VISIT_UUID =
             "82f18b44-6814-11e8-923f-e9a88dcb533f";
     private String patientUUID;
-    private String encounterUUID;
     private String visitUUID;
-    private String insurancePolicyNumber = FAKER.bothify("POLICY-#####");
+    private final String insurancePolicyNumber = FAKER.bothify("POLICY-#####");
 
     @BeforeEach
     public void setUp() {
-        var response = AdminSteps.createPatient();
-        patientUUID = response.getUuid();
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
-        encounterUUID = encounter.getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
 
     }
 
@@ -72,11 +75,11 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void adminCanCreateVisitOnlyWithRequiredFields() {
-        var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
+        CreateVisitResponse visit = createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("visit uuid").isNotBlank();
-        softly.assertThat(visit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(visit.getVisitType().getUuid()).as("visit type uuid").isEqualTo(VisitType.FACILITY_VISIT.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, visit, VisitAssertions.expectedVisitOf(request), "created visit");
         softly.assertThat(visit.getLocation()).as("location").isNull();
         softly.assertThat(visit.getStopDatetime()).as("stop datetime").isNull();
         softly.assertThat(visit.getStartDatetime()).as("start datetime").isNotNull();
@@ -85,9 +88,11 @@ public class VisitsTests extends BaseTest {
         softly.assertAll();
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanCreateVisitWithOptionalFields() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
                 .attributes(List.of(
@@ -97,16 +102,14 @@ public class VisitsTests extends BaseTest {
                                 .build()
                 ))
                 .build();
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("create visit uuid").isNotBlank();
 
-        var savedVisit = getVisit(visit.getUuid());
+        GetVisitResponse savedVisit = getVisit(visit.getUuid());
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
-        softly.assertThat(savedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(savedVisit.getVisitType().getUuid()).as("visit type uuid").isEqualTo(VisitType.FACILITY_VISIT.getUuid());
-        softly.assertThat(savedVisit.getLocation().getUuid()).as("location uuid").isEqualTo(VisitLocation.UBUNTU_HOSPITAL.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, savedVisit, VisitAssertions.expectedVisitOf(request), "created visit");
         softly.assertThat(savedVisit.getAttributes()).extracting(Ref::getDisplay).containsExactly(
                 VisitAttributeType.INSURANCE_POLICY_NUMBER.getDisplay() + ": " + insurancePolicyNumber);
         softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNull();
@@ -116,7 +119,7 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotCreateVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.unAuthSpec(),
@@ -127,7 +130,7 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void cannotCreateVisitWithoutPatient() {
-        var request = CreateVisitRequest.builder()
+        CreateVisitRequest request = CreateVisitRequest.builder()
                 .visitType(VisitType.FACILITY_VISIT)
                 .build();
 
@@ -138,9 +141,11 @@ public class VisitsTests extends BaseTest {
                 .create(request);
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanUpdateVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
                 .attributes(List.of(
@@ -151,10 +156,10 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
         visitUUID = visit.getUuid();
 
-        var updatedRequest = CreateVisitRequest.builder()
+        CreateVisitRequest updatedRequest = CreateVisitRequest.builder()
                 .visitType(VisitType.HOME_VISIT)
                 .location(VisitLocation.MOBILE_CLINIC)
                 .build();
@@ -164,18 +169,17 @@ public class VisitsTests extends BaseTest {
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsOk()).update(visit.getUuid(), updatedRequest);
 
-        var updatedVisit = getVisit(visit.getUuid());
+        GetVisitResponse updatedVisit = getVisit(visit.getUuid());
 
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        softly.assertThat(updatedVisit.getVisitType().getUuid()).as("updated visit type").isEqualTo(VisitType.HOME_VISIT.getUuid());
-        softly.assertThat(updatedVisit.getLocation().getUuid()).as("updated location").isEqualTo(VisitLocation.MOBILE_CLINIC.getUuid());
+        ModelAssertions.assertMatchesExpected(softly, updatedVisit, VisitAssertions.expectedVisitOf(updatedRequest), "updated visit");
         softly.assertAll();
     }
 
     @Test
     public void updateNonExistentVisitReturnsNotFound() {
-        var updatedRequest = CreateVisitRequest.builder()
+        CreateVisitRequest updatedRequest = CreateVisitRequest.builder()
                 .visitType(VisitType.HOME_VISIT)
                 .location(VisitLocation.MOBILE_CLINIC)
                 .build();
@@ -189,14 +193,14 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotUpdateVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .build();
 
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
         visitUUID = visit.getUuid();
 
-        var updatedRequest = CreateVisitRequest.builder()
+        CreateVisitRequest updatedRequest = CreateVisitRequest.builder()
                 .visitType(VisitType.HOME_VISIT)
                 .build();
 
@@ -207,9 +211,11 @@ public class VisitsTests extends BaseTest {
                 .update(visit.getUuid(), updatedRequest);
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanRetireVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
                 .attributes(List.of(
@@ -220,23 +226,25 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsNoContent()).delete(visit.getUuid());
 
-        var retiredVisit = getVisit(visit.getUuid());
+        GetVisitResponse retiredVisit = getVisit(visit.getUuid());
 
         softly.assertThat(retiredVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(retiredVisit.getVoided()).as("visit should be retired").isTrue();
         softly.assertAll();
     }
 
+    @CreateEncounter(EncounterType.VITALS)
     @Test
     public void adminCanPurgeVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        String encounterUUID = SessionStorage.getEncounter().getUuid();
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .encounters(List.of(encounterUUID))
                 .attributes(List.of(
@@ -247,7 +255,7 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
@@ -272,11 +280,11 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotDeleteVisit() {
-        var request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
+        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT)
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .build();
 
-        var visit = createVisit(request);
+        CreateVisitResponse visit = createVisit(request);
         visitUUID = visit.getUuid();
 
         new SuccessfulCrudRequester<CreateVisitResponse>(

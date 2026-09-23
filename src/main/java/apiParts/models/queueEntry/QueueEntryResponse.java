@@ -16,6 +16,7 @@ public class QueueEntryResponse extends BaseModel {
     private Ref patient;
     private Ref visit;
     private Ref priority;
+    private String priorityComment;
     private Double sortWeight;
     private String startedAt;
     private String endedAt;

@@ -17,6 +17,7 @@ import apiParts.skelethon.requests.common.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.testdata.OrderTestData;
 import apiTests.BaseTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ public class CreateOrderApiTests extends BaseTest {
         var patientResponse = AdminSteps.createPatient();
         String patientUUID = patientResponse.getUuid();
 
-        CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
+        CreateEncounterRequest drugOrderRequest = OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
         var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
@@ -68,7 +69,7 @@ public class CreateOrderApiTests extends BaseTest {
         var patientResponse = AdminSteps.createPatient();
         String patientUUID = patientResponse.getUuid();
 
-        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
+        CreateEncounterRequest labOrderRequest = OrderTestData.labOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
         var labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
@@ -114,7 +115,7 @@ public class CreateOrderApiTests extends BaseTest {
         // create patient
         var patientResponse = AdminSteps.createPatient();
 
-        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientResponse.getUuid());
+        CreateEncounterRequest labOrderRequest = OrderTestData.labOrderEncounterRequest(patientResponse.getUuid(), AdminSteps.getCurrentProviderUuid());
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),

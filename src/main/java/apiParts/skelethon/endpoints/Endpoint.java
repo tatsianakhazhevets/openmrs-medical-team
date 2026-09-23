@@ -3,6 +3,7 @@ package apiParts.skelethon.endpoints;
 import apiParts.models.BaseModel;
 import apiParts.models.allergy.AllergyRequest;
 import apiParts.models.allergy.AllergyResponse;
+import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
@@ -17,9 +18,9 @@ import apiParts.models.procedure.GetProceduresResponse;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.queue.GetQueueResponse;
 import apiParts.models.queueEntry.CreateQueueEntryRequest;
-import apiParts.models.queueEntry.CreateQueueEntryResponse;
 import apiParts.models.queueEntry.EndQueueEntryRequest;
 import apiParts.models.queueEntry.GetQueueEntryResponse;
+import apiParts.models.queueEntry.QueueEntryResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitResponse;
@@ -174,9 +175,9 @@ public enum Endpoint {
             GetVisitResponse.class),
 
     VISIT_DELETE(
-        "/visit",
-        BaseModel.class,
-        GetVisitResponse.class),
+            "/visit",
+            BaseModel.class,
+            GetVisitResponse.class),
 
     ALLERGY_POST(
             "/allergy",
@@ -202,12 +203,12 @@ public enum Endpoint {
     VISIT_QUEUE_ENTRY_POST(
             "/visit-queue-entry",
             CreateQueueEntryRequest.class,
-            CreateQueueEntryResponse.class),
+            QueueEntryResponse.class),
 
     QUEUE_ENTRY_UPDATE(
             "/queue-entry",
             EndQueueEntryRequest.class,
-            CreateQueueEntryResponse.class),
+            QueueEntryResponse.class),
 
     QUEUE_ENTRY_GET(
             "/queue-entry",
@@ -217,7 +218,30 @@ public enum Endpoint {
     QUEUE_GET(
             "/queue",
             BaseModel.class,
-            GetQueueResponse.class);
+            GetQueueResponse.class),
+
+    APPOINTMENT_POST(
+            "/appointment",
+            CreateAppointmentRequest.class,
+            CreateAppointmentResponse.class),
+
+    APPOINTMENT_SUMMARY_GET(
+            "/appointment/appointmentSummary",
+            BaseModel.class,
+            GetAppointmentSummaryResponse.class),
+    APPOINTMENTS_GET("/appointments",
+            BaseModel.class,
+            CreateAppointmentResponse.class),
+
+    APPOINTMENT_STATUS_CHANGE(
+            "/appointments",
+            AppointmentStatusChangeRequest.class,
+            CreateAppointmentResponse.class),
+
+    APPOINTMENTS_SEARCH(
+            "/appointments/search",
+            AppointmentSearchRequest.class,
+            CreateAppointmentResponse.class);
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;
