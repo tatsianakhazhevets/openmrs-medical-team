@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,7 +16,8 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AllergyResponse extends BaseModel {
     private String uuid;
-    private String display;
+    private Allergen allergen;
+    private Severity severity;
     private String comment;
-    private Boolean voided;
+    private List<ReactionWrapper> reactions;
 }

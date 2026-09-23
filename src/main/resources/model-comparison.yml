@@ -95,3 +95,12 @@ rules:
       - person.birthdate
       - person.birthdateEstimated
       - person.dead
+
+  - request: AllergyRequest
+    response: AllergyResponse
+    fields:
+      - allergen.allergenType
+      - allergen.codedAllergen.uuid: allergen.codedAllergen.uuid
+      - severity.uuid: severity.uuid
+      - comment
+      - reactions[].reaction.uuid: reactions[].reaction.uuid
