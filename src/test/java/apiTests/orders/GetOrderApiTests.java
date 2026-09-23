@@ -3,7 +3,6 @@ package apiTests.orders;
 import apiParts.assertions.ModelAssertions;
 import apiParts.assertions.OrderAssertions;
 import apiParts.models.EncounterType;
-import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
@@ -101,7 +100,7 @@ public class GetOrderApiTests extends BaseTest {
 
         CreateEncounterResponse expectedLabEncounter = new CreateEncounterResponse();
         expectedLabEncounter.setPatient(Ref.of(patientUUID));
-        expectedLabEncounter.setLocation(Ref.of(Location.INPATIENT_WARD.getUuid()));
+        expectedLabEncounter.setLocation(Ref.of(labOrderRequest.getLocation().getUuid()));
         expectedLabEncounter.setEncounterType(Ref.of(EncounterType.ORDER.getUuid()));
 
         ModelAssertions.assertMatchesExpected(softly, labEncounter, expectedLabEncounter, "lab order encounter");
