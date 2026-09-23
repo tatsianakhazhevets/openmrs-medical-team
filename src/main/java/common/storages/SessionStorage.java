@@ -2,6 +2,7 @@ package common.storages;
 
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.visit.CreateVisitResponse;
 
@@ -16,6 +17,7 @@ public class SessionStorage {
 
     private final List<CreatePatientResponse> patients = new ArrayList<>();
     private final List<ProcedureResponse> procedures = new ArrayList<>();
+    private final List<CreateProcedureRequest> procedureRequests = new ArrayList<>();
     private final List<CreateEncounterResponse> orderEncounters = new ArrayList<>();
     private final List<CreateEncounterResponse> encounters = new ArrayList<>();
     private final List<CreateVisitResponse> visits = new ArrayList<>();
@@ -45,7 +47,9 @@ public class SessionStorage {
     }
 
     // ======== PROCEDURES (@CreateProcedure) ========
-    public static void addProcedure(ProcedureResponse procedure) {
+    // request is kept with the response: it is random, tests use it as expected procedure
+    public static void addProcedure(CreateProcedureRequest request, ProcedureResponse procedure) {
+        INSTANCE.get().procedureRequests.add(request);
         INSTANCE.get().procedures.add(procedure);
     }
 
@@ -57,7 +61,17 @@ public class SessionStorage {
         return get(INSTANCE.get().procedures, number, "procedures", "@CreateProcedure");
     }
 
+    // request the procedure was created with
+    public static CreateProcedureRequest getProcedureRequest() {
+        return getProcedureRequest(1);
+    }
+
+    public static CreateProcedureRequest getProcedureRequest(int number) {
+        return get(INSTANCE.get().procedureRequests, number, "procedure requests", "@CreateProcedure");
+    }
+
     public static void clearProcedures() {
+        INSTANCE.get().procedureRequests.clear();
         INSTANCE.get().procedures.clear();
     }
 

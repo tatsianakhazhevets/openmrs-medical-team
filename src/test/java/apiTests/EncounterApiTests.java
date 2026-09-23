@@ -1,7 +1,8 @@
 package apiTests;
 
+import apiParts.generators.GenerationProfile;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.EncounterType;
-import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
@@ -23,6 +24,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,12 +51,7 @@ public class EncounterApiTests extends BaseTest {
     public void adminCanCreateEncounter() {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .encounterDatetime(encounterDatetime)
-                .location(Location.OUTPATIENT_CLINIC)
-                .build();
+        CreateEncounterRequest createEncounterRequest = vitalsEncounter(fields("encounterDatetime", encounterDatetime));
 
         CreateEncounterResponse createdEncounterResponse =
                 new SuccessfulCrudRequester<CreateEncounterResponse>(
@@ -75,7 +72,7 @@ public class EncounterApiTests extends BaseTest {
         softly.assertThat(receivedEncounterResponse.getEncounterType().getUuid())
                 .isEqualTo(EncounterType.VITALS.getUuid());
         softly.assertThat(receivedEncounterResponse.getLocation().getUuid())
-                .isEqualTo(Location.OUTPATIENT_CLINIC.getUuid());
+                .isEqualTo(createEncounterRequest.getLocation().getUuid());
         softly.assertThat(receivedEncounterResponse.getVoided()).isFalse();
     }
 
@@ -83,13 +80,9 @@ public class EncounterApiTests extends BaseTest {
     public void adminCanCreateEncounterWithObservation() {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .encounterDatetime(encounterDatetime)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(List.of(CreateEncounterRequest.Obs.of(VitalsConcept.TEMPERATURE, normalTemperature)))
-                .build();
+        CreateEncounterRequest createEncounterRequest = vitalsEncounter(fields(
+                "encounterDatetime", encounterDatetime,
+                "obs", List.of(CreateEncounterRequest.Obs.of(VitalsConcept.TEMPERATURE, normalTemperature))));
 
         CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -117,22 +110,13 @@ public class EncounterApiTests extends BaseTest {
         return Stream.of(
                 Arguments.of(
                         // without patient
-                        CreateEncounterRequest.builder()
-                                .encounterType(EncounterType.VITALS)
-                                .encounterDatetime("2026-09-16T10:00:00.000+0200")
-                                .location(Location.OUTPATIENT_CLINIC)
-                                .build(),
+                        vitalsEncounter(fields("patient", null)),
                         MISSING_PATIENT.getMessage()
                 ),
 
                 Arguments.of(
                         // non-existing patient
-                        CreateEncounterRequest.builder()
-                                .patient("00000000-0000-0000-0000-000000000000")
-                                .encounterType(EncounterType.VITALS)
-                                .encounterDatetime("2026-09-16T10:00:00.000+0200")
-                                .location(Location.OUTPATIENT_CLINIC)
-                                .build(),
+                        vitalsEncounter(fields("patient", "00000000-0000-0000-0000-000000000000")),
                         INVALID_SUBMISSION.getMessage()
                 )
         );
@@ -158,22 +142,15 @@ public class EncounterApiTests extends BaseTest {
         return Stream.of(
                 Arguments.of(
                         // without encounter type
-                        CreateEncounterRequest.builder()
-                                .patient(patient.getUuid())
-                                .encounterDatetime("2026-09-16T10:00:00.000+0200")
-                                .location(Location.OUTPATIENT_CLINIC)
-                                .build(),
+                        vitalsEncounter(fields("patient", patient.getUuid(), "encounterType", null)),
                         MISSING_ENCOUNTER_TYPE.getMessage()
                 ),
 
                 Arguments.of(
                         // future datetime
-                        CreateEncounterRequest.builder()
-                                .patient(patient.getUuid())
-                                .encounterType(EncounterType.VITALS)
-                                .encounterDatetime("2099-01-01T10:00:00.000+0000")
-                                .location(Location.OUTPATIENT_CLINIC)
-                                .build(),
+                        vitalsEncounter(fields(
+                                "patient", patient.getUuid(),
+                                "encounterDatetime", "2099-01-01T10:00:00.000+0000")),
                         INVALID_SUBMISSION.getMessage()
                 )
         );
@@ -204,12 +181,7 @@ public class EncounterApiTests extends BaseTest {
     public void adminCanUpdateEncounter() {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest createRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .encounterDatetime(encounterDatetime)
-                .location(Location.OUTPATIENT_CLINIC)
-                .build();
+        CreateEncounterRequest createRequest = vitalsEncounter(fields("encounterDatetime", encounterDatetime));
 
         CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -253,12 +225,7 @@ public class EncounterApiTests extends BaseTest {
     public void adminCanDeleteEncounter() {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest encounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .encounterDatetime(encounterDatetime)
-                .location(Location.OUTPATIENT_CLINIC)
-                .build();
+        CreateEncounterRequest encounterRequest = vitalsEncounter(fields("encounterDatetime", encounterDatetime));
 
         CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -290,5 +257,19 @@ public class EncounterApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsNotFound(
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .delete(nonExistingUuid);
+    }
+
+    // Valid vitals encounter of the @CreatePatient patient, overrides replace generated fields
+    private static CreateEncounterRequest vitalsEncounter(Map<String, Object> overrides) {
+        return RandomModelGenerator.generate(CreateEncounterRequest.class, GenerationProfile.VITALS, overrides);
+    }
+
+    // Overrides as key-value pairs. null value = field is omitted from the request (Map.of does not allow null)
+    private static Map<String, Object> fields(Object... keyValues) {
+        Map<String, Object> overrides = new HashMap<>();
+        for (int i = 0; i < keyValues.length; i += 2) {
+            overrides.put((String) keyValues[i], keyValues[i + 1]);
+        }
+        return overrides;
     }
 }

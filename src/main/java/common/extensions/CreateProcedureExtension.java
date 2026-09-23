@@ -1,6 +1,8 @@
 package common.extensions;
 
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.steps.AdminSteps;
+import apiParts.testdata.ProcedureTestData;
 import common.annotations.CreateProcedure;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -27,7 +29,8 @@ public class CreateProcedureExtension implements BeforeEachCallback, AfterEachCa
 
         String patientUUID = ExtensionUtils.requirePatientUuid(CreateProcedure.class);
         for (int i = 0; i < count; i++) {
-            SessionStorage.addProcedure(AdminSteps.createProcedure(patientUUID));
+            CreateProcedureRequest request = ProcedureTestData.procedureRequest(patientUUID);
+            SessionStorage.addProcedure(request, AdminSteps.createProcedure(request));
         }
     }
 

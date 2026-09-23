@@ -1,5 +1,7 @@
 package apiParts.steps;
 
+import apiParts.generators.GenerationProfile;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.*;
 import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
@@ -14,6 +16,7 @@ import apiParts.models.order.DrugOrder;
 import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
@@ -37,9 +40,7 @@ import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
-import apiParts.testdata.ProcedureTestData;
 import apiParts.testdata.QueueTestData;
-import apiParts.testdata.VitalsTestData;
 
 import java.util.List;
 import java.util.Map;
@@ -77,12 +78,8 @@ public class AdminSteps {
     }
 
     public static CreateEncounterResponse createVitalsEncounter(String patientUUID) {
-        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(VitalsTestData.vitalsObs())
-                .build();
+        CreateEncounterRequest createEncounterRequest = RandomModelGenerator.generate(
+                CreateEncounterRequest.class, GenerationProfile.VITALS, Map.of("patient", patientUUID));
 
         return new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -136,14 +133,13 @@ public class AdminSteps {
                 .create(OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid()));
     }
 
-    // Valid procedure with required fields only as a standard fixture for procedure tests.
-    // Request: ProcedureTestData.procedureRequest(patientUUID)
-    public static ProcedureResponse createProcedure(String patientUUID) {
+    // Standard fixture for procedure tests, request: ProcedureTestData.procedureRequest(patientUUID)
+    public static ProcedureResponse createProcedure(CreateProcedureRequest request) {
         return new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURE_POST,
                 ResponseSpecs.requestReturnsCreated())
-                .create(ProcedureTestData.procedureRequest(patientUUID));
+                .create(request);
     }
 
     public static void deleteVisit(String visitUUID) {

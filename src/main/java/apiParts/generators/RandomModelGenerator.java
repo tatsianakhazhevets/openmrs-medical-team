@@ -3,6 +3,7 @@ package apiParts.generators;
 import com.github.javafaker.Faker;
 import com.mifmif.common.regex.Generex;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -12,6 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Random test data.
@@ -41,11 +45,23 @@ public class RandomModelGenerator {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     public static <T> T generate(Class<T> clazz) {
-        return generate(clazz, new HashMap<>(), 0);
+        return generate(clazz, new HashMap<>(), null, 0);
     }
 
     public static <T> T generate(Class<T> clazz, Map<String, Object> overrides) {
-        return generate(clazz, overrides, 0);
+        return generate(clazz, overrides, null, 0);
+    }
+
+    /**
+     * Model for a scenario: rules with {@code profiles} containing {@code profile} win over rules without profiles.
+     * E.g. {@code generate(CreateEncounterRequest.class, GenerationProfile.VITALS)}.
+     */
+    public static <T> T generate(Class<T> clazz, GenerationProfile profile) {
+        return generate(clazz, new HashMap<>(), profile, 0);
+    }
+
+    public static <T> T generate(Class<T> clazz, GenerationProfile profile, Map<String, Object> overrides) {
+        return generate(clazz, overrides, profile, 0);
     }
 
     private static Object generateIdentifierField(
@@ -78,6 +94,7 @@ public class RandomModelGenerator {
     private static <T> T generate(
             Class<T> clazz,
             Map<String, Object> overrides,
+            GenerationProfile profile,
             int depth
     ) {
         if (depth > MAX_DEPTH) return null;
@@ -99,7 +116,7 @@ public class RandomModelGenerator {
                     continue;
                 }
 
-                Object value = generateFieldValue(field, depth);
+                Object value = generateFieldValue(field, profile, depth);
                 field.set(instance, value);
             }
 
@@ -209,17 +226,27 @@ public class RandomModelGenerator {
 
     // ======== REFLECTION ========
 
-    private static Object generateFieldValue(Field field, int depth) {
+    private static Object generateFieldValue(Field field, GenerationProfile profile, int depth) {
         Class<?> type = field.getType();
+
+        if (ruleFor(field, SkipGeneration.class, profile, SkipGeneration::profiles) != null) {
+            return null;
+        }
+
+        GeneratedBy custom = ruleFor(field, GeneratedBy.class, profile, GeneratedBy::profiles);
+        if (custom != null) {
+            return fromSupplier(custom.value());
+        }
 
         StringGeneratingRule stringRule = field.getAnnotation(StringGeneratingRule.class);
         if (stringRule != null && !stringRule.regex().isEmpty() && type.equals(String.class)) {
             return generateFromRegex(stringRule.regex());
         }
 
-        EnumGeneratingRule enumRule = field.getAnnotation(EnumGeneratingRule.class);
-        if (enumRule != null && type.equals(String.class)) {
-            return generateFromEnum(enumRule);
+        EnumGeneratingRule enumRule =
+                ruleFor(field, EnumGeneratingRule.class, profile, EnumGeneratingRule::profiles);
+        if (enumRule != null && (type.equals(String.class) || type.isEnum())) {
+            return generateFromEnum(field, enumRule);
         }
 
         BooleanGeneratingRule booleanRule = field.getAnnotation(BooleanGeneratingRule.class);
@@ -255,13 +282,13 @@ public class RandomModelGenerator {
         }
 
         if (Collection.class.isAssignableFrom(type)) {
-            return generateCollection(field, depth);
+            return generateCollection(field, profile, depth);
         }
 
-        return generate(type, null, depth + 1);
+        return generate(type, null, profile, depth + 1);
     }
 
-    private static Object generateCollection(Field field, int depth) {
+    private static Object generateCollection(Field field, GenerationProfile profile, int depth) {
         try {
             ParameterizedType genericType =
                     (ParameterizedType) field.getGenericType();
@@ -285,7 +312,7 @@ public class RandomModelGenerator {
             int size = randomInt(minSize, maxSize);
 
             for (int i = 0; i < size; i++) {
-                list.add(generate(itemType, null, depth + 1));
+                list.add(generate(itemType, null, profile, depth + 1));
             }
 
             return list;
@@ -300,23 +327,65 @@ public class RandomModelGenerator {
         return generex.random();
     }
 
-    private static String generateFromEnum(EnumGeneratingRule rule) {
+    // Random allowed constant: the constant itself for enum field, its valueMethod() (uuid) for String field
+    private static Object generateFromEnum(Field field, EnumGeneratingRule rule) {
+        Class<?> type = field.getType();
+        if (type.isEnum() && !type.equals(rule.enumClass())) {
+            throw new IllegalStateException("Field " + field.getName() + " is " + type.getName()
+                    + ", but @EnumGeneratingRule has enumClass " + rule.enumClass().getName());
+        }
+
+        Enum<?> constant = pickConstant(rule);
+        if (type.isEnum()) {
+            return constant;
+        }
+
         try {
-            Enum<?>[] values = rule.enumClass().getEnumConstants();
-
-            Enum<?> randomValue =
-                    values[ThreadLocalRandom.current().nextInt(values.length)];
-
-            return (String) rule.enumClass()
-                    .getMethod(rule.valueMethod())
-                    .invoke(randomValue);
-
+            return rule.enumClass().getMethod(rule.valueMethod()).invoke(constant);
         } catch (Exception e) {
             throw new RuntimeException(
-                    "Failed to generate value from enum: "
-                            + rule.enumClass().getName(),
-                    e
-            );
+                    "Failed to generate value from enum: " + rule.enumClass().getName(), e);
+        }
+    }
+
+    private static Enum<?> pickConstant(EnumGeneratingRule rule) {
+        List<String> only = List.of(rule.only());
+        List<Enum<?>> allowed = Arrays.stream(rule.enumClass().getEnumConstants())
+                .filter(constant -> only.isEmpty() || only.contains(constant.name()))
+                .collect(Collectors.toList());
+        if (allowed.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No constants " + only + " in " + rule.enumClass().getName());
+        }
+        return oneOf(allowed);
+    }
+
+    // Rule for the profile: exact profile match first, then rule without profiles, otherwise null
+    private static <A extends Annotation> A ruleFor(
+            Field field,
+            Class<A> ruleType,
+            GenerationProfile profile,
+            Function<A, GenerationProfile[]> profilesOf
+    ) {
+        A common = null;
+        for (A rule : field.getAnnotationsByType(ruleType)) {
+            List<GenerationProfile> profiles = List.of(profilesOf.apply(rule));
+            if (profiles.isEmpty()) {
+                common = rule;
+            } else if (profile != null && profiles.contains(profile)) {
+                return rule;
+            }
+        }
+        return common;
+    }
+
+    private static Object fromSupplier(Class<? extends Supplier<?>> supplierClass) {
+        try {
+            Constructor<? extends Supplier<?>> constructor = supplierClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance().get();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to create supplier " + supplierClass.getName(), e);
         }
     }
 

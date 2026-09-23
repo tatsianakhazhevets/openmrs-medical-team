@@ -113,7 +113,7 @@ public class CreateProcedureApiTests extends BaseTest {
                         Arguments.of("endDateTime before startDateTime",
                                 mutate(b -> b.endDateTime(format(START.minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
                         Arguments.of("[known issue] completed procedure with startDateTime in the future",
-                                mutate(b -> b.startDateTime(format(OffsetDateTime.now(MOSCOW)
+                                mutate(b -> b.status(COMPLETED.getUuid()).startDateTime(format(OffsetDateTime.now(MOSCOW)
                                         .plusDays(RandomModelGenerator.randomInt(MIN_DAYS_IN_FUTURE, MAX_DAYS_IN_FUTURE))))),
                         START_DATE_TIME_IN_FUTURE),
                         Arguments.of("startDateTime and estimatedStartDate for new procedure",
@@ -138,17 +138,15 @@ public class CreateProcedureApiTests extends BaseTest {
                                         ProcedureStatus status,
                                         Integer duration,
                                         DurationUnit durationUnit) {
-        var request = CreateProcedureRequest.builder()
-                .patient(patientUUID)
+        // pairwise fields are set explicitly, patient / startDateTime / notes are generated
+        var request = validProcedure()
                 .procedureCoded(uuidOf(procedureCoded))
                 .procedureNonCoded(procedureNonCoded)
                 .procedureType(procedureType.getUuid())
                 .bodySite(bodySite.getUuid())
-                .startDateTime(format(START))
                 .status(status.getUuid())
                 .duration(duration)
                 .durationUnit(uuidOf(durationUnit))
-                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         var procedure = new SuccessfulCrudRequester<ProcedureResponse>(
@@ -235,15 +233,9 @@ public class CreateProcedureApiTests extends BaseTest {
     }
 
     // ======== HELPERS ========
-    // Valid procedure with required fields only: baseline for negative cases
+    // Valid random procedure (RandomModelGenerator): baseline for pairwise and negative cases
     private CreateProcedureRequestBuilder validProcedure() {
-        return CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
-                .procedureType(EMERGENCY.getUuid())
-                .bodySite(ABDOMEN.getUuid())
-                .startDateTime(format(START))
-                .status(COMPLETED.getUuid());
+        return ProcedureTestData.procedureRequest(patientUUID).toBuilder();
     }
 
     private SearchResult<ProcedureResponse> getPatientProcedures() {

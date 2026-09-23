@@ -1,9 +1,8 @@
 package apiTests.vitalsAndBiometrics;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.GenerationProfile;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.EncounterType;
-import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterRequest.Obs;
@@ -76,12 +75,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @MethodSource("validVitalsBoundaries")
     public void adminCanAddVitals(String boundary, List<Obs> obs){
 
-        var request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(obs)
-                .build();
+        var request = RandomModelGenerator.generate(
+                CreateEncounterRequest.class, GenerationProfile.VITALS, Map.of("obs", obs));
 
         var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -114,12 +109,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @MethodSource("outOfRangeVitals")
     public void adminCannotAddVitalsOutOfRange(VitalsConcept concept, Number value, ObsFieldError error) {
 
-        var request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(List.of(Obs.of(concept, value)))
-                .build();
+        var request = RandomModelGenerator.generate(
+                CreateEncounterRequest.class, GenerationProfile.VITALS, Map.of("obs", List.of(Obs.of(concept, value))));
         var before = getPatientObs().results();
 
         new CrudRequester(
