@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ReactionUuid {
-    REACTION_UUID("1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    UNKNOWN("1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+    HEADACHE("139084AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
     private final String Reaction;
 }

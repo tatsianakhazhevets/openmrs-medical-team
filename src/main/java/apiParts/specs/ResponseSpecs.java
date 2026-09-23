@@ -121,6 +121,15 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsBadRequestWithTwoMessages(String messagePart, String fieldMessagePart) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.message", Matchers.containsString(messagePart))
+                .expectBody("error.fieldErrors.values()*.message.flatten()",
+                        Matchers.hasItem(Matchers.containsString(fieldMessagePart)))
+                .build();
+    }
+
     public static ResponseSpecification requestReturnsBadRequestWithMessage(OrderErrorMessage error) {
         return requestReturnsBadRequestWithMessage(error.getMessage());
     }

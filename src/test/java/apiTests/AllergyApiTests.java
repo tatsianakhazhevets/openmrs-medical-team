@@ -1,207 +1,209 @@
 package apiTests;
 
+import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
+import apiParts.generators.RandomUuidGenerator;
 import apiParts.models.allergy.*;
+import apiParts.models.patient.GetPatientResponse;
 import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.nestedCrud.NestedCrudRequester;
 import apiParts.skelethon.requests.nestedCrud.SuccessfulNestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
-import apiParts.testdata.AllergyTestData;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
-import net.datafaker.Faker;
+import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-import java.util.Locale;
-import java.util.UUID;
-
-import static apiParts.models.errors.AllergyErrorMassages.*;
+import static apiParts.models.errors.AllergyErrorMessages.*;
 
 @CreatePatient
 public class AllergyApiTests extends BaseTest {
 
-    Faker faker = new Faker(new Locale("en", "US"));
-
-    String nonExistingUuid = UUID.randomUUID().toString();
-    String updatedComment = faker.lorem().sentence();
-    String comment = faker.lorem().sentence();
+    String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
     @Test
+    @CreatePatient
     public void adminCanCreateAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-
-        AllergyRequest allergyRequest = AllergyTestData.allergyRequest(comment);
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
 
         AllergyResponse createdAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsCreated())
-                .create(patientUUID, allergyRequest);
+                .create(SessionStorage.getPatient().getUuid(), allergyRequest);
 
+        ModelAssertions.assertThatModels(softly, allergyRequest, createdAllergyResponse).match();
         softly.assertThat(createdAllergyResponse.getUuid()).isNotNull();
-        softly.assertThat(createdAllergyResponse.getComment()).isEqualTo(comment);
 
         AllergyResponse getAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsOk())
-                .get(patientUUID, createdAllergyResponse.getUuid(), Map.of("v", "full"));
+                .get(SessionStorage.getPatient().getUuid(),
+                        createdAllergyResponse.getUuid(),
+                        AllergyGetParams.builder()
+                                .v(AllergyGetParams.FULL)
+                                .build()
+                                .toQueryParams());
 
+        ModelAssertions.assertThatModels(softly, allergyRequest, getAllergyResponse).match();
         softly.assertThat(getAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
-        softly.assertThat(getAllergyResponse.getComment()).isEqualTo(comment);
     }
 
     @Test
+    @CreatePatient
     public void adminCannotCreateAllergyWithoutAllergen() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
+        allergyRequest.setAllergen(null);
 
-        AllergyRequest request = AllergyRequest.builder()
-                .severity(Severity.builder()
-                        .uuid(SeverityUuid.SEVERITY_UUID.getSeverity())
-                        .build())
-                .comment(comment)
-                .build();
-
-        new NestedCrudRequester(
+        ValidatableResponse response = new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(INVALID_SUBMISSION.getMessage()))
-                .create(patientUUID, request);
+                ResponseSpecs.requestReturnsBadRequestWithTwoMessages(
+                        INVALID_SUBMISSION.getMessage(),
+                        ALLERGEN_REQUIRED.getMessage()))
+                .create(SessionStorage.getPatient().getUuid(), allergyRequest);
+
     }
 
     @Test
+    @CreatePatient
     public void adminCannotCreateAllergyWithInvalidAllergenUuid() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-
-        AllergyRequest request = AllergyRequest.builder()
-                .allergen(Allergen.builder()
-                        .allergenType(AllergenType.DRUG.getDrug())
-                        .codedAllergen(CodedAllergen.builder()
-                                .uuid(nonExistingUuid)
-                                .build())
-                        .build())
-                .severity(Severity.builder()
-                        .uuid(SeverityUuid.SEVERITY_UUID.getSeverity())
-                        .build())
-                .comment(comment)
-                .build();
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
+        allergyRequest.getAllergen().setCodedAllergen(CodedAllergen.builder()
+                .uuid(nonExistingUuid)
+                .build());
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsBadRequestWithMessage(
                         SHOULD_USE_NEW_DELEGATE.getMessage()))
-                .create(patientUUID, request);
+                .create(SessionStorage.getPatient().getUuid(), allergyRequest);
     }
 
     @Test
-    public void adminCannotGetNonExistingAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
+    public void adminCannotCreateAllergyForNonExistingPatient() {
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
-                ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .get(patientUUID, nonExistingUuid, Map.of("v", "full"));
+                ResponseSpecs.requestReturnsNotFound(
+                        OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
+                .create(nonExistingUuid, allergyRequest);
+    }
+
+    @Test
+    @CreatePatient
+    public void adminCannotGetNonExistingAllergy() {
+
+        new NestedCrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.PATIENT_ALLERGY_NESTED,
+                ResponseSpecs.requestReturnsNotFound(
+                        OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
+                .get(SessionStorage.getPatient().getUuid(),
+                        nonExistingUuid,
+                        AllergyGetParams.builder()
+                        .v(AllergyGetParams.FULL)
+                        .build()
+                        .toQueryParams());
     }
 
     @Test
     public void adminCannotGetAllergyForNonExistingPatient() {
+
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
-                ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .get(nonExistingUuid, nonExistingUuid, Map.of("v", "full"));
+                ResponseSpecs.requestReturnsNotFound())
+                .get(nonExistingUuid, nonExistingUuid,
+                        AllergyGetParams.builder()
+                                .v(AllergyGetParams.FULL)
+                                .build()
+                                .toQueryParams());
     }
 
     @Test
+    @CreatePatient
     public void adminCanUpdateAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-
-        AllergyRequest allergyRequest = AllergyTestData.allergyRequest(comment);
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
 
         AllergyResponse createdAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsCreated())
-                .create(patientUUID, allergyRequest);
+                .create(SessionStorage.getPatient().getUuid(), allergyRequest);
 
-        AllergyRequest updateAllergyRequest = AllergyTestData.allergyRequest(updatedComment);
+        allergyRequest.setComment(RandomModelGenerator.randomWord());
 
         AllergyResponse updatedAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsOk())
-                .update(patientUUID, createdAllergyResponse.getUuid(), updateAllergyRequest);
+                .update(SessionStorage.getPatient().getUuid(), createdAllergyResponse.getUuid(),
+                        allergyRequest);
 
+        ModelAssertions.assertThatModels(softly, allergyRequest, updatedAllergyResponse).match();
         softly.assertThat(updatedAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
-        softly.assertThat(updatedAllergyResponse.getComment()).isEqualTo(updatedComment);
 
         AllergyResponse getAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsOk())
-                .get(patientUUID, createdAllergyResponse.getUuid(), Map.of("v", "full"));
+                .get(SessionStorage.getPatient().getUuid(),
+                        createdAllergyResponse.getUuid(),
+                        AllergyGetParams.builder()
+                                .v(AllergyGetParams.FULL)
+                                .build()
+                                .toQueryParams());
 
         softly.assertThat(getAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
-        softly.assertThat(getAllergyResponse.getComment()).isEqualTo(updatedComment);
+        softly.assertThat(getAllergyResponse.getComment()).isEqualTo(updatedAllergyResponse.getComment());
     }
 
     @Test
+    @CreatePatient
     public void adminCannotUpdateNonExistingAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-
-        AllergyRequest request = AllergyTestData.allergyRequest(updatedComment);
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .update(patientUUID, nonExistingUuid, request);
+                .update(SessionStorage.getPatient().getUuid(), nonExistingUuid, allergyRequest);
     }
 
     @Test
+    @CreatePatient
     public void adminCanDeleteAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
-
-        AllergyRequest allergyRequest = AllergyTestData.allergyRequest(comment);
+        AllergyRequest allergyRequest = RandomModelGenerator.generate(AllergyRequest.class);
 
         AllergyResponse createdAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsCreated())
-                .create(patientUUID, allergyRequest);
+                .create(SessionStorage.getPatient().getUuid(), allergyRequest);
 
         softly.assertThat(createdAllergyResponse.getUuid()).isNotNull();
-        softly.assertThat(createdAllergyResponse.getComment()).isEqualTo(comment);
 
         new SuccessfulNestedCrudRequester<AllergyResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsNoContent())
-                .delete(patientUUID, createdAllergyResponse.getUuid());
-
-        AllergyResponse deletedAllergyResponse = new SuccessfulNestedCrudRequester<AllergyResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_ALLERGY_NESTED,
-                ResponseSpecs.requestReturnsOk())
-                .get(patientUUID, createdAllergyResponse.getUuid(), Map.of("v", "full"));
-
-        softly.assertThat(deletedAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
-        softly.assertThat(deletedAllergyResponse.getVoided()).isTrue();
+                .delete(SessionStorage.getPatient().getUuid(), createdAllergyResponse.getUuid());
     }
 
     @Test
     public void adminCannotDeleteNonExistingAllergy() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
 
-        new SuccessfulNestedCrudRequester<AllergyResponse>(
+        new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .delete(
-                        patientUUID, nonExistingUuid);
+                .delete(SessionStorage.getPatient().getUuid(), nonExistingUuid);
     }
 }

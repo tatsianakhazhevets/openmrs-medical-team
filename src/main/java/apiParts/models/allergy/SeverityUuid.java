@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum SeverityUuid {
-    SEVERITY_UUID("1500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    SEVERE("1500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+    MILD("1498AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+    MODERATE("1499AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-    private final String severity;
+    private final String uuid;
 }
