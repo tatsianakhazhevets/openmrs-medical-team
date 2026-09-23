@@ -34,6 +34,10 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static apiParts.models.order.DurationUnit.HOURS;
+import static apiParts.models.procedure.BodySite.ABDOMEN;
+import static apiParts.models.procedure.ProcedureConcept.LAPAROSCOPIC_CHOLECYSTECTOMY;
+import static apiParts.models.procedure.ProcedureStatus.COMPLETED;
+import static apiParts.models.procedure.ProcedureType.EMERGENCY;
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 @CreatePatient
@@ -56,10 +60,17 @@ public class GetProcedureApiTests extends BaseTest {
     public void adminCanGetProcedureByUuid() {
         // procedure lasted exactly its duration: endDateTime and duration are built from one value
         int durationInHours = RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
-        var request = validProcedure()
+        var request = CreateProcedureRequest.builder()
+                .patient(patientUUID)
+                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
+                .procedureType(EMERGENCY.getUuid())
+                .bodySite(ABDOMEN.getUuid())
+                .startDateTime(format(START))
                 .endDateTime(format(START.plusHours(durationInHours)))
+                .status(COMPLETED.getUuid())
                 .duration(durationInHours)
                 .durationUnit(HOURS.getUuid())
+                .notes(RandomModelGenerator.randomSentence())
                 .build();
 
         var procedure = createProcedure(request);
@@ -174,9 +185,15 @@ public class GetProcedureApiTests extends BaseTest {
     }
 
     // ======== HELPERS ========
-    // Valid random procedure (RandomModelGenerator), started at START
+    // Valid procedure with required fields only
     private CreateProcedureRequest.CreateProcedureRequestBuilder validProcedure() {
-        return ProcedureTestData.procedureRequest(patientUUID).toBuilder();
+        return CreateProcedureRequest.builder()
+                .patient(patientUUID)
+                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
+                .procedureType(EMERGENCY.getUuid())
+                .bodySite(ABDOMEN.getUuid())
+                .startDateTime(format(START))
+                .status(COMPLETED.getUuid());
     }
 
     private ProcedureResponse createProcedure(CreateProcedureRequest request) {

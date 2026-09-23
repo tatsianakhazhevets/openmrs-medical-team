@@ -1,10 +1,5 @@
 package apiParts.models.encounter;
 
-import apiParts.generators.EnumGeneratingRule;
-import apiParts.generators.GeneratedBy;
-import apiParts.generators.SkipGeneration;
-import apiParts.generators.suppliers.CurrentPatientUuid;
-import apiParts.generators.suppliers.RandomVitalsObs;
 import apiParts.models.BaseModel;
 import apiParts.models.EncounterType;
 import apiParts.models.HasUuid;
@@ -16,37 +11,18 @@ import lombok.*;
 
 import java.util.List;
 
-import static apiParts.generators.GenerationProfile.ORDER;
-import static apiParts.generators.GenerationProfile.VITALS;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-// RandomModelGenerator: generate with a profile, e.g. generate(CreateEncounterRequest.class, VITALS)
 public class CreateEncounterRequest extends BaseModel {
-    @GeneratedBy(CurrentPatientUuid.class)
     private String patient;  // patient uuid, created in test setup
-
-    @EnumGeneratingRule(enumClass = EncounterType.class, only = "VITALS", profiles = VITALS)
-    @EnumGeneratingRule(enumClass = EncounterType.class, only = "ORDER", profiles = ORDER)
     private EncounterType encounterType;
-
-    @SkipGeneration
     private String visit;              // visit uuid, optional
-
-    @SkipGeneration
     private String encounterDatetime;  // ISO-8601, must have if visit is present
-
-    private Location location;         // any location
-
-    @GeneratedBy(value = RandomVitalsObs.class, profiles = VITALS)
-    @SkipGeneration(profiles = ORDER)
+    private Location location;
     private List<Obs> obs;
-
-    // ORDER: orders are passed in overrides (OrderTestData.orderEncounterRequest), they depend on patient and orderer
-    @SkipGeneration
     private List<Object> orders;       // DrugOrder, TestOrder, etc.
 
     @Data

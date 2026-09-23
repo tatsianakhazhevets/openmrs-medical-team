@@ -1,8 +1,8 @@
 package apiParts.testdata;
 
-import java.util.Map;
-import apiParts.generators.GenerationProfile;
 import apiParts.generators.RandomModelGenerator;
+import apiParts.models.EncounterType;
+import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueDrugOrderRequest;
@@ -75,7 +75,12 @@ public class OrderTestData {
 
     // Encounter with one valid drug order
     public static CreateEncounterRequest drugOrderEncounterRequest(String patientUUID, String ordererUUID) {
-        return orderEncounterRequest(patientUUID, List.of(validOutpatientDrugOrder(patientUUID, ordererUUID).build()));
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(validOutpatientDrugOrder(patientUUID, ordererUUID).build()))
+                .build();
     }
 
     // Valid lab order (Alkaline phosphatase test)
@@ -92,7 +97,12 @@ public class OrderTestData {
 
     // Encounter with one valid lab order
     public static CreateEncounterRequest labOrderEncounterRequest(String patientUUID, String ordererUUID) {
-        return orderEncounterRequest(patientUUID, List.of(validLabOrder(patientUUID, ordererUUID)));
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(validLabOrder(patientUUID, ordererUUID)))
+                .build();
     }
 
     // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
@@ -103,7 +113,12 @@ public class OrderTestData {
                 .scheduledDate(DateTimeUtils.nowPlusDays(SCHEDULED_DAYS_AHEAD).format(OPENMRS_REQUEST_DATE_TIME))
                 .build();
 
-        return orderEncounterRequest(patientUUID, List.of(order));
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
     }
 
     // Discontinues a testorder (POST /order, action=DISCONTINUE), the way the laboratory
@@ -133,13 +148,12 @@ public class OrderTestData {
                 .orderReasonNonCoded(DISCONTINUE_REASON)
                 .build();
 
-        return orderEncounterRequest(patientUUID, List.of(order));
-    }
-
-    // Encounter of type ORDER with the given orders (patient of the encounter must be the patient of the orders)
-    public static CreateEncounterRequest orderEncounterRequest(String patientUUID, List<?> orders) {
-        return RandomModelGenerator.generate(CreateEncounterRequest.class, GenerationProfile.ORDER,
-                Map.of("patient", patientUUID, "orders", orders));
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
     }
 
     // POST /order/{uuid}/fulfillerdetails/ body: laboratory-side status update of a test order

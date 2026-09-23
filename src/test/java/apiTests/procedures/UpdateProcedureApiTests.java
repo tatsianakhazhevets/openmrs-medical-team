@@ -66,7 +66,7 @@ public class UpdateProcedureApiTests extends BaseTest {
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
-        createRequest = SessionStorage.getProcedureRequest();
+        createRequest = ProcedureTestData.procedureRequest(patientUUID);
         procedure = SessionStorage.getProcedure();
     }
 

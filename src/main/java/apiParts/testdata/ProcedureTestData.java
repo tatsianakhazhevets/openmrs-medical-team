@@ -1,20 +1,23 @@
 package apiParts.testdata;
 
 import apiParts.generators.RandomModelGenerator;
+import apiParts.models.procedure.BodySite;
 import apiParts.models.procedure.CreateProcedureRequest;
+import apiParts.models.procedure.ProcedureConcept;
+import apiParts.models.procedure.ProcedureStatus;
+import apiParts.models.procedure.ProcedureType;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 
 import static apiParts.utils.DateTimeUtils.MOSCOW;
+import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 /**
  * Request of the standard procedure fixture (see apiParts.steps.AdminSteps#createProcedure).
  * <p>
- * Request is random (see CreateProcedureRequest generating rules): the one actually sent by @CreateProcedure
- * is kept in SessionStorage.getProcedureRequest(). PROCEDURE_START is fixed for the whole run,
- * so tests can build dates relative to the created procedure.
+ * PROCEDURE_START is fixed for the whole run, so procedureRequest() is equal to the request that
+ * was actually sent and tests can build dates relative to the created procedure.
  */
 public class ProcedureTestData {
 
@@ -30,8 +33,15 @@ public class ProcedureTestData {
     private ProcedureTestData() {
     }
 
-    // Valid random coded procedure started in the past (PROCEDURE_START), without end date and duration
+    // Valid procedure with required fields only (Laparoscopic cholecystectomy, started in the past)
     public static CreateProcedureRequest procedureRequest(String patientUUID) {
-        return RandomModelGenerator.generate(CreateProcedureRequest.class, Map.of("patient", patientUUID));
+        return CreateProcedureRequest.builder()
+                .patient(patientUUID)
+                .procedureCoded(ProcedureConcept.LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
+                .procedureType(ProcedureType.EMERGENCY.getUuid())
+                .bodySite(BodySite.ABDOMEN.getUuid())
+                .startDateTime(PROCEDURE_START.format(OPENMRS_REQUEST_DATE_TIME))
+                .status(ProcedureStatus.COMPLETED.getUuid())
+                .build();
     }
 }

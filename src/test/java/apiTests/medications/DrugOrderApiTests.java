@@ -2,6 +2,8 @@ package apiTests.medications;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
+import apiParts.models.EncounterType;
+import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.errors.DrugOrderFieldError;
@@ -299,7 +301,12 @@ public class DrugOrderApiTests extends BaseTest {
     }
 
     private CreateEncounterRequest encounterWith(DrugOrder order) {
-        return OrderTestData.orderEncounterRequest(patientUUID, List.of(order));
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.OUTPATIENT_CLINIC)
+                .orders(List.of(order))
+                .build();
     }
 
     private SearchResult<DrugOrderResponse> getPatientOrders() {

@@ -3,6 +3,7 @@ package apiTests.orders;
 import apiParts.assertions.ModelAssertions;
 import apiParts.assertions.OrderAssertions;
 import apiParts.models.EncounterType;
+import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
@@ -78,7 +79,7 @@ public class CreateOrderApiTests extends BaseTest {
 
         CreateEncounterResponse expectedLabEncounter = new CreateEncounterResponse();
         expectedLabEncounter.setPatient(Ref.of(patientUUID));
-        expectedLabEncounter.setLocation(Ref.of(labOrderRequest.getLocation().getUuid()));
+        expectedLabEncounter.setLocation(Ref.of(Location.INPATIENT_WARD.getUuid()));
         expectedLabEncounter.setEncounterType(Ref.of(EncounterType.ORDER.getUuid()));
 
         ModelAssertions.assertMatchesExpected(softly, labEncounter, expectedLabEncounter, "lab order encounter");
@@ -143,7 +144,12 @@ public class CreateOrderApiTests extends BaseTest {
                 .accessionNumber("1")
                 .build();
 
-        CreateEncounterRequest request = OrderTestData.orderEncounterRequest(patientUUID, List.of(invalidOrder));
+        CreateEncounterRequest request = CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(invalidOrder))
+                .build();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -168,7 +174,12 @@ public class CreateOrderApiTests extends BaseTest {
                 .accessionNumber("1")
                 .build();
 
-        CreateEncounterRequest request = OrderTestData.orderEncounterRequest(patientUUID, List.of(invalidOrder));
+        CreateEncounterRequest request = CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(invalidOrder))
+                .build();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
