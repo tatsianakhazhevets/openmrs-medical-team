@@ -104,3 +104,25 @@ rules:
       - severity.uuid: severity.uuid
       - comment
       - reactions[].reaction.uuid: reactions[].reaction.uuid
+  - request: CreateAppointmentRequest
+    response: CreateAppointmentResponse
+    fields:
+      - patientUuid: patient.uuid
+      - serviceUuid: service.uuid
+      - locationUuid: location.uuid
+      - appointmentKind
+      - comments
+      - startDateTime: startDateTime@epochMillis
+      - endDateTime: endDateTime@epochMillis
+      - providers[].uuid: providers[].uuid
+
+  - request: CreateVisitRequest
+    response:
+      - CreateVisitResponse
+      - GetVisitResponse
+    fields:
+      - patient: patient.uuid
+      - visitType: visitType.uuid
+      - location: location.uuid
+      - startDatetime
+      - stopDatetime

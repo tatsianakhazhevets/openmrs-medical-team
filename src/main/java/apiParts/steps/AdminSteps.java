@@ -19,6 +19,7 @@ import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
+import apiParts.models.visit.GetVisitResponse;
 import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
@@ -282,6 +283,22 @@ public class AdminSteps {
             }
             return currentProviderUuid;
         }
+    }
+
+    public static CreateVisitResponse createVisit(CreateVisitRequest request) {
+        return new SuccessfulCrudRequester<CreateVisitResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_POST,
+                ResponseSpecs.requestReturnsCreated()
+        ).create(request);
+    }
+
+    public static GetVisitResponse getVisit(String visitUUID) {
+        return new SuccessfulCrudRequester<GetVisitResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_GET,
+                ResponseSpecs.requestReturnsOk()
+        ).get(visitUUID);
     }
 
     // Test orders (testorder) for a patient, as returned by GET /order?patient={uuid}&t=testorder&v=full
