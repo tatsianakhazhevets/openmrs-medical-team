@@ -1,7 +1,6 @@
 package apiTests.visits;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.assertions.VisitAssertions;
 import apiParts.models.Attribute;
 import apiParts.models.EncounterType;
 import apiParts.models.visit.VisitAttributeType;
@@ -65,7 +64,7 @@ public class VisitsTests extends BaseTest {
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("visit uuid").isNotBlank();
-        ModelAssertions.assertMatchesExpected(softly, visit, VisitAssertions.expectedVisitOf(request), "created visit");
+        ModelAssertions.assertThatModels(softly, request, visit).as("created visit").match();
         softly.assertThat(visit.getLocation()).as("location").isNull();
         softly.assertThat(visit.getStopDatetime()).as("stop datetime").isNull();
         softly.assertThat(visit.getStartDatetime()).as("start datetime").isNotNull();
@@ -95,7 +94,7 @@ public class VisitsTests extends BaseTest {
         GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
-        ModelAssertions.assertMatchesExpected(softly, savedVisit, VisitAssertions.expectedVisitOf(request), "created visit");
+        ModelAssertions.assertThatModels(softly, request, savedVisit).as("created visit").match();
         softly.assertThat(savedVisit.getAttributes()).extracting(Ref::getDisplay).containsExactly(
                 VisitAttributeType.INSURANCE_POLICY_NUMBER.getDisplay() + ": " + insurancePolicyNumber);
         softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNull();
@@ -160,7 +159,7 @@ public class VisitsTests extends BaseTest {
 
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        ModelAssertions.assertMatchesExpected(softly, updatedVisit, VisitAssertions.expectedVisitOf(updatedRequest), "updated visit");
+        ModelAssertions.assertThatModels(softly, updatedRequest, updatedVisit).as("updated visit").match();
         softly.assertAll();
     }
 

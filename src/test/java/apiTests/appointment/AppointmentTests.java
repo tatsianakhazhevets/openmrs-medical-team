@@ -1,6 +1,6 @@
 package apiTests.appointment;
 
-import apiParts.assertions.AppointmentAssertions;
+import apiParts.assertions.ModelAssertions;
 import apiParts.models.Location;
 import apiParts.models.appointment.*;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -54,7 +54,7 @@ public class AppointmentTests extends BaseTest {
                 AdminSteps.createAppointment(request);
         appointmentUUID = appointment.getUuid();
 
-        AppointmentAssertions.assertMatchesRequest(softly, appointment, request);
+        ModelAssertions.assertThatModels(softly, request, appointment).as("POST /appointment response").match();
         softly.assertThat(appointment.getUuid()).isNotNull();
         softly.assertThat(appointment.getAppointmentNumber()).isNotNull();
         softly.assertThat(appointment.getStatus())
@@ -67,8 +67,10 @@ public class AppointmentTests extends BaseTest {
 
     @Test
     void shouldSearchAppointmentsByPatient() {
+        CreateAppointmentRequest request = appointmentRequest().build();
+
         CreateAppointmentResponse appointment =
-                AdminSteps.createAppointment(patientUUID);
+                AdminSteps.createAppointment(request);
         appointmentUUID = appointment.getUuid();
 
         List<CreateAppointmentResponse> appointments =
@@ -81,7 +83,7 @@ public class AppointmentTests extends BaseTest {
                         "Created appointment was not found in search results"
                 ));
 
-        AppointmentAssertions.assertMatchesPostAndGet(softly, appointment, foundAppointment);
+        ModelAssertions.assertThatModels(softly, request, foundAppointment).as("appointment after GET").match();
         softly.assertAll();
     }
 
