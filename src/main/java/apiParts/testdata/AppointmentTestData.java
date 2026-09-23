@@ -14,6 +14,7 @@ import apiParts.utils.DateTimeUtils;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
@@ -66,8 +67,8 @@ public class AppointmentTestData {
     public static AppointmentStatusChangeRequest cancelStatusChangeRequest() {
         return AppointmentStatusChangeRequest.builder()
                 .toStatus(AppointmentStatus.CANCELLED.getValue())
-                .onDate(OffsetDateTime.now().format(OPENMRS_RESPONSE_DATE_TIME))
-                .timeZone(CANCEL_TIME_ZONE.getId())
+                .onDate(DateTimeUtils.now().format(OPENMRS_RESPONSE_DATE_TIME))
+                .timeZone(DateTimeUtils.MOSCOW.getId())
                 .build();
     }
 

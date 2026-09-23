@@ -12,6 +12,7 @@ import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
@@ -57,26 +58,11 @@ public class VisitsTests extends BaseTest {
                 .visitType(visitType);
     }
 
-    private CreateVisitResponse createVisit(CreateVisitRequest request) {
-        return new SuccessfulCrudRequester<CreateVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsCreated()).create(request);
-    }
-
-    private GetVisitResponse getVisit(String visitUUID) {
-        return new SuccessfulCrudRequester<GetVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(visitUUID);
-    }
-
 
     @Test
     public void adminCanCreateVisitOnlyWithRequiredFields() {
         CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("visit uuid").isNotBlank();
         ModelAssertions.assertMatchesExpected(softly, visit, VisitAssertions.expectedVisitOf(request), "created visit");
@@ -102,11 +88,11 @@ public class VisitsTests extends BaseTest {
                                 .build()
                 ))
                 .build();
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("create visit uuid").isNotBlank();
 
-        GetVisitResponse savedVisit = getVisit(visit.getUuid());
+        GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         ModelAssertions.assertMatchesExpected(softly, savedVisit, VisitAssertions.expectedVisitOf(request), "created visit");
@@ -121,7 +107,8 @@ public class VisitsTests extends BaseTest {
     public void unauthorizedUserCannotCreateVisit() {
         CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT).build();
 
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+
+        new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsBadRequestWithMessage("Privileges required: Get Patients"))
@@ -134,7 +121,7 @@ public class VisitsTests extends BaseTest {
                 .visitType(VisitType.FACILITY_VISIT)
                 .build();
 
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsBadRequestWithMessage("Some required properties are missing: patient"))
@@ -156,7 +143,7 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
         CreateVisitRequest updatedRequest = CreateVisitRequest.builder()
@@ -169,7 +156,7 @@ public class VisitsTests extends BaseTest {
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsOk()).update(visit.getUuid(), updatedRequest);
 
-        GetVisitResponse updatedVisit = getVisit(visit.getUuid());
+        GetVisitResponse updatedVisit = AdminSteps.getVisit(visitUUID);
 
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
@@ -184,7 +171,7 @@ public class VisitsTests extends BaseTest {
                 .location(VisitLocation.MOBILE_CLINIC)
                 .build();
 
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsNotFound())
@@ -197,14 +184,14 @@ public class VisitsTests extends BaseTest {
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .build();
 
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
         CreateVisitRequest updatedRequest = CreateVisitRequest.builder()
                 .visitType(VisitType.HOME_VISIT)
                 .build();
 
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.VISIT_POST,
                 ResponseSpecs.requestReturnsUnauthorized())
@@ -226,14 +213,14 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsNoContent()).delete(visit.getUuid());
 
-        GetVisitResponse retiredVisit = getVisit(visit.getUuid());
+        GetVisitResponse retiredVisit = AdminSteps.getVisit(visit.getUuid());
 
         softly.assertThat(retiredVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(retiredVisit.getVoided()).as("visit should be retired").isTrue();
@@ -255,14 +242,13 @@ public class VisitsTests extends BaseTest {
                 ))
                 .build();
 
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsNoContent()).delete(visit.getUuid(), Map.of("purge", true));
-
-        new SuccessfulCrudRequester<GetVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_GET,
                 ResponseSpecs.requestReturnsNotFound())
@@ -271,7 +257,7 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void deleteNonExistentVisitReturnsNotFound() {
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsNotFound())
@@ -284,10 +270,10 @@ public class VisitsTests extends BaseTest {
                 .location(VisitLocation.UBUNTU_HOSPITAL)
                 .build();
 
-        CreateVisitResponse visit = createVisit(request);
+        CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        new SuccessfulCrudRequester<CreateVisitResponse>(
+        new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsUnauthorized())

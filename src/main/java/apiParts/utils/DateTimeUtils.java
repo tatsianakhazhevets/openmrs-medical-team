@@ -31,25 +31,21 @@ public class DateTimeUtils {
         return OffsetDateTime.parse(iso).toInstant().toString();
     }
 
-    public static OffsetDateTime nowPlusMinutes(long minutes) {
-        return OffsetDateTime.now()
-                .plusMinutes(minutes)
+
+    public static OffsetDateTime now() {
+        return OffsetDateTime.now(MOSCOW)
                 .withSecond(0)
                 .withNano(0);
+    }
+
+    public static OffsetDateTime nowPlusMinutes(long minutes) {
+        return now().plusMinutes(minutes);
     }
 
     public static OffsetDateTime nowPlusDays(long days) {
-        return OffsetDateTime.now()
-                .plusDays(days)
-                .withSecond(0)
-                .withNano(0);
+        return now().plusDays(days);
     }
 
-    public static OffsetDateTime now() {
-        return OffsetDateTime.now()
-                .withSecond(0)
-                .withNano(0);
-    }
     public static OffsetDateTime nowMinusMonths(long months) {
         return now().minusMonths(months);
     }
