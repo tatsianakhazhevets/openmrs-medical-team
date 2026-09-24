@@ -40,6 +40,14 @@ rules:
       - location: location.uuid
       - visit: visit.uuid
 
+  # Creating Vitals (POST /encounter response);
+  - request: CreateVitalsRequest
+    response: CreateEncounterResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - location: location.uuid
+
   # CreateEncounterRequest.obs[] -> GET /obs?patient={uuid}&v=full
   # obs.person (= encounter.patient) is on the parent level - checked in test
   - request: Obs

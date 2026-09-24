@@ -2,6 +2,9 @@ package apiParts.generators;
 
 import com.github.javafaker.Faker;
 import com.mifmif.common.regex.Generex;
+import apiParts.models.VitalsConcept;
+import apiParts.models.vitals.Obs;
+import common.storages.SessionStorage;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -211,6 +214,15 @@ public class RandomModelGenerator {
 
     private static Object generateFieldValue(Field field, int depth) {
         Class<?> type = field.getType();
+
+        PatientUuidGeneratingRule patientRule = field.getAnnotation(PatientUuidGeneratingRule.class);
+        if (patientRule != null && type.equals(String.class)) {
+            return SessionStorage.getPatient(patientRule.number()).getUuid();
+        }
+
+        if (field.isAnnotationPresent(VitalsObsGeneratingRule.class) && List.class.isAssignableFrom(type)) {
+            return Arrays.stream(VitalsConcept.values()).map(Obs::random).toList();
+        }
 
         StringGeneratingRule stringRule = field.getAnnotation(StringGeneratingRule.class);
         if (stringRule != null && !stringRule.regex().isEmpty() && type.equals(String.class)) {
