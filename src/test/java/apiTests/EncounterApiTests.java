@@ -6,6 +6,7 @@ import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
+import apiParts.models.vitals.Obs;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -88,7 +89,7 @@ public class EncounterApiTests extends BaseTest {
                 .encounterType(EncounterType.VITALS)
                 .encounterDatetime(encounterDatetime)
                 .location(Location.OUTPATIENT_CLINIC)
-                .obs(List.of(CreateEncounterRequest.Obs.of(VitalsConcept.TEMPERATURE, normalTemperature)))
+                .obs(List.of(Obs.of(VitalsConcept.TEMPERATURE, normalTemperature)))
                 .build();
 
         CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(

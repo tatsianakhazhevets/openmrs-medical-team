@@ -2,7 +2,7 @@ package apiParts.testdata;
 
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.VitalsConcept;
-import apiParts.models.encounter.CreateEncounterRequest.Obs;
+import apiParts.models.vitals.Obs;
 
 import java.util.List;
 

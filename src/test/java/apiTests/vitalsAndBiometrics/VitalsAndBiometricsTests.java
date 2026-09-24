@@ -3,12 +3,11 @@ package apiTests.vitalsAndBiometrics;
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.EncounterType;
-import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
-import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.errors.ObsFieldError;
+import apiParts.models.vitals.CreateVitalsRequest;
+import apiParts.models.vitals.Obs;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -18,9 +17,9 @@ import apiParts.models.encounter.ObsSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
+import common.annotations.CreateEncounter;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,25 +62,19 @@ public class VitalsAndBiometricsTests extends BaseTest {
         );
     }
 
-    // Same boundaries as in validVitalsBoundaries(): each obs is sent alone,
+    // Same boundaries as in validVitalsBoundaries(), one step outside: each obs is sent alone,
     // because 400 response does not say which obs is out of range.
     // Concepts without absolute limits (MID_UPPER_ARM_CIRC, TEXT) have no negative cases
     static Stream<Arguments> outOfRangeVitals() {
-        return Arrays.stream(VitalsConcept.values())
-                .filter(VitalsConcept::hasAbsoluteRange)
-                .flatMap(VitalsAndBiometricsTests::outOfRange);
+        return Stream.concat(
+                obsOutOf("below lower boundary", c -> c.low() - step(c), ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
+                obsOutOf("above upper boundary", c -> c.high() + step(c), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
+        );
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("validVitalsBoundaries")
-    public void adminCanAddVitals(String boundary, List<Obs> obs){
-
-        var request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(obs)
-                .build();
+    @Test
+    public void adminCanAddVitals() {
+        var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
 
         var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -110,16 +103,46 @@ public class VitalsAndBiometricsTests extends BaseTest {
                 .isEqualTo(Uuids.of(encounter.getObs()));
     }
 
-    @ParameterizedTest(name = "{0} = {1} -> {2}")
-    @MethodSource("outOfRangeVitals")
-    public void adminCannotAddVitalsOutOfRange(VitalsConcept concept, Number value, ObsFieldError error) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("validVitalsBoundaries")
+    public void adminCanAddVitalsOnValidBoundaries(String boundary, List<Obs> obs){
 
-        var request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(List.of(Obs.of(concept, value)))
-                .build();
+        var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
+        request.setObs(obs);
+
+        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated()
+        )
+                .create(request);
+        // obs in POST /encounter response are refs (uuid + display) - values are checked via GET /obs
+        ModelAssertions.assertThatModels(softly, request, encounter)
+                .as("POST /encounter response")
+                .match();
+        softly.assertThat(encounter.getObs())
+                .as("obs in POST /encounter response")
+                .hasSize(request.getObs().size());
+
+        var patientObs = getPatientObs();
+
+        ModelAssertions.assertThatModels(softly, request.getObs(), patientObs.results())
+                .as("obs saved for patient")
+                .match();
+        softly.assertThat(patientObs.results().stream().map(o -> o.getPerson().getUuid()).toList())
+                .as("obs person is the encounter patient")
+                .containsOnly(request.getPatient());
+        softly.assertThat(Uuids.of(patientObs.results()))
+                .as("obs uuids from GET match POST /encounter")
+                .isEqualTo(Uuids.of(encounter.getObs()));
+    }
+
+    @ParameterizedTest(name = "{0}: {1} -> {2}")
+    @MethodSource("outOfRangeVitals")
+    public void adminCannotAddVitalsOutOfRange(String boundary, Obs obs, ObsFieldError error) {
+
+        var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
+        request.setObs(List.of(obs));
         var before = getPatientObs().results();
 
         new CrudRequester(
@@ -134,8 +157,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
     }
 
     @Test
+    @CreateEncounter(EncounterType.VITALS)
     public void adminCanDeleteVitalsEncounter() {
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        var encounter = SessionStorage.getEncounter();
         assertPatientHasObsOf(encounter);
 
         new CrudRequester(
@@ -154,8 +178,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
     }
 
     @Test
+    @CreateEncounter(EncounterType.VITALS)
     public void adminCannotDeleteNonExistentEncounter() {
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        var encounter = SessionStorage.getEncounter();
         assertPatientHasObsOf(encounter);
         var before = getPatientObs().results();
 
@@ -171,8 +196,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
     }
 
     @Test
+    @CreateEncounter(EncounterType.VITALS)
     public void unauthorizedUserCannotDeleteEncounter() {
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        var encounter = SessionStorage.getEncounter();
         assertPatientHasObsOf(encounter);
         var obsBefore = getPatientObs().results();
         var encounterBefore = getEncounter(encounter.getUuid());
@@ -191,8 +217,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
     }
 
     @Test
+    @CreateEncounter(EncounterType.VITALS)
     public void adminCanDeleteSingleObs() {
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        var encounter = SessionStorage.getEncounter();
         assertPatientHasObsOf(encounter);
 
         String deletedObsUUID = encounter.getObs().get(0).getUuid();
@@ -260,12 +287,15 @@ public class VitalsAndBiometricsTests extends BaseTest {
         return Obs.of(concept, concept.valueOf(value));
     }
 
-    // One step outside each absolute limit of the concept
-    private static Stream<Arguments> outOfRange(VitalsConcept concept) {
-        double step = concept.getDecimalPlaces() == 0 ? WHOLE_NUMBER_STEP : DECIMAL_STEP;
-        return Stream.of(
-                Arguments.of(concept, concept.valueOf(concept.low() - step), ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
-                Arguments.of(concept, concept.valueOf(concept.high() + step), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
-        );
+    // One case per concept with absolute limits: obs with value outside the range and expected error
+    private static Stream<Arguments> obsOutOf(String boundary, ToDoubleFunction<VitalsConcept> value, ObsFieldError error) {
+        return Arrays.stream(VitalsConcept.values())
+                .filter(VitalsConcept::hasAbsoluteRange)
+                .map(c -> Arguments.of(boundary, Obs.of(c, c.valueOf(value.applyAsDouble(c))), error));
+    }
+
+    // Step outside the range: 1 for whole-number concepts, 0.1 for concepts with decimals
+    private static double step(VitalsConcept concept) {
+        return concept.getDecimalPlaces() == 0 ? WHOLE_NUMBER_STEP : DECIMAL_STEP;
     }
 }

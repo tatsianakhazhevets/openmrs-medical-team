@@ -7,6 +7,7 @@ import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.ObsResponse;
+import apiParts.models.vitals.Obs;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.Drug;
@@ -136,7 +137,7 @@ public class AdminSteps {
 
     public static CreateEncounterRequest labResultEncounterRequest(String orderUUID, Number resultValue) {
         return CreateEncounterRequest.builder()
-                .obs(List.of(CreateEncounterRequest.Obs.ofLabResult(
+                .obs(List.of(Obs.ofLabResult(
                         LabTestConcept.ALKALINE_PHOSPHATASE, orderUUID, resultValue)))
                 .build();
     }
