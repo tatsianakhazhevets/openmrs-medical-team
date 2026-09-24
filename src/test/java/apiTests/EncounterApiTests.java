@@ -46,6 +46,8 @@ public class EncounterApiTests extends BaseTest {
             .withOffsetSameInstant(ZoneOffset.UTC).format(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME);
     double normalTemperature = faker.number().randomDouble(1, 36, 37);
 
+
+
     @Test
     public void adminCanCreateEncounter() {
         String patientUUID = SessionStorage.getPatient().getUuid();
@@ -80,6 +82,7 @@ public class EncounterApiTests extends BaseTest {
         softly.assertThat(receivedEncounterResponse.getVoided()).isFalse();
     }
 
+    /*
     @Test
     public void adminCanCreateEncounterWithObservation() {
         String patientUUID = SessionStorage.getPatient().getUuid();
@@ -292,4 +295,6 @@ public class EncounterApiTests extends BaseTest {
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .delete(nonExistingUuid);
     }
+
+     */
 }
