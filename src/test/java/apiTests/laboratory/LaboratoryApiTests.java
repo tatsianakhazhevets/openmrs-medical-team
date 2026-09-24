@@ -1,7 +1,5 @@
 package apiTests.laboratory;
 
-import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterRequest.Obs;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.encounter.ObsStatus;
@@ -10,6 +8,7 @@ import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -21,7 +20,6 @@ import apiTests.BaseTest;
 import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
-import net.datafaker.Faker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,16 +32,14 @@ import static common.annotations.CreateOrder.Type.LAB;
 @CreateOrder(LAB)
 public class LaboratoryApiTests extends BaseTest {
 
-    private final Faker faker = new Faker();
-
     @Test
     public void adminCanProcessLabTestOrderFromReceivedToCompleted() {
         String patientUUID = SessionStorage.getPatient().getUuid();
         String orderUUID = SessionStorage.getOrderUuid();
         String encounterUUID = SessionStorage.getOrderEncounter().getUuid();
         // Alkaline phosphatase is not configured as a "precise" concept, so the value must be a whole number
-        Double resultValue = faker.number().randomDouble(0, 1, 270);
-        String completionComment = faker.lorem().sentence();
+        Double resultValue = (double) RandomModelGenerator.randomInt(1, 270);
+        String completionComment = RandomModelGenerator.randomSentence();
 
         // 1) laboratory starts processing the sample
         AdminSteps.markOrderFulfillerStatus(orderUUID, FulfillerStatus.IN_PROGRESS, null);
@@ -52,9 +48,7 @@ public class LaboratoryApiTests extends BaseTest {
                 .isEqualTo(FulfillerStatus.IN_PROGRESS);
 
         // 2) laboratory enters the result against the order
-        CreateEncounterRequest resultRequest = CreateEncounterRequest.builder()
-                .obs(List.of(Obs.ofLabResult(LabTestConcept.ALKALINE_PHOSPHATASE, orderUUID, resultValue)))
-                .build();
+        var resultRequest = AdminSteps.labResultEncounterRequest(orderUUID, resultValue);
 
         CreateEncounterResponse resultEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -110,9 +104,7 @@ public class LaboratoryApiTests extends BaseTest {
     @DisplayName("auth required to update order fulfiller status")
     public void authRequiredToMarkFulfillerStatus() {
         String orderUUID = SessionStorage.getOrderUuid();
-        FulfillerDetailsRequest request = FulfillerDetailsRequest.builder()
-                .fulfillerStatus(FulfillerStatus.IN_PROGRESS)
-                .build();
+        FulfillerDetailsRequest request = AdminSteps.fulfillerDetailsRequest(FulfillerStatus.IN_PROGRESS, null);
 
         new ActionRequester(
                 RequestSpecs.unAuthSpec(),
@@ -123,9 +115,7 @@ public class LaboratoryApiTests extends BaseTest {
 
     @Test
     public void adminCannotMarkFulfillerStatusForNonExistentOrder() {
-        FulfillerDetailsRequest request = FulfillerDetailsRequest.builder()
-                .fulfillerStatus(FulfillerStatus.IN_PROGRESS)
-                .build();
+        FulfillerDetailsRequest request = AdminSteps.fulfillerDetailsRequest(FulfillerStatus.IN_PROGRESS, null);
 
         new ActionRequester(
                 RequestSpecs.adminSpec(),

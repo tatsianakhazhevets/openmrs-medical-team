@@ -11,7 +11,9 @@ import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
+import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.FulfillerStatus;
+import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
 import apiParts.models.procedure.ProcedureResponse;
@@ -102,6 +104,14 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsCreated()).create(request);
     }
 
+    public static CreateVisitRequest visitRequest(String patientUUID, List<String> encounterUUIDs) {
+        return CreateVisitRequest.builder()
+                .patient(patientUUID)
+                .visitType(VisitType.FACILITY_VISIT)
+                .encounters(encounterUUIDs)
+                .build();
+    }
+
     // Valid outpatient drug order (Aspirin, simple dosing) as a standard fixture for order-related tests.
     // Request: OrderTestData.drugOrderEncounterRequest(patientUUID, ordererUUID)
     public static CreateEncounterResponse createDrugOrderEncounter(String patientUUID) {
@@ -116,6 +126,19 @@ public class AdminSteps {
     // response model from it (see apiParts.assertions.OrderAssertions)
     public static CreateEncounterRequest drugOrderEncounterRequest(String patientUUID) {
         return OrderTestData.drugOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
+    }
+
+    // Request behind createLabOrderEncounter, exposed for tests that need the exact
+    // request instance for model comparison or an alternate request specification.
+    public static CreateEncounterRequest labOrderEncounterRequest(String patientUUID) {
+        return OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
+    }
+
+    public static CreateEncounterRequest labResultEncounterRequest(String orderUUID, Number resultValue) {
+        return CreateEncounterRequest.builder()
+                .obs(List.of(CreateEncounterRequest.Obs.ofLabResult(
+                        LabTestConcept.ALKALINE_PHOSPHATASE, orderUUID, resultValue)))
+                .build();
     }
 
     // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
@@ -314,6 +337,18 @@ public class AdminSteps {
                         .build());
     }
 
+    public static SearchResult<DrugOrderResponse> fetchDrugOrders(String patientUUID) {
+        return new SuccessfulSearchRequester<DrugOrderResponse>(
+                        RequestSpecs.adminSpec(),
+                        Endpoint.ORDER_GET,
+                        ResponseSpecs.requestReturnsOk())
+                        .search(OrderSearchParams.builder()
+                                .patient(patientUUID)
+                                .type("drugorder")
+                                .representation("full")
+                                .build());
+    }
+
     // Drug orders (drugorder) for a patient, as returned by GET /order?careSetting={uuid}&orderTypes={uuid}&v=full.
     // Unlike t=drugorder (which only ever returns currently active orders), careSetting+orderTypes also returns
     // stopped orders - required to see Past Medications. excludeDiscontinueOrders=true still hides the DISCONTINUE
@@ -401,6 +436,10 @@ public class AdminSteps {
                 Endpoint.ORDER_FULFILLER_DETAILS,
                 ResponseSpecs.requestReturnsCreated())
                 .perform(orderUUID, OrderTestData.fulfillerDetailsRequest(status, comment));
+    }
+
+    public static FulfillerDetailsRequest fulfillerDetailsRequest(FulfillerStatus status, String comment) {
+        return OrderTestData.fulfillerDetailsRequest(status, comment);
     }
 
     // ======== HELPERS ========

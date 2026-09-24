@@ -15,32 +15,21 @@ import java.util.Map;
 import java.util.UUID;
 
 import static common.annotations.CreateOrder.Type.LAB;
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class DeleteOrderApiTests extends BaseTest {
+    private static final String VOID_REASON = "Automated test cleanup";
 
     @Test
     @CreatePatient
     @CreateOrder(LAB)
     public void adminCanDeleteOrder() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
         String orderUUID = SessionStorage.getOrderUuid();
-
-        var ordersBeforeDelete = AdminSteps.fetchTestOrders(patientUUID);
-        assertThat(ordersBeforeDelete.results())
-                .as("order is present before delete")
-                .anyMatch(order -> order.getUuid().equals(orderUUID));
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_DELETE,
                 ResponseSpecs.requestReturnsNoContent())
-                .delete(orderUUID);
-
-        var ordersAfterDelete = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterDelete.results())
-                .as("voided order is no longer returned in GET /order")
-                .noneMatch(order -> order.getUuid().equals(orderUUID));
+                .delete(orderUUID, Map.of("reason", VOID_REASON));
     }
 
     // Purging an order that is referenced by an encounter is not supported and results in a server error

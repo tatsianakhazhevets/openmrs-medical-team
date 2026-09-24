@@ -1,7 +1,6 @@
 package apiTests.orders;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.assertions.OrderAssertions;
 import apiParts.models.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
@@ -11,44 +10,36 @@ import apiParts.models.order.CareSetting;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.models.search.SearchResult;
-import apiParts.models.order.Order;
-import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.skelethon.requests.search.SearchRequester;
-import apiParts.models.order.DrugOrderResponse;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
-import apiParts.testdata.OrderTestData;
 import apiTests.BaseTest;
 import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 
 import static common.annotations.CreateOrder.Type.DRUG;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @CreatePatient
 public class GetOrderApiTests extends BaseTest {
 
     @Test
+    @CreateOrder(DRUG)
     public void adminCanFetchListOfOrders() {
-        OrderSearchParams searchParams = OrderSearchParams.builder()
-                .patient(SessionStorage.getPatient().getUuid())
-                .careSetting(CareSetting.INPATIENT.name())
-                .limit(1)
-                .representation("default")
-                .build();
+        String patientUUID = SessionStorage.getPatient().getUuid();
+        CreateEncounterRequest expectedRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
+        var orders = AdminSteps.fetchDrugOrders(patientUUID);
 
-        SearchResult<Order> orders = new SuccessfulSearchRequester<Order>(
-                RequestSpecs.adminSpec(),
-                Endpoint.LIST_ORDERS_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(searchParams);
-
-        assertThat(orders.results()).isNotNull();
+        softly.assertThat(orders.results())
+                .as("one created drug order returned")
+                .hasSize(1);
+        ModelAssertions.assertThatModels(softly, expectedRequest.getOrders(), orders.results())
+                .as("drug orders returned for patient")
+                .match();
     }
 
     @Test
@@ -72,27 +63,24 @@ public class GetOrderApiTests extends BaseTest {
     @CreateOrder(DRUG)
     public void adminCanCheckSpecificOrderDetails() {
         String patientUUID = SessionStorage.getPatient().getUuid();
-        CreateEncounterRequest drugOrderRequest = OrderTestData.drugOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
+        CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
         String orderUUID = SessionStorage.getOrderUuid();
 
-        var savedOrder = new SuccessfulSearchRequester<DrugOrderResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(OrderSearchParams.builder()
-                        .patient(patientUUID)
-                        .type("drugorder")
-                        .representation("full")
-                        .build())
-                .requireOne(order -> order.getUuid().equals(orderUUID), "created order " + orderUUID);
+        var drugOrders = AdminSteps.fetchDrugOrders(patientUUID).results();
+        softly.assertThat(drugOrders)
+                .as("created drug order is retrievable")
+                .hasSize(1);
+        var savedOrder = drugOrders.get(0);
+        softly.assertThat(savedOrder.getUuid())
+                .as("created order uuid")
+                .isEqualTo(orderUUID);
 
-        ModelAssertions.assertMatchesExpected(softly,
-                savedOrder,
-                OrderAssertions.expectedOrdersOf(drugOrderRequest).get(0),
-                "saved drug order");
+        ModelAssertions.assertThatModels(softly, drugOrderRequest.getOrders(), List.of(savedOrder))
+                .as("saved drug order")
+                .match();
 
         // add a lab order (Alkaline phosphatase test) encounter for the same patient
-        CreateEncounterRequest labOrderRequest = OrderTestData.labOrderEncounterRequest(patientUUID, AdminSteps.getCurrentProviderUuid());
+        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
         var labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
@@ -119,4 +107,5 @@ public class GetOrderApiTests extends BaseTest {
                 .as("lab order display")
                 .isEqualTo("Alkaline phosphatase");
     }
+
 }

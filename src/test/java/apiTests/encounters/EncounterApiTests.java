@@ -3,7 +3,6 @@ package apiTests.encounters;
 import apiParts.models.EncounterType;
 import apiParts.models.visit.VisitType;
 import apiParts.models.encounter.Ref;
-import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -11,11 +10,13 @@ import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
+import common.annotations.CreatePatient;
+import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 
+@CreatePatient
 public class EncounterApiTests extends BaseTest {
     private static final int VITALS_OBS_COUNT = 11; // obs in AdminSteps.createVitalsEncounter()
 
@@ -23,7 +24,7 @@ public class EncounterApiTests extends BaseTest {
 
     @BeforeEach
     void setUp() {
-        patientUUID = AdminSteps.createPatient().getUuid();
+        patientUUID = SessionStorage.getPatient().getUuid();
     }
 
     @Test
@@ -79,11 +80,9 @@ public class EncounterApiTests extends BaseTest {
                 .as("encounter types are different")
                 .isNotEqualTo(vitalsEncounter.getEncounterType().getUuid());
 
-        var visitRequest = CreateVisitRequest.builder()
-                .patient(patientUUID)
-                .visitType(VisitType.FACILITY_VISIT)
-                .encounters(List.of(vitalsEncounter.getUuid(), orderEncounter.getUuid()))
-                .build();
+        var visitRequest = AdminSteps.visitRequest(
+                patientUUID,
+                java.util.List.of(vitalsEncounter.getUuid(), orderEncounter.getUuid()));
 
         var visit = new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),

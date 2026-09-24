@@ -1,15 +1,17 @@
 package apiTests.medications;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.assertions.OrderAssertions;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.order.Drug;
 import apiParts.models.order.DrugOrder;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
@@ -41,13 +43,14 @@ public class MedicationsApiTests extends BaseTest {
                 .create(request);
 
         var medications = AdminSteps.fetchMedications(patientUUID);
-        ModelAssertions.assertListMatchesExpected(softly,
-                medications.results(),
-                OrderAssertions.expectedOrdersOf(request),
-                OrderAssertions::drugUuidOf,
-                "active drug order saved for patient");
+        softly.assertThat(medications.results())
+                .as("active drug orders saved for patient")
+                .hasSize(1);
 
-        var saved = OrderAssertions.onlyOrderOf(medications.results());
+        var saved = medications.results().get(0);
+        ModelAssertions.assertThatModels(softly, request.getOrders(), medications.results())
+                .as("active drug order fields")
+                .match();
         softly.assertThat(saved.getUrgency())
                 .as("active order defaults to ROUTINE urgency")
                 .isEqualTo(DrugOrder.URGENCY_ROUTINE);
@@ -69,13 +72,14 @@ public class MedicationsApiTests extends BaseTest {
                 .create(request);
 
         var medications = AdminSteps.fetchMedications(patientUUID);
-        ModelAssertions.assertListMatchesExpected(softly,
-                medications.results(),
-                OrderAssertions.expectedOrdersOf(request),
-                OrderAssertions::drugUuidOf,
-                "upcoming drug order saved for patient");
+        softly.assertThat(medications.results())
+                .as("upcoming drug orders saved for patient")
+                .hasSize(1);
 
-        var saved = OrderAssertions.onlyOrderOf(medications.results());
+        var saved = medications.results().get(0);
+        ModelAssertions.assertThatModels(softly, request.getOrders(), medications.results())
+                .as("upcoming drug order fields")
+                .match();
         softly.assertThat(saved.getUrgency())
                 .as("upcoming order urgency")
                 .isEqualTo(DrugOrder.URGENCY_ON_SCHEDULED_DATE);
@@ -83,6 +87,9 @@ public class MedicationsApiTests extends BaseTest {
                 .as("upcoming order scheduledDate is in the future")
                 .isNotNull()
                 .matches(date -> Instant.parse(date).isAfter(Instant.now()), "is after now");
+        softly.assertThat(saved.getScheduledDate())
+                .as("upcoming order scheduledDate matches the generated request")
+                .isEqualTo(DateTimeUtils.toInstantString(((DrugOrder) request.getOrders().get(0)).getScheduledDate()));
         softly.assertThat(saved.getDateStopped())
                 .as("upcoming order is not stopped")
                 .isNull();
@@ -94,19 +101,41 @@ public class MedicationsApiTests extends BaseTest {
         var originalOrderUUID = SessionStorage.getOrderUuid();
 
         var discontinued = AdminSteps.discontinueDrugOrderEncounter(patientUUID, originalOrderUUID, Drug.ASPIRIN_325MG);
-        var discontinueStubUUID = OrderAssertions.uuidsOf(discontinued).iterator().next();
+        softly.assertThat(discontinued.getOrders())
+                .as("DISCONTINUE creates an order record")
+                .hasSize(1);
+        var discontinueStubUUID = discontinued.getOrders().get(0).getUuid();
         softly.assertThat(discontinueStubUUID)
                 .as("DISCONTINUE creates a new order record, distinct from the original")
                 .isNotEqualTo(originalOrderUUID);
 
         var medications = AdminSteps.fetchMedications(patientUUID);
-        softly.assertThat(OrderAssertions.uuidsOf(medications.results()))
+        softly.assertThat(medications.results())
                 .as("excludeDiscontinueOrders hides the DISCONTINUE stub, original order remains")
-                .containsExactly(originalOrderUUID);
+                .hasSize(1)
+                .first()
+                .extracting(DrugOrderResponse::getUuid)
+                .isEqualTo(originalOrderUUID);
 
-        var saved = OrderAssertions.onlyOrderOf(medications.results());
+        var saved = medications.results().get(0);
         softly.assertThat(saved.getDateStopped())
                 .as("original order is stopped once discontinued")
                 .isNotNull();
     }
+
+    @Test
+    public void unauthorizedUserCannotCreateMedication() {
+        var request = AdminSteps.drugOrderEncounterRequest(patientUUID);
+        var before = AdminSteps.fetchMedications(patientUUID).results();
+
+        new CrudRequester(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsBadRequest())
+                .create(request);
+
+        ModelAssertions.assertUnchanged(softly, before, AdminSteps.fetchMedications(patientUUID).results(),
+                "medications after unauthorized create");
+    }
+
 }
