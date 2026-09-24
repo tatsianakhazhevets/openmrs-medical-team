@@ -1,4 +1,4 @@
-package apiTests;
+package apiTests.allergy;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
@@ -10,6 +10,7 @@ import apiParts.skelethon.requests.nestedCrud.NestedCrudRequester;
 import apiParts.skelethon.requests.nestedCrud.SuccessfulNestedCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import io.restassured.response.ValidatableResponse;
