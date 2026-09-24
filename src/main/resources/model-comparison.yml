@@ -134,3 +134,11 @@ rules:
       - location: location.uuid
       - startDatetime
       - stopDatetime
+
+  - request: EncounterTestRequest
+    response: EncounterTestResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - encounterDatetime
+      - location: location.uuid

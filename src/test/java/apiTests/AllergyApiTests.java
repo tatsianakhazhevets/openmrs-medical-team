@@ -3,10 +3,9 @@ package apiTests;
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.generators.RandomUuidGenerator;
+import apiParts.models.GetParams;
 import apiParts.models.allergy.*;
-import apiParts.models.patient.GetPatientResponse;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.nestedCrud.NestedCrudRequester;
 import apiParts.skelethon.requests.nestedCrud.SuccessfulNestedCrudRequester;
 import apiParts.specs.RequestSpecs;
@@ -43,8 +42,8 @@ public class AllergyApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .get(SessionStorage.getPatient().getUuid(),
                         createdAllergyResponse.getUuid(),
-                        AllergyGetParams.builder()
-                                .v(AllergyGetParams.FULL)
+                        GetParams.builder()
+                                .v(GetParams.FULL)
                                 .build()
                                 .toQueryParams());
 
@@ -107,8 +106,8 @@ public class AllergyApiTests extends BaseTest {
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .get(SessionStorage.getPatient().getUuid(),
                         nonExistingUuid,
-                        AllergyGetParams.builder()
-                        .v(AllergyGetParams.FULL)
+                        GetParams.builder()
+                        .v(GetParams.FULL)
                         .build()
                         .toQueryParams());
     }
@@ -121,8 +120,8 @@ public class AllergyApiTests extends BaseTest {
                 Endpoint.PATIENT_ALLERGY_NESTED,
                 ResponseSpecs.requestReturnsNotFound())
                 .get(nonExistingUuid, nonExistingUuid,
-                        AllergyGetParams.builder()
-                                .v(AllergyGetParams.FULL)
+                        GetParams.builder()
+                                .v(GetParams.FULL)
                                 .build()
                                 .toQueryParams());
     }
@@ -156,8 +155,8 @@ public class AllergyApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .get(SessionStorage.getPatient().getUuid(),
                         createdAllergyResponse.getUuid(),
-                        AllergyGetParams.builder()
-                                .v(AllergyGetParams.FULL)
+                        GetParams.builder()
+                                .v(GetParams.FULL)
                                 .build()
                                 .toQueryParams());
 

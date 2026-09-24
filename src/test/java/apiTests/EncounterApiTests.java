@@ -1,10 +1,13 @@
 package apiTests;
 
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.EncounterType;
+import apiParts.models.GetParams;
 import apiParts.models.Location;
 import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.euncouterTest.EncounterTestRequest;
 import apiParts.models.patient.CreatePatientResponse;
 import apiParts.models.vitals.Obs;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -49,37 +52,41 @@ public class EncounterApiTests extends BaseTest {
 
 
     @Test
+    @CreatePatient
     public void adminCanCreateEncounter() {
-        String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .encounterDatetime(encounterDatetime)
-                .location(Location.OUTPATIENT_CLINIC)
-                .build();
+        EncounterTestRequest createEncounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
 
-        CreateEncounterResponse createdEncounterResponse =
-                new SuccessfulCrudRequester<CreateEncounterResponse>(
+        CreateEncounterResponse createdEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
                         RequestSpecs.adminSpec(),
                         Endpoint.ENCOUNTER_POST,
                         ResponseSpecs.requestReturnsCreated())
                         .create(createEncounterRequest);
 
-        CreateEncounterResponse receivedEncounterResponse =
-                new SuccessfulCrudRequester<CreateEncounterResponse>(
+        CreateEncounterResponse receivedEncounterResponse = new SuccessfulCrudRequester<CreateEncounterResponse>(
                         RequestSpecs.adminSpec(),
                         Endpoint.ENCOUNTER_GET,
                         ResponseSpecs.requestReturnsOk())
-                        .get(createdEncounterResponse.getUuid(), Map.of("v", "full"));
+                        .get(createdEncounterResponse.getUuid(), GetParams.builder()
+                                .v(GetParams.FULL)
+                                .build()
+                                .toQueryParams());
 
-        softly.assertThat(receivedEncounterResponse.getUuid()).isEqualTo(createdEncounterResponse.getUuid());
-        softly.assertThat(receivedEncounterResponse.getPatient().getUuid()).isEqualTo(patientUUID);
+
+        softly.assertThat(receivedEncounterResponse.getUuid())
+                .isEqualTo(createdEncounterResponse.getUuid());
+
+        softly.assertThat(receivedEncounterResponse.getPatient().getUuid())
+                .isEqualTo(createEncounterRequest.getPatient());
+
         softly.assertThat(receivedEncounterResponse.getEncounterType().getUuid())
-                .isEqualTo(EncounterType.VITALS.getUuid());
+                .isEqualTo(createEncounterRequest.getEncounterType());
+
         softly.assertThat(receivedEncounterResponse.getLocation().getUuid())
-                .isEqualTo(Location.OUTPATIENT_CLINIC.getUuid());
-        softly.assertThat(receivedEncounterResponse.getVoided()).isFalse();
+                .isEqualTo(createEncounterRequest.getLocation());
+
+        softly.assertThat(receivedEncounterResponse.getVoided())
+                .isFalse();
     }
 
     /*

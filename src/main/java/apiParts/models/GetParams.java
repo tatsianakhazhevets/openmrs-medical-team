@@ -1,4 +1,4 @@
-package apiParts.models.allergy;
+package apiParts.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,13 +7,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Stack;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AllergyGetParams {
+public class GetParams {
 
     public static final String FULL = "full";
 
