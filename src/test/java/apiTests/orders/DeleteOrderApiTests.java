@@ -5,6 +5,8 @@ import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.models.search.SearchResult;
 import apiTests.BaseTest;
 import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
@@ -46,7 +48,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsServerError())
                 .delete(orderUUID, Map.of("purge", true));
 
-        var ordersAfterFailedPurge = AdminSteps.fetchTestOrders(patientUUID);
+        SearchResult<DrugOrderResponse> ordersAfterFailedPurge = AdminSteps.fetchTestOrders(patientUUID);
         softly.assertThat(ordersAfterFailedPurge.results())
                 .as("order still present after failed purge attempt")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
@@ -74,7 +76,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsUnauthorized())
                 .delete(orderUUID);
 
-        var ordersAfterUnauthorizedDelete = AdminSteps.fetchTestOrders(patientUUID);
+        SearchResult<DrugOrderResponse> ordersAfterUnauthorizedDelete = AdminSteps.fetchTestOrders(patientUUID);
         softly.assertThat(ordersAfterUnauthorizedDelete.results())
                 .as("order still present after unauthorized delete attempt")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));

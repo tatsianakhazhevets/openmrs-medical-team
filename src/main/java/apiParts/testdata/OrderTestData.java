@@ -105,6 +105,48 @@ public class OrderTestData {
                 .build();
     }
 
+    // Lab order with concept intentionally omitted - concept is required for a test order
+    public static TestOrder labOrderWithoutConcept(String patientUUID, String ordererUUID) {
+        return TestOrder.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.INPATIENT)
+                .orderer(ordererUUID)
+                .instructions("test")
+                .accessionNumber("1")
+                .build();
+    }
+
+    // Encounter with one lab order missing the required concept field
+    public static CreateEncounterRequest labOrderRequestWithoutConcept(String patientUUID, String ordererUUID) {
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(labOrderWithoutConcept(patientUUID, ordererUUID)))
+                .build();
+    }
+
+    // Lab order with careSetting intentionally omitted - careSetting is required for any order
+    public static TestOrder labOrderWithoutCareSetting(String patientUUID, String ordererUUID) {
+        return TestOrder.builder()
+                .patient(patientUUID)
+                .orderer(ordererUUID)
+                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
+                .instructions("test")
+                .accessionNumber("1")
+                .build();
+    }
+
+    // Encounter with one lab order missing the required careSetting field
+    public static CreateEncounterRequest labOrderRequestWithoutCareSetting(String patientUUID, String ordererUUID) {
+        return CreateEncounterRequest.builder()
+                .patient(patientUUID)
+                .encounterType(EncounterType.ORDER)
+                .location(Location.INPATIENT_WARD)
+                .orders(List.of(labOrderWithoutCareSetting(patientUUID, ordererUUID)))
+                .build();
+    }
+
     // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
     // (urgency=ON_SCHEDULED_DATE) - Upcoming Medications fixture
     public static CreateEncounterRequest upcomingDrugOrderEncounterRequest(String patientUUID, String ordererUUID) {

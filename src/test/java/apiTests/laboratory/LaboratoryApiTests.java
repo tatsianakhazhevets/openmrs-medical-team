@@ -1,5 +1,6 @@
 package apiTests.laboratory;
 
+import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.encounter.ObsStatus;
@@ -48,7 +49,7 @@ public class LaboratoryApiTests extends BaseTest {
                 .isEqualTo(FulfillerStatus.IN_PROGRESS);
 
         // 2) laboratory enters the result against the order
-        var resultRequest = AdminSteps.labResultEncounterRequest(orderUUID, resultValue);
+        CreateEncounterRequest resultRequest = AdminSteps.labResultEncounterRequest(orderUUID, resultValue);
 
         CreateEncounterResponse resultEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),

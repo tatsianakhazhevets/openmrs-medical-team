@@ -135,6 +135,18 @@ public class AdminSteps {
         return OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
     }
 
+    // Lab order encounter with the concept field intentionally omitted (concept is required
+    // for a test order) - used to verify the server rejects the submission
+    public static CreateEncounterRequest labOrderRequestWithoutConcept(String patientUUID) {
+        return OrderTestData.labOrderRequestWithoutConcept(patientUUID, getCurrentProviderUuid());
+    }
+
+    // Lab order encounter with careSetting intentionally omitted (careSetting is required
+    // for any order) - used to verify the server rejects the submission
+    public static CreateEncounterRequest labOrderRequestWithoutCareSetting(String patientUUID) {
+        return OrderTestData.labOrderRequestWithoutCareSetting(patientUUID, getCurrentProviderUuid());
+    }
+
     public static CreateEncounterRequest labResultEncounterRequest(String orderUUID, Number resultValue) {
         return CreateEncounterRequest.builder()
                 .obs(List.of(Obs.ofLabResult(
@@ -323,6 +335,17 @@ public class AdminSteps {
                 Endpoint.VISIT_GET,
                 ResponseSpecs.requestReturnsOk()
         ).get(visitUUID);
+    }
+
+    // Search params for GET /order limited to a patient's inpatient orders. Exposed as params only
+    // (not a request) since callers use it against RequestSpecs.unAuthSpec() to verify auth is required.
+    public static OrderSearchParams inpatientOrderSearchParams(String patientUUID) {
+        return OrderSearchParams.builder()
+                .patient(patientUUID)
+                .careSetting(CareSetting.INPATIENT.name())
+                .limit(1)
+                .representation("default")
+                .build();
     }
 
     // Test orders (testorder) for a patient, as returned by GET /order?patient={uuid}&t=testorder&v=full

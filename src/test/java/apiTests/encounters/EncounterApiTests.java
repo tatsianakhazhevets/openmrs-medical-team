@@ -1,8 +1,9 @@
 package apiTests.encounters;
 
 import apiParts.models.EncounterType;
-import apiParts.models.visit.VisitType;
+import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
+import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -29,7 +30,7 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateVitalsEncounter() {
-        var encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        CreateEncounterResponse encounter = AdminSteps.createVitalsEncounter(patientUUID);
 
         softly.assertThat(encounter.getUuid())
                 .as("encounter uuid")
@@ -47,7 +48,7 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateDrugOrderEncounter() {
-        var encounter = AdminSteps.createDrugOrderEncounter(patientUUID);
+        CreateEncounterResponse encounter = AdminSteps.createDrugOrderEncounter(patientUUID);
 
         softly.assertThat(encounter.getUuid())
                 .as("encounter uuid")
@@ -67,8 +68,8 @@ public class EncounterApiTests extends BaseTest {
     // and attaches both to one visit - checks that different encounter types coexist correctly.
     @Test
     public void adminCanAttachTwoDifferentEncounterTypesToSameVisit() {
-        var vitalsEncounter = AdminSteps.createVitalsEncounter(patientUUID);
-        var orderEncounter = AdminSteps.createDrugOrderEncounter(patientUUID);
+        CreateEncounterResponse vitalsEncounter = AdminSteps.createVitalsEncounter(patientUUID);
+        CreateEncounterResponse orderEncounter = AdminSteps.createDrugOrderEncounter(patientUUID);
 
         softly.assertThat(vitalsEncounter.getEncounterType().getUuid())
                 .as("vitals encounter type")
@@ -80,7 +81,7 @@ public class EncounterApiTests extends BaseTest {
                 .as("encounter types are different")
                 .isNotEqualTo(vitalsEncounter.getEncounterType().getUuid());
 
-        var visitRequest = AdminSteps.visitRequest(
+        CreateVisitRequest visitRequest = AdminSteps.visitRequest(
                 patientUUID,
                 java.util.List.of(vitalsEncounter.getUuid(), orderEncounter.getUuid()));
 

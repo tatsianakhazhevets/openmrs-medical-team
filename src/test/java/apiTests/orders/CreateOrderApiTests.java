@@ -6,9 +6,8 @@ import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.encounter.Ref;
-import apiParts.models.order.CareSetting;
-import apiParts.models.order.LabTestConcept;
-import apiParts.models.order.TestOrder;
+import apiParts.models.order.DrugOrderResponse;
+import apiParts.models.search.SearchResult;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -32,7 +31,7 @@ public class CreateOrderApiTests extends BaseTest {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        CreateEncounterResponse encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
@@ -44,11 +43,11 @@ public class CreateOrderApiTests extends BaseTest {
         String orderUUID = encounter.getOrders().get(0).getUuid();
 
         // verify the order was actually persisted and matches what was sent
-        var drugOrders = AdminSteps.fetchDrugOrders(patientUUID).results();
+        List<DrugOrderResponse> drugOrders = AdminSteps.fetchDrugOrders(patientUUID).results();
         softly.assertThat(drugOrders)
                 .as("created drug order is retrievable via GET /order")
                 .hasSize(1);
-        var savedOrder = drugOrders.get(0);
+        DrugOrderResponse savedOrder = drugOrders.get(0);
         softly.assertThat(savedOrder.getUuid())
                 .as("created drug order uuid")
                 .isEqualTo(orderUUID);
@@ -64,7 +63,7 @@ public class CreateOrderApiTests extends BaseTest {
         String patientUUID = SessionStorage.getPatient().getUuid();
 
         CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
-        var labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        CreateEncounterResponse labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
@@ -92,7 +91,7 @@ public class CreateOrderApiTests extends BaseTest {
 
         // verify the order was actually persisted
         String orderUUID = labEncounter.getOrders().get(0).getUuid();
-        var patientOrders = AdminSteps.fetchTestOrders(patientUUID);
+        SearchResult<DrugOrderResponse> patientOrders = AdminSteps.fetchTestOrders(patientUUID);
 
         softly.assertThat(patientOrders.results())
                 .as("created lab order is retrievable via GET /order")
@@ -103,7 +102,7 @@ public class CreateOrderApiTests extends BaseTest {
     @DisplayName("auth required to create order")
     public void authRequiredToCreateOrder() {
         String patientUUID = SessionStorage.getPatient().getUuid();
-        var before = AdminSteps.fetchTestOrders(patientUUID).results();
+        List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
         CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
 
@@ -120,23 +119,10 @@ public class CreateOrderApiTests extends BaseTest {
     @Test
     public void adminCannotCreateOrderWithoutRequiredConcept() {
         String patientUUID = SessionStorage.getPatient().getUuid();
-        var before = AdminSteps.fetchTestOrders(patientUUID).results();
+        List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
         // concept is required for a test order and is intentionally omitted here
-        TestOrder invalidOrder = TestOrder.builder()
-                .patient(patientUUID)
-                .careSetting(CareSetting.INPATIENT)
-                .orderer(AdminSteps.getCurrentProviderUuid())
-                .instructions("test")
-                .accessionNumber("1")
-                .build();
-
-        CreateEncounterRequest request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.ORDER)
-                .location(Location.INPATIENT_WARD)
-                .orders(List.of(invalidOrder))
-                .build();
+        CreateEncounterRequest request = AdminSteps.labOrderRequestWithoutConcept(patientUUID);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -154,23 +140,10 @@ public class CreateOrderApiTests extends BaseTest {
     @DisplayName("admin cannot create order without careSetting")
     public void adminCannotCreateOrderWithoutRequiredCareSetting() {
         String patientUUID = SessionStorage.getPatient().getUuid();
-        var before = AdminSteps.fetchTestOrders(patientUUID).results();
+        List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
         // careSetting is required for an order and is intentionally omitted here
-        TestOrder invalidOrder = TestOrder.builder()
-                .patient(patientUUID)
-                .orderer(AdminSteps.getCurrentProviderUuid())
-                .concept(LabTestConcept.ALKALINE_PHOSPHATASE)
-                .instructions("test")
-                .accessionNumber("1")
-                .build();
-
-        CreateEncounterRequest request = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.ORDER)
-                .location(Location.INPATIENT_WARD)
-                .orders(List.of(invalidOrder))
-                .build();
+        CreateEncounterRequest request = AdminSteps.labOrderRequestWithoutCareSetting(patientUUID);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
