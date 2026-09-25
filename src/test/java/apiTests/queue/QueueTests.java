@@ -1,6 +1,7 @@
 package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.encounter.Ref;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
@@ -49,24 +50,38 @@ public class QueueTests extends BaseTest {
 
     @Test
     void shouldAddPatientToQueue() {
-        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse response =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+
         queueEntryUUID = response.getUuid();
-        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries()
-                .requireOne(entry -> entry.getUuid().equals(response.getUuid()),
-                        "created queue entry " + response.getUuid());
+
+        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries().requireOne(
+                entry -> entry.getUuid().equals(response.getUuid()),
+                "created queue entry " + response.getUuid());
         ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
         softly.assertAll();
     }
 
     @Test
     void shouldEndQueueEntry() {
-        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
-        QueueEntryResponse endedResponse = AdminSteps.endQueueEntry(response.getUuid());
+        QueueEntryResponse response =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+
+        EndQueueEntryRequest endRequest =
+                RandomModelGenerator.generate(EndQueueEntryRequest.class);
+
+        endRequest.setEndedAt(
+                DateTimeUtils.UTC_DATE_TIME
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now())
+        );
+        QueueEntryResponse endedResponse =
+                AdminSteps.endQueueEntry(response.getUuid(), endRequest);
+
         softly.assertThat(endedResponse.getUuid()).isEqualTo(response.getUuid());
         softly.assertThat(endedResponse.getEndedAt()).isNotNull();
         SearchResult<QueueEntryResponse> activeEntries = AdminSteps.getActiveQueueEntries();
-        softly.assertThat(activeEntries.results())
-                .noneMatch(entry -> entry.getUuid().equals(response.getUuid()));
+        softly.assertThat(activeEntries.results()).noneMatch(entry -> entry.getUuid().equals(response.getUuid()));
         softly.assertAll();
     }
 
@@ -76,14 +91,18 @@ public class QueueTests extends BaseTest {
         QueuePriority priority = QueuePriority.URGENT;
         QueueStatus status = QueueStatus.FINISHED_SERVICE;
 
-        QueueEntryResponse createdResponse = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse createdResponse =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
         queueEntryUUID = createdResponse.getUuid();
-        QueueEntryResponse updatedResponse = AdminSteps.updateQueueEntry(
-                createdResponse.getUuid(),
-                status,
-                priority,
-                priorityComment
-        );
+
+        UpdateQueueEntryRequest updateRequest = RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
+        updateRequest.setStatus(status.toRef());
+        updateRequest.setPriority(priority.toRef());
+        updateRequest.setPriorityComment(priorityComment);
+
+        QueueEntryResponse updatedResponse =
+                AdminSteps.updateQueueEntry(createdResponse.getUuid(), updateRequest);
+
         QueueEntryResponse expected = new QueueEntryResponse();
         expected.setStatus(status.toRef());
         expected.setPriority(priority.toRef());
@@ -97,18 +116,20 @@ public class QueueTests extends BaseTest {
     void shouldNotAddPatientToQueueWithoutPatient() {
         QueueResponse queue = AdminSteps.getOutpatientConsultationQueue();
 
-        CreateQueueEntryRequest request = CreateQueueEntryRequest.builder()
-                .visit(Ref.of(visitUUID))
-                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
-                        .status(QueueStatus.WAITING.toRef())
-                        .priority(QueuePriority.NOT_URGENT.toRef())
-                        .queue(Ref.of(queue.getUuid()))
-                        .startedAt(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
-                                .withZone(ZoneOffset.UTC)
-                                .format(Instant.now()))
-                        .sortWeight(0)
-                        .build())
-                .build();
+        CreateQueueEntryRequest request =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.class);
+        request.setVisit(Ref.of(visitUUID));
+
+        CreateQueueEntryRequest.QueueEntry queueEntry = RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
+        queueEntry.setStatus(QueueStatus.WAITING.toRef());
+        queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
+        queueEntry.setQueue(Ref.of(queue.getUuid()));
+        queueEntry.setPatient(null);
+        queueEntry.setStartedAt(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
+                .withZone(ZoneOffset.UTC).format(Instant.now()));
+        queueEntry.setSortWeight(0);
+
+        request.setQueueEntry(queueEntry);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -119,11 +140,13 @@ public class QueueTests extends BaseTest {
 
     @Test
     void shouldNotUpdateNonExistingQueueEntry() {
-        UpdateQueueEntryRequest request = UpdateQueueEntryRequest.builder()
-                .status(QueueStatus.FINISHED_SERVICE.toRef())
-                .priority(QueuePriority.URGENT.toRef())
-                .priorityComment(FAKER.text().text())
-                .build();
+        UpdateQueueEntryRequest request =
+                RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
+
+        request.setStatus(QueueStatus.FINISHED_SERVICE.toRef());
+        request.setPriority(QueuePriority.URGENT.toRef());
+        request.setPriorityComment(FAKER.text().text());
+
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_UPDATE,

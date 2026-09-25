@@ -1,6 +1,7 @@
 package apiTests.appointment;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.Location;
 import apiParts.models.appointment.*;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -8,7 +9,6 @@ import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
-import apiParts.testdata.AppointmentTestData;
 import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -42,13 +42,41 @@ public class AppointmentTests extends BaseTest {
         }
     }
 
-    private CreateAppointmentRequest.CreateAppointmentRequestBuilder appointmentRequest() {
-        return AppointmentTestData.appointmentRequestBuilder(patientUUID);
+    private CreateAppointmentRequest appointmentRequest() {
+        CreateAppointmentRequest request =
+                RandomModelGenerator.generate(CreateAppointmentRequest.class);
+
+        OffsetDateTime startDateTime = DateTimeUtils.nowPlusMinutes(60);
+        OffsetDateTime endDateTime = startDateTime.plusMinutes(30);
+
+        request.setUuid(null);
+        request.setPatientUuid(patientUUID);
+        request.setAppointmentKind(AppointmentKind.SCHEDULED.getValue());
+        request.setStatus(AppointmentStatus.SCHEDULED.getValue());
+        request.setServiceUuid(AppointmentService.GENERAL_MEDICINE.getUuid());
+        request.setLocationUuid(Location.OUTPATIENT_CLINIC.getUuid());
+        request.setProviders(List.of(
+                new CreateAppointmentRequest.Provider(
+                        AppointmentProvider.JAKE_DOCTOR.getUuid()
+                )
+        ));
+        request.setStartDateTime(
+                startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+        request.setEndDateTime(
+                endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+        request.setDateAppointmentScheduled(
+                DateTimeUtils.now()
+                        .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+
+        return request;
     }
 
     @Test
     void shouldCreateAppointment() {
-        CreateAppointmentRequest request = appointmentRequest().build();
+        CreateAppointmentRequest request = appointmentRequest();
 
         CreateAppointmentResponse appointment =
                 AdminSteps.createAppointment(request);
@@ -67,7 +95,7 @@ public class AppointmentTests extends BaseTest {
 
     @Test
     void shouldSearchAppointmentsByPatient() {
-        CreateAppointmentRequest request = appointmentRequest().build();
+        CreateAppointmentRequest request = appointmentRequest();
 
         CreateAppointmentResponse appointment =
                 AdminSteps.createAppointment(request);
@@ -96,31 +124,26 @@ public class AppointmentTests extends BaseTest {
 
         OffsetDateTime startDateTime = DateTimeUtils.nowPlusMinutes(60);
         OffsetDateTime endDateTime = startDateTime.plusMinutes(30);
-
         String scheduledAt = DateTimeUtils.nowPlusDays(1)
                 .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME);
 
-        CreateAppointmentRequest request = CreateAppointmentRequest.builder()
-                .uuid(appointmentUUID)
-                .appointmentKind(AppointmentKind.SCHEDULED.getValue())
-                .status(AppointmentStatus.CHECKED_IN.getValue())
-                .serviceUuid(appointment.getService().getUuid())
-                .startDateTime(startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .endDateTime(endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .locationUuid(appointment.getLocation().getUuid())
-                .providers(List.of(
-                        CreateAppointmentRequest.Provider.builder()
-                                .uuid(AppointmentProvider.JAKE_DOCTOR.getUuid())
-                                .build()
-                ))
-                .patientUuid(appointment.getPatient().getUuid())
-                .comments(randomUpdatedComment)
-                .dateAppointmentScheduled(scheduledAt)
-                .build();
+        CreateAppointmentRequest request =
+                RandomModelGenerator.generate(CreateAppointmentRequest.class);
+        request.setUuid(appointmentUUID);
+        request.setAppointmentKind(AppointmentKind.SCHEDULED.getValue());
+        request.setStatus(AppointmentStatus.CHECKED_IN.getValue());
+        request.setServiceUuid(appointment.getService().getUuid());
+        request.setStartDateTime(startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME));
+        request.setEndDateTime(endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME));
+        request.setLocationUuid(appointment.getLocation().getUuid());
+        request.setProviders(List.of(new CreateAppointmentRequest.Provider(
+                AppointmentProvider.JAKE_DOCTOR.getUuid())));
+        request.setPatientUuid(appointment.getPatient().getUuid());
+        request.setComments(randomUpdatedComment);
+        request.setDateAppointmentScheduled(scheduledAt);
 
         CreateAppointmentResponse updatedAppointment =
                 AdminSteps.updateAppointment(request);
-
         softly.assertThat(updatedAppointment.getUuid()).isEqualTo(appointmentUUID);
         softly.assertThat(updatedAppointment.getStatus()).isEqualTo(AppointmentStatus.CHECKED_IN.getValue());
         softly.assertThat(updatedAppointment.getComments()).isEqualTo(randomUpdatedComment);
@@ -148,9 +171,8 @@ public class AppointmentTests extends BaseTest {
 
     @Test
     void shouldNotCreateAppointmentWithoutPatient() {
-        CreateAppointmentRequest request = appointmentRequest()
-                .patientUuid(null)
-                .build();
+        CreateAppointmentRequest request = appointmentRequest();
+        request.setPatientUuid(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -163,9 +185,8 @@ public class AppointmentTests extends BaseTest {
 
     @Test
     void shouldNotCreateAppointmentWithoutService() {
-        CreateAppointmentRequest request = appointmentRequest()
-                .serviceUuid(null)
-                .build();
+        CreateAppointmentRequest request = appointmentRequest();
+        request.setServiceUuid(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -178,28 +199,19 @@ public class AppointmentTests extends BaseTest {
 
     @Test
     void shouldNotUpdateNonExistingAppointment() {
-        OffsetDateTime startDateTime = DateTimeUtils.nowPlusMinutes(60);
-        OffsetDateTime endDateTime = startDateTime.plusMinutes(30);
-        CreateAppointmentRequest request = CreateAppointmentRequest.builder()
-                .uuid(NON_EXISTING_APPOINTMENT_UUID)
-                .appointmentKind(AppointmentKind.SCHEDULED.getValue())
-                .status(AppointmentStatus.CHECKED_IN.getValue())
-                .serviceUuid(AppointmentService.GENERAL_MEDICINE.getUuid())
-                .startDateTime(startDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .endDateTime(endDateTime.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME))
-                .locationUuid(Location.OUTPATIENT_CLINIC.getUuid())
-                .providers(List.of(
-                        CreateAppointmentRequest.Provider.builder()
-                                .uuid(AppointmentProvider.JAKE_DOCTOR.getUuid())
-                                .build()
-                ))
-                .patientUuid(patientUUID)
-                .comments(FAKER.text().text())
-                .dateAppointmentScheduled(
-                        DateTimeUtils.now()
-                                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
-                )
-                .build();
+        CreateAppointmentRequest request = appointmentRequest();
+        request.setUuid(NON_EXISTING_APPOINTMENT_UUID);
+        request.setStatus(AppointmentStatus.CHECKED_IN.getValue());
+        request.setStartDateTime(DateTimeUtils.nowPlusMinutes(60)
+                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+        request.setEndDateTime(DateTimeUtils.nowPlusMinutes(90)
+                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+        request.setDateAppointmentScheduled(DateTimeUtils.now()
+                .format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME)
+        );
+        request.setComments(FAKER.text().text());
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),

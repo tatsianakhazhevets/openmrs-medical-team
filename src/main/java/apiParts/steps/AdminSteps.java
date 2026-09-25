@@ -1,12 +1,11 @@
 package apiParts.steps;
 
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.*;
 import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
-import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.ObsResponse;
+import apiParts.models.encounter.*;
 import apiParts.models.vitals.Obs;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueOrderRequest;
@@ -29,7 +28,6 @@ import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.skelethon.requests.action.SuccessfulActionRequester;
 import apiParts.skelethon.requests.action.ActionRequester;
-import apiParts.models.encounter.ObsSearchParams;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.models.search.SearchResult;
@@ -41,9 +39,11 @@ import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
 import apiParts.testdata.ProcedureTestData;
-import apiParts.testdata.QueueTestData;
 import apiParts.testdata.VitalsTestData;
+import apiParts.utils.DateTimeUtils;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +53,7 @@ public class AdminSteps {
 
     // adminSpec() is authenticated by itself (Basic auth header), no login call is needed
     public static CreatePatientResponse createPatient() {
-       LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
+        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
                 .username("admin")
                 .password("Admin123")
                 .build();
@@ -190,35 +190,83 @@ public class AdminSteps {
         ).delete(visitUUID, Map.of("purge", true));
     }
 
-    public static QueueEntryResponse addPatientToQueue(String patientUUID, String visitUUID) {
+    public static QueueEntryResponse addPatientToQueue(
+            String patientUUID,
+            String visitUUID) {
+
         QueueResponse queue = getOutpatientConsultationQueue();
+
+        CreateQueueEntryRequest request =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.class);
+
+        request.setVisit(Ref.of(visitUUID));
+
+        CreateQueueEntryRequest.QueueEntry queueEntry =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
+
+        queueEntry.setStatus(QueueStatus.WAITING.toRef());
+        queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
+        queueEntry.setQueue(Ref.of(queue.getUuid()));
+        queueEntry.setPatient(Ref.of(patientUUID));
+        queueEntry.setStartedAt(
+                DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now())
+        );
+        queueEntry.setSortWeight(0);
+
+        request.setQueueEntry(queueEntry);
 
         return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_QUEUE_ENTRY_POST,
                 ResponseSpecs.requestReturnsCreated()
-        ).create(QueueTestData.queueEntryRequest(queue.getUuid(), visitUUID, patientUUID));
+        ).create(request);
+    }
+
+    public static QueueEntryResponse createQueueEntry(
+            CreateQueueEntryRequest request) {
+
+        return new SuccessfulCrudRequester<QueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISIT_QUEUE_ENTRY_POST,
+                ResponseSpecs.requestReturnsCreated()
+        ).create(request);
     }
 
     public static QueueEntryResponse updateQueueEntry(
             String queueEntryUUID,
-            QueueStatus status,
-            QueuePriority priority,
-            String priorityComment) {
+            UpdateQueueEntryRequest request) {
 
         return new SuccessfulCrudRequester<QueueEntryResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_UPDATE,
                 ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, QueueTestData.updateQueueEntryRequest(status, priority, priorityComment));
+        ).update(queueEntryUUID, request);
+    }
+
+    public static QueueEntryResponse endQueueEntry(
+            String queueEntryUUID,
+            EndQueueEntryRequest request) {
+
+        return new SuccessfulCrudRequester<QueueEntryResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.QUEUE_ENTRY_UPDATE,
+                ResponseSpecs.requestReturnsOk()
+        ).update(queueEntryUUID, request);
     }
 
     public static QueueEntryResponse endQueueEntry(String queueEntryUUID) {
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_UPDATE,
-                ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, QueueTestData.endQueueEntryRequest());
+        EndQueueEntryRequest request =
+                RandomModelGenerator.generate(EndQueueEntryRequest.class);
+
+        request.setEndedAt(
+                DateTimeUtils.UTC_DATE_TIME
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now())
+        );
+
+        return endQueueEntry(queueEntryUUID, request);
     }
 
     public static SearchResult<QueueEntryResponse> getActiveQueueEntries() {
@@ -363,14 +411,14 @@ public class AdminSteps {
 
     public static SearchResult<DrugOrderResponse> fetchDrugOrders(String patientUUID) {
         return new SuccessfulSearchRequester<DrugOrderResponse>(
-                        RequestSpecs.adminSpec(),
-                        Endpoint.ORDER_GET,
-                        ResponseSpecs.requestReturnsOk())
-                        .search(OrderSearchParams.builder()
-                                .patient(patientUUID)
-                                .type("drugorder")
-                                .representation("full")
-                                .build());
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(OrderSearchParams.builder()
+                        .patient(patientUUID)
+                        .type("drugorder")
+                        .representation("full")
+                        .build());
     }
 
     // Drug orders (drugorder) for a patient, as returned by GET /order?careSetting={uuid}&orderTypes={uuid}&v=full.
