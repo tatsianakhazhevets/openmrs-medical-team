@@ -2,10 +2,7 @@ package apiParts.models.euncouterTest;
 
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -14,8 +11,13 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class EncounterLocationResponse extends BaseModel {
+
+public class GetEncounterTypeResponse extends BaseModel {
     private String uuid;
     private String display;
+    private String name;
+    private String description;
+    private boolean retired;
     private List<EncounterLinkResponse> links;
+    private String resourceVersion;
 }

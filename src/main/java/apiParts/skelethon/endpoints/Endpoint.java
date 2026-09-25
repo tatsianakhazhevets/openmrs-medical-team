@@ -7,6 +7,9 @@ import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
+import apiParts.models.euncouterTest.EncounterTestRequest;
+import apiParts.models.euncouterTest.EncounterTestResponse;
+import apiParts.models.euncouterTest.GetEncounterResponse;
 import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.GetOrderResponse;
@@ -74,10 +77,20 @@ public enum Endpoint {
             CreateEncounterRequest.class,
             CreateEncounterResponse.class),
 
+    ENCOUNTER_CREATE_POST(
+            "/encounter",
+            EncounterTestRequest.class,
+            EncounterTestResponse.class),
+
     ENCOUNTER_GET(
             "/encounter",
             BaseModel.class,
             CreateEncounterResponse.class),
+
+    ENCOUNTER_RETRIEVE(
+            "/encounter",
+            BaseModel.class,
+            GetEncounterResponse.class),
 
     ENCOUNTER_DELETE(
             "/encounter",
