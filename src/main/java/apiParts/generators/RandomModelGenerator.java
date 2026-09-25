@@ -10,6 +10,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -349,6 +350,20 @@ public class RandomModelGenerator {
                 .format(OPENMRS_DATE_FORMAT);
     }
 
+    public static String futureDateTime() {
+        return LocalDateTime.now()
+                .plusYears(1)
+                .atOffset(ZoneOffset.UTC)
+                .format(OPENMRS_DATE_FORMAT);
+    }
+
+    public static String pastDateTime() {
+        return LocalDateTime.now()
+                .minusYears(1)
+                .withNano(0)
+                .atOffset(ZoneOffset.UTC)
+                .format(OPENMRS_DATE_FORMAT);
+    }
 
     private static <T> T createInstance(Class<T> clazz) throws Exception {
         Constructor<T> constructor = clazz.getDeclaredConstructor();

@@ -89,15 +89,9 @@ rules:
       - scheduledDate: scheduledDate@instant
 
   - request: CreatePatientRequest
-    response: CreatePatientResponse
-    fields:
-      - person.gender
-      - person.birthdate
-      - person.birthdateEstimated
-      - person.dead
-
-  - request: CreatePatientRequest
-    response: GetPatientResponse
+    response:
+      - CreatePatientResponse
+      - GetPatientResponse
     fields:
       - person.gender
       - person.birthdate
@@ -112,6 +106,7 @@ rules:
       - severity.uuid: severity.uuid
       - comment
       - reactions[].reaction.uuid: reactions[].reaction.uuid
+
   - request: CreateAppointmentRequest
     response: CreateAppointmentResponse
     fields:
@@ -136,7 +131,9 @@ rules:
       - stopDatetime
 
   - request: EncounterTestRequest
-    response: EncounterTestResponse
+    response:
+    - EncounterTestResponse
+    - GetEncounterResponse
     fields:
       - patient: patient.uuid
       - encounterType: encounterType.uuid
