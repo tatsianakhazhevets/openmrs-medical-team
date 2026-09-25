@@ -1,0 +1,56 @@
+package apiParts.skelethon.requests.crud;
+
+import apiParts.models.BaseModel;
+import apiParts.skelethon.base_request.HttpRequest;
+import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.interfaces.CrudEndpoint;
+import io.restassured.response.ValidatableResponse;
+import io.restassured.specification.RequestSpecification;
+import io.restassured.specification.ResponseSpecification;
+
+import java.util.Map;
+
+public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest implements CrudEndpoint {
+
+    private CrudRequester crudRequester;
+
+    public SuccessfulCrudRequester(RequestSpecification requestSpecification, Endpoint endpoint, ResponseSpecification responseSpecification) {
+        super(requestSpecification, endpoint, responseSpecification);
+        this.crudRequester = new CrudRequester(requestSpecification, endpoint, responseSpecification);
+    }
+
+    @Override
+    public T create(BaseModel model) {
+        return (T) crudRequester.create(model).extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public T create() {
+        return (T) crudRequester.create().extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public T get(String uuid) {
+        return (T) crudRequester.get(uuid).extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public T get(String uuid, Map<String, ?> queryParams) {
+        return (T) crudRequester.get(uuid, queryParams).extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public T update(String uuid, BaseModel model) {
+        return (T) crudRequester.update(uuid, model).extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
+    public ValidatableResponse delete(String uuid) {
+        return crudRequester.delete(uuid);
+    }
+
+    @Override
+    public ValidatableResponse delete(String uuid, Map<String, ?> queryParams) {
+        return crudRequester.delete(uuid, queryParams);
+    }
+}

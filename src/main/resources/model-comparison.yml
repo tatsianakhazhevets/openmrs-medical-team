@@ -1,0 +1,141 @@
+# Echo checks: which request fields server should return in response.
+# Used by ModelAssertions.assertThatModels(softly, request, response).match()
+#
+# request / response - simple class names; response can be a list (same fields for POST and GET)
+# fields:
+#   - comments                                   same path in request and response
+#   - patient: patient.uuid                      request path: response path
+#   - startDateTime: startDateTime@epochMillis   + converter for request value (instant, epochMillis)
+#   - providers[].uuid: providers[].uuid         [] - every element of a list, compared by index
+#
+# matchBy: request path of one of the fields - pairs requests with responses when lists are compared
+#
+# Paths are JSON names. Request is taken as it is sent, so enums with @JsonValue are their uuid.
+# Field absent / null in request is not checked. Wrong path fails the test.
+
+rules:
+  - request: CreateProcedureRequest
+    response: ProcedureResponse
+    matchBy: procedureCoded
+    fields:
+      - procedureNonCoded
+      - estimatedStartDate
+      - notes
+      - duration
+      - patient: patient.uuid
+      - procedureCoded: procedureCoded.uuid
+      - procedureType: procedureType.uuid
+      - bodySite: bodySite.uuid
+      - status: status.uuid
+      - durationUnit: durationUnit.uuid
+      - startDateTime: startDateTime@instant
+      - endDateTime: endDateTime@instant
+
+  # encounter itself (POST /encounter response); its obs and orders have own rules (Obs, DrugOrder)
+  - request: CreateEncounterRequest
+    response: CreateEncounterResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - location: location.uuid
+      - visit: visit.uuid
+
+  # Creating Vitals (POST /encounter response);
+  - request: CreateVitalsRequest
+    response: CreateEncounterResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - location: location.uuid
+
+  # CreateEncounterRequest.obs[] -> GET /obs?patient={uuid}&v=full
+  # obs.person (= encounter.patient) is on the parent level - checked in test
+  - request: Obs
+    response: ObsResponse
+    matchBy: concept
+    fields:
+      - value
+      - status
+      - concept: concept.uuid
+      - order: order.uuid
+
+  # CreateEncounterRequest.orders[] -> GET /order?t=drugorder&v=full
+  # concept is optional in request (server takes it from drug) - not checked when null
+  - request: DrugOrder
+    response: DrugOrderResponse
+    matchBy: drug
+    fields:
+      - type
+      - action
+      - dosingType
+      - dose
+      - quantity
+      - numRefills
+      - duration
+      - asNeeded
+      - dosingInstructions
+      - orderReasonNonCoded
+      - urgency
+      - patient: patient.uuid
+      - careSetting: careSetting.uuid
+      - orderer: orderer.uuid
+      - drug: drug.uuid
+      - concept: concept.uuid
+      - doseUnits: doseUnits.uuid
+      - route: route.uuid
+      - frequency: frequency.uuid
+      - quantityUnits: quantityUnits.uuid
+      - durationUnits: durationUnits.uuid
+      - scheduledDate: scheduledDate@instant
+
+  - request: CreatePatientRequest
+    response:
+      - CreatePatientResponse
+      - GetPatientResponse
+    fields:
+      - person.gender
+      - person.birthdate
+      - person.birthdateEstimated
+      - person.dead
+
+  - request: AllergyRequest
+    response: AllergyResponse
+    fields:
+      - allergen.allergenType
+      - allergen.codedAllergen.uuid: allergen.codedAllergen.uuid
+      - severity.uuid: severity.uuid
+      - comment
+      - reactions[].reaction.uuid: reactions[].reaction.uuid
+
+  - request: CreateAppointmentRequest
+    response: CreateAppointmentResponse
+    fields:
+      - patientUuid: patient.uuid
+      - serviceUuid: service.uuid
+      - locationUuid: location.uuid
+      - appointmentKind
+      - comments
+      - startDateTime: startDateTime@epochMillis
+      - endDateTime: endDateTime@epochMillis
+      - providers[].uuid: providers[].uuid
+
+  - request: CreateVisitRequest
+    response:
+      - CreateVisitResponse
+      - GetVisitResponse
+    fields:
+      - patient: patient.uuid
+      - visitType: visitType.uuid
+      - location: location.uuid
+      - startDatetime
+      - stopDatetime
+
+  - request: EncounterTestRequest
+    response:
+    - EncounterTestResponse
+    - GetEncounterResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - encounterDatetime
+      - location: location.uuid

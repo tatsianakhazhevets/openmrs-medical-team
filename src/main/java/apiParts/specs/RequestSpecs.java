@@ -7,15 +7,26 @@ import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class RequestSpecs {
 
-    private static Map<String, String> authUserTokens = new HashMap<>(Map.of("admin", "Basic YWRtaW46QWRtaW4xMjM="));
+    public static final String ADMIN_USERNAME = Config.getProperty("adminUsername");
+    public static final String ADMIN_PASSWORD = Config.getProperty("adminPassword");
+
+    private static Map<String, String> authUserTokens =
+            new HashMap<>(Map.of(ADMIN_USERNAME, basicAuthHeader(ADMIN_USERNAME, ADMIN_PASSWORD)));
 
     private RequestSpecs() {
+    }
+
+    private static String basicAuthHeader(String username, String password) {
+        String credentials = username + ":" + password;
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     }
 
     private static RequestSpecBuilder defaultRequestSpec() {
@@ -34,9 +45,16 @@ public class RequestSpecs {
 
     public static RequestSpecification adminSpec() {
         return defaultRequestSpec()
-                .addHeader(Headers.AUTHORIZATION.getHeader(), authUserTokens.get("admin"))
+                .addHeader(Headers.AUTHORIZATION.getHeader(), authUserTokens.get(ADMIN_USERNAME))
                 .build();
     }
+
+    public static RequestSpecification authenticatedSpec(String sessionId) {
+        return defaultRequestSpec()
+                .addCookie("JSESSIONID", sessionId)
+                .build();
+    }
+
 
     /*
     public static RequestSpecification authUserSpec(String username, String password) {
@@ -57,7 +75,7 @@ public class RequestSpecs {
                     ResponseSpecs.requestReturnsOk())
                     .post(LoginUserRequest.builder()
                             .username(username)
-                            .password(password)
+                            .password(username)
                             .build())
                     .extract()
                     .header("Authorization");
@@ -69,5 +87,6 @@ public class RequestSpecs {
 
         return userAuthHeader;
     }*/
+
 
 }
