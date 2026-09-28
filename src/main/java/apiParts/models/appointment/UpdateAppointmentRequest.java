@@ -14,21 +14,22 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateAppointmentRequest extends BaseModel {
+public class UpdateAppointmentRequest extends BaseModel {
 
     @IgnoreGeneratingRule
     private String uuid;
 
-    @EnumGeneratingRule(
+    @FixedEnumGeneratingRule(
             enumClass = AppointmentKind.class,
-            valueMethod = "getValue"
+            valueMethod = "getValue",
+            value = "SCHEDULED"
     )
     private String appointmentKind;
 
     @FixedEnumGeneratingRule(
             enumClass = AppointmentStatus.class,
             valueMethod = "getValue",
-            value = "SCHEDULED"
+            value = "CHECKED_IN"
     )
     private String status;
 
@@ -54,7 +55,7 @@ public class CreateAppointmentRequest extends BaseModel {
     private String locationUuid;
 
     @CollectionGeneratingRule(minSize = 1, maxSize = 1)
-    private List<Provider> providers;
+    private List<CreateAppointmentRequest.Provider> providers;
 
     @PatientUuidGeneratingRule
     private String patientUuid;
@@ -64,17 +65,4 @@ public class CreateAppointmentRequest extends BaseModel {
 
     @DateGeneratingRule(minYear = 2026, maxYear = 2026)
     private String dateAppointmentScheduled;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Provider {
-
-        @EnumGeneratingRule(
-                enumClass = AppointmentProvider.class,
-                valueMethod = "getUuid"
-        )
-        private String uuid;
-    }
 }

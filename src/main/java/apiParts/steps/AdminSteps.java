@@ -40,10 +40,7 @@ import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
 import apiParts.testdata.ProcedureTestData;
 import apiParts.testdata.VitalsTestData;
-import apiParts.utils.DateTimeUtils;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -208,12 +205,6 @@ public class AdminSteps {
         queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
         queueEntry.setQueue(Ref.of(queue.getUuid()));
         queueEntry.setPatient(Ref.of(patientUUID));
-        queueEntry.setStartedAt(
-                DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
-                        .withZone(ZoneOffset.UTC)
-                        .format(Instant.now())
-        );
-        queueEntry.setSortWeight(0);
 
         request.setQueueEntry(queueEntry);
 
@@ -260,12 +251,6 @@ public class AdminSteps {
         EndQueueEntryRequest request =
                 RandomModelGenerator.generate(EndQueueEntryRequest.class);
 
-        request.setEndedAt(
-                DateTimeUtils.UTC_DATE_TIME
-                        .withZone(ZoneOffset.UTC)
-                        .format(Instant.now())
-        );
-
         return endQueueEntry(queueEntryUUID, request);
     }
 
@@ -303,8 +288,18 @@ public class AdminSteps {
         ).create(request);
     }
 
+    public static CreateAppointmentResponse createAppointment() {
+        return createAppointment(
+                RandomModelGenerator.generate(CreateAppointmentRequest.class)
+        );
+    }
+
     public static CreateAppointmentResponse createAppointment(String patientUUID) {
-        return createAppointment(AppointmentTestData.appointmentRequest(patientUUID));
+        CreateAppointmentRequest request =
+                RandomModelGenerator.generate(CreateAppointmentRequest.class);
+        request.setPatientUuid(patientUUID);
+
+        return createAppointment(request);
     }
 
     public static CreateAppointmentResponse cancelAppointment(
@@ -325,7 +320,7 @@ public class AdminSteps {
     }
 
     public static CreateAppointmentResponse updateAppointment(
-            CreateAppointmentRequest request) {
+            UpdateAppointmentRequest request) {
 
         // The appointments module updates via POST /appointment with the uuid INSIDE the body -
         // the same request as create, so CrudEndpoint.update(uuid, ...) (POST /appointment/{uuid}) does not fit.

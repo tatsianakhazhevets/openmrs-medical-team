@@ -1,5 +1,6 @@
 package apiParts.models.queueEntry;
 
+import apiParts.generators.StringGeneratingRule;
 import apiParts.models.BaseModel;
 import apiParts.models.encounter.Ref;
 import lombok.AllArgsConstructor;
@@ -14,5 +15,6 @@ import lombok.NoArgsConstructor;
 public class UpdateQueueEntryRequest extends BaseModel{
     private Ref status;
     private Ref priority;
+    @StringGeneratingRule(regex = "[A-Za-z][A-Za-z ]{4,99}")
     private String priorityComment;
 }

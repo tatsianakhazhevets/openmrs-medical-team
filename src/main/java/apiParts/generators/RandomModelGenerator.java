@@ -11,6 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -99,11 +100,15 @@ public class RandomModelGenerator {
                     continue;
                 }
 
+                if (field.isAnnotationPresent(IgnoreGeneratingRule.class)) {
+                    continue;
+                }
+
                 if (field.isAnnotationPresent(IdentifierGeneratingRule.class)) {
                     continue;
                 }
 
-                Object value = generateFieldValue(field, depth);
+                Object value = generateFieldValue(field, instance, depth);
                 field.set(instance, value);
             }
 
@@ -213,7 +218,7 @@ public class RandomModelGenerator {
 
     // ======== REFLECTION ========
 
-    private static Object generateFieldValue(Field field, int depth) {
+    private static Object generateFieldValue(Field field, Object instance, int depth) {
         Class<?> type = field.getType();
 
         PatientUuidGeneratingRule patientRule = field.getAnnotation(PatientUuidGeneratingRule.class);
@@ -228,6 +233,13 @@ public class RandomModelGenerator {
         StringGeneratingRule stringRule = field.getAnnotation(StringGeneratingRule.class);
         if (stringRule != null && !stringRule.regex().isEmpty() && type.equals(String.class)) {
             return generateFromRegex(stringRule.regex());
+        }
+
+        FixedEnumGeneratingRule fixedEnumRule =
+                field.getAnnotation(FixedEnumGeneratingRule.class);
+
+        if (fixedEnumRule != null && type.equals(String.class)) {
+            return generateFixedEnum(fixedEnumRule);
         }
 
         EnumGeneratingRule enumRule = field.getAnnotation(EnumGeneratingRule.class);
@@ -247,9 +259,20 @@ public class RandomModelGenerator {
             return generateDate(dateRule);
         }
 
+        DateTimeGeneratingRule dateTimeRule =
+                field.getAnnotation(DateTimeGeneratingRule.class);
+
+        if (dateTimeRule != null && type.equals(String.class)) {
+            return generateDateTime(dateTimeRule, instance);
+        }
+
         DoubleGeneratingRule doubleRule = field.getAnnotation(DoubleGeneratingRule.class);
         if (doubleRule != null && (type.equals(double.class) || type.equals(Double.class))) {
             return randomDouble(doubleRule.min(), doubleRule.max(), doubleRule.range());
+        }
+        IntegerGeneratingRule integerRule = field.getAnnotation(IntegerGeneratingRule.class);
+        if (integerRule != null && (type.equals(int.class) || type.equals(Integer.class))) {
+            return randomInt(integerRule.min(), integerRule.max());
         }
 
         if (type.equals(String.class)) return randomWord();
@@ -333,6 +356,27 @@ public class RandomModelGenerator {
         }
     }
 
+    private static String generateFixedEnum(FixedEnumGeneratingRule rule) {
+        try {
+            Enum<?> enumValue = Enum.valueOf(
+                    rule.enumClass().asSubclass(Enum.class),
+                    rule.value()
+            );
+
+            return (String) rule.enumClass()
+                    .getMethod(rule.valueMethod())
+                    .invoke(enumValue);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to generate fixed enum value: "
+                            + rule.enumClass().getName()
+                            + "." + rule.value(),
+                    e
+            );
+        }
+    }
+
 
     private static String generateDate(DateGeneratingRule rule) {
         LocalDate start = LocalDate.of(rule.minYear(), 1, 1);
@@ -348,6 +392,43 @@ public class RandomModelGenerator {
                 .atStartOfDay()
                 .atOffset(ZoneOffset.UTC)
                 .format(OPENMRS_DATE_FORMAT);
+    }
+
+    private static String generateDateTime(
+            DateTimeGeneratingRule rule,
+            Object instance
+    ) {
+        try {
+            OffsetDateTime dateTime;
+
+            if (!rule.baseField().isEmpty()) {
+                Field baseField =
+                        instance.getClass().getDeclaredField(rule.baseField());
+
+                baseField.setAccessible(true);
+
+                String baseValue = (String) baseField.get(instance);
+
+                dateTime = OffsetDateTime.parse(
+                        baseValue,
+                        OPENMRS_DATE_FORMAT
+                ).plusMinutes(rule.minutesFromBase());
+
+            } else {
+                dateTime = OffsetDateTime.now(ZoneOffset.UTC)
+                        .plusMinutes(rule.minutesFromNow());
+            }
+
+            return dateTime
+                    .withNano(0)
+                    .format(OPENMRS_DATE_FORMAT);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to generate date-time for field",
+                    e
+            );
+        }
     }
 
     public static String futureDateTime() {

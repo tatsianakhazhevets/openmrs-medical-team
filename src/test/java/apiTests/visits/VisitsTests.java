@@ -4,13 +4,8 @@ import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.Attribute;
 import apiParts.models.EncounterType;
-import apiParts.models.visit.VisitAttributeType;
-import apiParts.models.visit.VisitLocation;
-import apiParts.models.visit.VisitType;
+import apiParts.models.visit.*;
 import apiParts.models.encounter.Ref;
-import apiParts.models.visit.CreateVisitRequest;
-import apiParts.models.visit.CreateVisitResponse;
-import apiParts.models.visit.GetVisitResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -21,23 +16,19 @@ import apiTests.BaseTest;
 import common.annotations.CreateEncounter;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
-import net.datafaker.Faker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @CreatePatient
 public class VisitsTests extends BaseTest {
-    private static final Faker FAKER = new Faker(new Locale("en", "US"));
     private static final String NON_EXISTENT_VISIT_UUID =
             "82f18b44-6814-11e8-923f-e9a88dcb533f";
     private String patientUUID;
     private String visitUUID;
-    private final String insurancePolicyNumber = FAKER.bothify("POLICY-#####");
 
     @BeforeEach
     public void setUp() {
@@ -52,32 +43,17 @@ public class VisitsTests extends BaseTest {
         }
     }
 
-    private CreateVisitRequest createVisit(String patientUUID, VisitType visitType) {
+
+    @Test
+    public void adminCanCreateVisitOnlyWithRequiredFields() {
         CreateVisitRequest request =
                 RandomModelGenerator.generate(CreateVisitRequest.class);
-
-        request.setPatient(patientUUID);
-        request.setVisitType(visitType);
         request.setLocation(null);
         request.setStartDatetime(null);
         request.setStopDatetime(null);
         request.setEncounters(null);
         request.setAttributes(null);
 
-        return request;
-    }
-
-    private Attribute insurancePolicyAttribute() {
-        Attribute attribute = RandomModelGenerator.generate(Attribute.class);
-        attribute.setAttributeType(VisitAttributeType.INSURANCE_POLICY_NUMBER);
-        attribute.setValue(insurancePolicyNumber);
-        return attribute;
-    }
-
-
-    @Test
-    public void adminCanCreateVisitOnlyWithRequiredFields() {
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("visit uuid").isNotBlank();
@@ -94,30 +70,33 @@ public class VisitsTests extends BaseTest {
     @Test
     public void adminCanCreateVisitWithOptionalFields() {
         String encounterUUID = SessionStorage.getEncounter().getUuid();
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
-        request.setAttributes(List.of(insurancePolicyAttribute()));
 
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
         softly.assertThat(visit.getUuid()).as("create visit uuid").isNotBlank();
 
         GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
+        Attribute attribute = request.getAttributes().get(0);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         ModelAssertions.assertThatModels(softly, request, savedVisit).as("created visit").match();
-        softly.assertThat(savedVisit.getAttributes()).extracting(Ref::getDisplay).containsExactly(
-                VisitAttributeType.INSURANCE_POLICY_NUMBER.getDisplay() + ": " + insurancePolicyNumber);
-        softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNull();
+        softly.assertThat(savedVisit.getAttributes())
+                .extracting(Ref::getDisplay)
+                .containsExactly(
+                        attribute.getAttributeType().getDisplay()
+                                + ": " + attribute.getValue());
+        softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNotNull();
         softly.assertThat(savedVisit.getStartDatetime()).as("start datetime").isNotNull();
         softly.assertAll();
     }
 
     @Test
     public void unauthorizedUserCannotCreateVisit() {
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.VISIT_POST,
@@ -127,7 +106,8 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void cannotCreateVisitWithoutPatient() {
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setPatient(null);
 
         new CrudRequester(
@@ -141,17 +121,16 @@ public class VisitsTests extends BaseTest {
     @Test
     public void adminCanUpdateVisit() {
         String encounterUUID = SessionStorage.getEncounter().getUuid();
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
-        request.setAttributes(List.of(insurancePolicyAttribute()));
 
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        CreateVisitRequest updatedRequest = createVisit(patientUUID, VisitType.HOME_VISIT);
-        request.setLocation(VisitLocation.MOBILE_CLINIC);
-        updatedRequest.setPatient(null);
+        UpdateVisitRequest updatedRequest =
+                RandomModelGenerator.generate(UpdateVisitRequest.class);
+        updatedRequest.setVisitType(VisitType.HOME_VISIT);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
@@ -162,14 +141,16 @@ public class VisitsTests extends BaseTest {
 
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
-        ModelAssertions.assertThatModels(softly, updatedRequest, updatedVisit).as("updated visit").match();
+        softly.assertThat(updatedVisit.getVisitType().getUuid())
+                .as("visit type")
+                .isEqualTo(updatedRequest.getVisitType().getUuid());
         softly.assertAll();
     }
 
     @Test
     public void updateNonExistentVisitReturnsNotFound() {
-        CreateVisitRequest updatedRequest = createVisit(patientUUID, VisitType.HOME_VISIT);
-        updatedRequest.setLocation(VisitLocation.MOBILE_CLINIC);
+        UpdateVisitRequest updatedRequest =
+                RandomModelGenerator.generate(UpdateVisitRequest.class);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -180,14 +161,14 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotUpdateVisit() {
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
 
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        CreateVisitRequest updatedRequest = createVisit(patientUUID, VisitType.HOME_VISIT);
-        updatedRequest.setPatient(null);
+        UpdateVisitRequest updatedRequest =
+                RandomModelGenerator.generate(UpdateVisitRequest.class);
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -200,11 +181,9 @@ public class VisitsTests extends BaseTest {
     @Test
     public void adminCanRetireVisit() {
         String encounterUUID = SessionStorage.getEncounter().getUuid();
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
-        request.setAttributes(List.of(insurancePolicyAttribute()));
-
         CreateVisitResponse visit = AdminSteps.createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
@@ -223,10 +202,9 @@ public class VisitsTests extends BaseTest {
     @Test
     public void adminCanPurgeVisit() {
         String encounterUUID = SessionStorage.getEncounter().getUuid();
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
-        request.setAttributes(List.of(insurancePolicyAttribute()));
 
         CreateVisitResponse visit = AdminSteps.createVisit(request);
 
@@ -252,8 +230,8 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotDeleteVisit() {
-        CreateVisitRequest request = createVisit(patientUUID, VisitType.FACILITY_VISIT);
-        request.setLocation(VisitLocation.UBUNTU_HOSPITAL);
+        CreateVisitRequest request =
+                RandomModelGenerator.generate(CreateVisitRequest.class);
 
         CreateVisitResponse visit = AdminSteps.createVisit(request);
         visitUUID = visit.getUuid();

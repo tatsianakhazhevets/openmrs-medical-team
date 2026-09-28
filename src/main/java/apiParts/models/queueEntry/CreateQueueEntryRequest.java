@@ -1,5 +1,7 @@
 package apiParts.models.queueEntry;
 
+import apiParts.generators.DateTimeGeneratingRule;
+import apiParts.generators.IntegerGeneratingRule;
 import apiParts.models.BaseModel;
 import apiParts.models.encounter.Ref;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,7 +28,9 @@ public class CreateQueueEntryRequest extends BaseModel {
         private Ref priority;
         private Ref queue;
         private Ref patient;
+        @DateTimeGeneratingRule
         private String startedAt;
+        @IntegerGeneratingRule(min = 0, max = 100)
         private Integer sortWeight;
     }
 }
