@@ -378,6 +378,18 @@ public class AdminSteps {
         ).get(visitUUID);
     }
 
+    public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {
+        SearchParams visits = () -> Map.<String, Object>of(
+                "patient", patientUUID,
+                "v", "custom");
+
+        return new SuccessfulSearchRequester<GetVisitResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.VISITS_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(visits);
+    }
+
     // Search params for GET /order limited to a patient's inpatient orders. Exposed as params only
     // (not a request) since callers use it against RequestSpecs.unAuthSpec() to verify auth is required.
     public static OrderSearchParams inpatientOrderSearchParams(String patientUUID) {

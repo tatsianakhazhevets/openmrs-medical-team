@@ -54,8 +54,6 @@ public class AppointmentTests extends BaseTest {
                 .isEqualTo(AppointmentStatus.SCHEDULED.getValue());
         softly.assertThat(appointment.getVoided()).isFalse();
         softly.assertThat(appointment.getRecurring()).isFalse();
-
-        softly.assertAll();
     }
 
     @Test
@@ -78,7 +76,6 @@ public class AppointmentTests extends BaseTest {
                 ));
 
         ModelAssertions.assertThatModels(softly, request, foundAppointment).as("appointment after GET").match();
-        softly.assertAll();
     }
 
     @Test
@@ -109,7 +106,6 @@ public class AppointmentTests extends BaseTest {
                 OffsetDateTime.parse(
                         request.getEndDateTime(),
                         DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME).toInstant().toEpochMilli()));
-        softly.assertAll();
     }
 
     @Test
@@ -122,7 +118,6 @@ public class AppointmentTests extends BaseTest {
 
         softly.assertThat(cancelledAppointment.getUuid()).isEqualTo(appointment.getUuid());
         softly.assertThat(cancelledAppointment.getStatus()).isEqualTo(AppointmentStatus.CANCELLED.getValue());
-        softly.assertAll();
     }
 
     @Test

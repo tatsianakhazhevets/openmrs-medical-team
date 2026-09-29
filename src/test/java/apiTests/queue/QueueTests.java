@@ -53,7 +53,6 @@ public class QueueTests extends BaseTest {
                 entry -> entry.getUuid().equals(response.getUuid()),
                 "created queue entry " + response.getUuid());
         ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
-        softly.assertAll();
     }
 
     @Test
@@ -70,7 +69,6 @@ public class QueueTests extends BaseTest {
         softly.assertThat(endedResponse.getEndedAt()).isNotNull();
         SearchResult<QueueEntryResponse> activeEntries = AdminSteps.getActiveQueueEntries();
         softly.assertThat(activeEntries.results()).noneMatch(entry -> entry.getUuid().equals(response.getUuid()));
-        softly.assertAll();
     }
 
     @Test
@@ -82,20 +80,22 @@ public class QueueTests extends BaseTest {
                 AdminSteps.addPatientToQueue(patientUUID, visitUUID);
         queueEntryUUID = createdResponse.getUuid();
 
-        UpdateQueueEntryRequest updateRequest = RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
+        UpdateQueueEntryRequest updateRequest =
+                RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
         updateRequest.setStatus(status.toRef());
         updateRequest.setPriority(priority.toRef());
 
-        QueueEntryResponse updatedResponse =
-                AdminSteps.updateQueueEntry(createdResponse.getUuid(), updateRequest);
+        AdminSteps.updateQueueEntry(createdResponse.getUuid(), updateRequest);
 
         QueueEntryResponse expected = new QueueEntryResponse();
         expected.setStatus(status.toRef());
         expected.setPriority(priority.toRef());
-        expected.setPriorityComment(updateRequest.getPriorityComment());
-        softly.assertThat(updatedResponse.getUuid()).isEqualTo(createdResponse.getUuid());
-        ModelAssertions.assertMatchesExpected(softly, updatedResponse, expected, "updated queue entry");
-        softly.assertAll();
+
+        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries().requireOne(
+                entry -> entry.getUuid().equals(createdResponse.getUuid()),
+                "updated queue entry " + createdResponse.getUuid());
+
+        ModelAssertions.assertMatchesExpected(softly, foundEntry, expected, "updated queue entry");
     }
 
     @Test
@@ -106,7 +106,8 @@ public class QueueTests extends BaseTest {
                 RandomModelGenerator.generate(CreateQueueEntryRequest.class);
         request.setVisit(Ref.of(visitUUID));
 
-        CreateQueueEntryRequest.QueueEntry queueEntry = RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
+        CreateQueueEntryRequest.QueueEntry queueEntry =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
         queueEntry.setStatus(QueueStatus.WAITING.toRef());
         queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
         queueEntry.setQueue(Ref.of(queue.getUuid()));
@@ -119,6 +120,9 @@ public class QueueTests extends BaseTest {
                 Endpoint.VISIT_QUEUE_ENTRY_POST,
                 ResponseSpecs.requestReturnsInvalidSubmission("patient")
         ).create(request);
+
+        softly.assertThat(AdminSteps.getActiveQueueEntries().results())
+                .noneMatch(entry -> entry.getVisit() != null && visitUUID.equals(entry.getVisit().getUuid()));
     }
 
     @Test
@@ -134,5 +138,8 @@ public class QueueTests extends BaseTest {
                 Endpoint.QUEUE_ENTRY_UPDATE,
                 ResponseSpecs.requestReturnsNotFound()
         ).update(NON_EXISTING_QUEUE_ENTRY_UUID, request);
+
+        softly.assertThat(AdminSteps.getActiveQueueEntries().results())
+                .noneMatch(entry -> NON_EXISTING_QUEUE_ENTRY_UUID.equals(entry.getUuid()));
     }
 }

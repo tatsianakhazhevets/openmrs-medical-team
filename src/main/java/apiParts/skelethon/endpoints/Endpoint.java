@@ -27,6 +27,7 @@ import apiParts.models.queueEntry.QueueEntryResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitResponse;
+import apiParts.models.visit.GetVisitsResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -170,7 +171,10 @@ public enum Endpoint {
             "/visit-queue-entry",
             CreateQueueEntryRequest.class,
             QueueEntryResponse.class),
-
+    VISITS_GET(
+            "/visit",
+            BaseModel.class,
+            GetVisitsResponse.class),
     QUEUE_ENTRY_UPDATE(
             "/queue-entry",
             EndQueueEntryRequest.class,
