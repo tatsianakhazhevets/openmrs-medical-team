@@ -15,7 +15,6 @@ import apiParts.skelethon.requests.search.SearchRequester;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.testdata.ProcedureTestData;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -27,28 +26,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static apiParts.models.order.DurationUnit.HOURS;
-import static apiParts.models.procedure.BodySite.ABDOMEN;
-import static apiParts.models.procedure.ProcedureConcept.LAPAROSCOPIC_CHOLECYSTECTOMY;
-import static apiParts.models.procedure.ProcedureStatus.COMPLETED;
-import static apiParts.models.procedure.ProcedureType.EMERGENCY;
-import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
-
 @CreatePatient
 public class GetProcedureApiTests extends BaseTest {
-    // Day in the past, truncated to minutes: server does not store milliseconds
-    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
-
-    // Any duration is handled by the same server logic
-    private static final int MIN_DURATION = 1;
-    private static final int MAX_DURATION = 10;
-
     private String patientUUID;
 
     @BeforeEach
@@ -58,20 +42,7 @@ public class GetProcedureApiTests extends BaseTest {
 
     @Test
     public void adminCanGetProcedureByUuid() {
-        // procedure lasted exactly its duration: endDateTime and duration are built from one value
-        int durationInHours = RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
-        var request = CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
-                .procedureType(EMERGENCY.getUuid())
-                .bodySite(ABDOMEN.getUuid())
-                .startDateTime(format(START))
-                .endDateTime(format(START.plusHours(durationInHours)))
-                .status(COMPLETED.getUuid())
-                .duration(durationInHours)
-                .durationUnit(HOURS.getUuid())
-                .notes(RandomModelGenerator.randomSentence())
-                .build();
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
 
         var procedure = createProcedure(request);
 
@@ -103,9 +74,8 @@ public class GetProcedureApiTests extends BaseTest {
         List<ProcedureResponse> procedures = new ArrayList<>();
 
         for (int i = 0; i < proceduresCount; i++) {
-            var request = validProcedure()
-                    .procedureCoded(ProcedureConcept.values()[i].getUuid())
-                    .build();
+            var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
+            request.setProcedureCoded(ProcedureConcept.values()[i].getUuid());
             requests.add(request);
             procedures.add(createProcedure(request));
         }
@@ -185,17 +155,6 @@ public class GetProcedureApiTests extends BaseTest {
     }
 
     // ======== HELPERS ========
-    // Valid procedure with required fields only
-    private CreateProcedureRequest.CreateProcedureRequestBuilder validProcedure() {
-        return CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
-                .procedureType(EMERGENCY.getUuid())
-                .bodySite(ABDOMEN.getUuid())
-                .startDateTime(format(START))
-                .status(COMPLETED.getUuid());
-    }
-
     private ProcedureResponse createProcedure(CreateProcedureRequest request) {
         return new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -215,9 +174,5 @@ public class GetProcedureApiTests extends BaseTest {
                         .patient(patientUUID)
                         .representation("full")
                         .build());
-    }
-
-    private static String format(OffsetDateTime dateTime) {
-        return dateTime.format(OPENMRS_REQUEST_DATE_TIME);
     }
 }

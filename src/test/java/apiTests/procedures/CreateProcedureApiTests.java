@@ -8,7 +8,6 @@ import apiParts.models.errors.ProcedureGlobalError;
 import apiParts.models.order.DurationUnit;
 import apiParts.models.procedure.BodySite;
 import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.CreateProcedureRequest.CreateProcedureRequestBuilder;
 import apiParts.models.procedure.ProcedureConcept;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.procedure.ProcedureStatus;
@@ -21,12 +20,13 @@ import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.testdata.ProcedureTestData;
+import apiParts.utils.DateTimeUtils;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -37,8 +37,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static apiParts.models.errors.ProcedureGlobalError.*;
@@ -52,8 +52,6 @@ import static apiParts.utils.DateTimeUtils.OPENMRS_REQUEST_DATE_TIME;
 
 @CreatePatient
 public class CreateProcedureApiTests extends BaseTest {
-    // Day in the past, truncated to minutes: server does not store milliseconds
-    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
     private static final String NON_CODED_PROCEDURE = RandomModelGenerator.randomSentence();
 
     // Any duration is handled by the same server logic
@@ -99,57 +97,89 @@ public class CreateProcedureApiTests extends BaseTest {
     static Stream<Arguments> invalidProcedures() {
         return Stream.of(
                 // Required references: null (not sent), "" and non-existent uuid (server converts it to null)
-                // emptyOrNonExistent - fabric for test cases. 15 cases in 5 strings using mutation for builder
-                emptyOrNonExistent("patient", CreateProcedureRequestBuilder::patient, PATIENT_REQUIRED),
-                emptyOrNonExistent("procedureType", CreateProcedureRequestBuilder::procedureType, PROCEDURE_TYPE_REQUIRED),
-                emptyOrNonExistent("procedureCoded", CreateProcedureRequestBuilder::procedureCoded, PROCEDURE_REQUIRED),
-                emptyOrNonExistent("bodySite", CreateProcedureRequestBuilder::bodySite, BODY_SITE_REQUIRED),
-                emptyOrNonExistent("status", CreateProcedureRequestBuilder::status, STATUS_REQUIRED),
+                // emptyOrNonExistent - fabric for test cases. 15 cases in 5 strings using setter of the field
+                emptyOrNonExistent("patient", CreateProcedureRequest::setPatient, PATIENT_REQUIRED),
+                emptyOrNonExistent("procedureType", CreateProcedureRequest::setProcedureType, PROCEDURE_TYPE_REQUIRED),
+                emptyOrNonExistent("procedureCoded", CreateProcedureRequest::setProcedureCoded, PROCEDURE_REQUIRED),
+                emptyOrNonExistent("bodySite", CreateProcedureRequest::setBodySite, BODY_SITE_REQUIRED),
+                emptyOrNonExistent("status", CreateProcedureRequest::setStatus, STATUS_REQUIRED),
                 Stream.of(
                         // startDateTime: "" and invalid value fail on conversion, see adminCannotCreateProcedureWithInvalidStartDateTime
-                        Arguments.of("startDateTime = null", mutate(b -> b.startDateTime(null)), START_DATE_TIME_REQUIRED),
+                        // endDateTime is removed too: with endDateTime server fails with 500 (NPE in ProcedureValidator:48)
+                        Arguments.of("startDateTime = null", mutate(r -> {
+                            r.setStartDateTime(null);
+                            r.setEndDateTime(null);
+                        }), START_DATE_TIME_REQUIRED),
 
                         // Dates
+                        // dates are relative to startDateTime of the generated request (see startOf)
                         Arguments.of("endDateTime before startDateTime",
-                                mutate(b -> b.endDateTime(format(START.minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
+                                mutate(r -> r.setEndDateTime(format(startOf(r).minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
+                        // status is fixed and endDateTime removed: otherwise 400 could come from another rule
                         Arguments.of("[known issue] completed procedure with startDateTime in the future",
-                                mutate(b -> b.startDateTime(format(OffsetDateTime.now(MOSCOW)
-                                        .plusDays(RandomModelGenerator.randomInt(MIN_DAYS_IN_FUTURE, MAX_DAYS_IN_FUTURE))))),
-                        START_DATE_TIME_IN_FUTURE),
+                                mutate(r -> {
+                                    r.setStatus(COMPLETED.getUuid());
+                                    r.setEndDateTime(null);
+                                    r.setStartDateTime(format(OffsetDateTime.now(MOSCOW)
+                                            .plusDays(RandomModelGenerator.randomInt(MIN_DAYS_IN_FUTURE, MAX_DAYS_IN_FUTURE))));
+                                }),
+                                START_DATE_TIME_IN_FUTURE),
                         Arguments.of("startDateTime and estimatedStartDate for new procedure",
-                                mutate(b -> b.estimatedStartDate(START.format(DateTimeFormatter.ofPattern("yyyy-MM")))), START_DATE_TIME_AND_ESTIMATED_DATE_MUTUALLY_EXCLUSIVE),
+                                mutate(r -> r.setEstimatedStartDate(startOf(r).format(DateTimeFormatter.ofPattern("yyyy-MM")))), START_DATE_TIME_AND_ESTIMATED_DATE_MUTUALLY_EXCLUSIVE),
 
-                        // Duration
-                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(randomDuration())), DURATION_UNIT_REQUIRED),
+                        // Duration: generated request has durationUnit, so it is removed
+                        Arguments.of("duration without durationUnit", mutate(r -> r.setDurationUnit(null)), DURATION_UNIT_REQUIRED),
 
                         // Procedure
                         Arguments.of("procedureCoded and procedureNonCoded",
-                                mutate(b -> b.procedureNonCoded(NON_CODED_PROCEDURE)), PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE)
+                                mutate(r -> r.setProcedureNonCoded(NON_CODED_PROCEDURE)), PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE)
                 )
         ).flatMap(cases -> cases);
     }
 
+    @Test
+    public void adminCanCreateProcedure() {
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
+
+        var procedure = new SuccessfulCrudRequester<ProcedureResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.PROCEDURE_POST,
+                ResponseSpecs.requestReturnsCreated()
+        )
+                .create(request);
+        ModelAssertions.assertThatModels(softly, request, procedure)
+                .as("POST /procedure response")
+                .match();
+
+        var patientProcedures = getPatientProcedures();
+
+        ModelAssertions.assertThatModels(softly, List.of(request), patientProcedures.results())
+                .as("procedures saved for patient")
+                .match();
+        softly.assertThat(Uuids.of(patientProcedures.results()))
+                .as("procedure uuids from GET match POST /procedure")
+                .isEqualTo(Set.of(procedure.getUuid()));
+
+    }
+
     @ParameterizedTest(name = "#{index}: {0} / {1} / {2}, {3}, {4}, duration {5} {6}")
     @MethodSource("pairwiseProcedures")
-    public void adminCanCreateProcedure(ProcedureConcept procedureCoded,
+    public void adminCanCreateProcedureWithDifferentTypes(ProcedureConcept procedureCoded,
                                         String procedureNonCoded,
                                         ProcedureType procedureType,
                                         BodySite bodySite,
                                         ProcedureStatus status,
                                         Integer duration,
                                         DurationUnit durationUnit) {
-        var request = CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(uuidOf(procedureCoded))
-                .procedureNonCoded(procedureNonCoded)
-                .procedureType(procedureType.getUuid())
-                .bodySite(bodySite.getUuid())
-                .startDateTime(format(START))
-                .status(status.getUuid())
-                .duration(duration)
-                .durationUnit(uuidOf(durationUnit))
-                .notes(RandomModelGenerator.randomSentence())
-                .build();
+        // random procedure, pairwise fields are overridden (null = field is not sent)
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
+        request.setProcedureCoded(uuidOf(procedureCoded));
+        request.setProcedureNonCoded(procedureNonCoded);
+        request.setProcedureType(procedureType.getUuid());
+        request.setBodySite(bodySite.getUuid());
+        request.setStatus(status.getUuid());
+        request.setDuration(duration);
+        request.setDurationUnit(uuidOf(durationUnit));
 
         var procedure = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -174,9 +204,10 @@ public class CreateProcedureApiTests extends BaseTest {
     @ParameterizedTest(name = "{0} -> {2}")
     @MethodSource("invalidProcedures")
     public void adminCannotCreateInvalidProcedure(String caseName,
-                                                  UnaryOperator<CreateProcedureRequestBuilder> mutation,
+                                                  Consumer<CreateProcedureRequest> mutation,
                                                   ProcedureGlobalError error) {
-        var request = mutation.apply(validProcedure()).build();
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
+        mutation.accept(request);
         var before = getPatientProcedures().results();
 
         new CrudRequester(
@@ -195,15 +226,14 @@ public class CreateProcedureApiTests extends BaseTest {
         return Stream.of(
                 "",
                 RandomModelGenerator.randomWord(),
-                START.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+                DateTimeUtils.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
     }
 
     @ParameterizedTest(name = "startDateTime = \"{0}\"")
     @MethodSource("invalidStartDateTimes")
     public void adminCannotCreateProcedureWithInvalidStartDateTime(String startDateTime) {
-        var request = validProcedure()
-                .startDateTime(startDateTime)
-                .build();
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
+        request.setStartDateTime(startDateTime);
         var before = getPatientProcedures().results();
 
         new CrudRequester(
@@ -220,7 +250,7 @@ public class CreateProcedureApiTests extends BaseTest {
     // Server returns 400 "Privileges required: Get Patients" (not 401): it fails on converting patient uuid
     @Test
     public void unauthorizedUserCannotCreateProcedure() {
-        var request = validProcedure().build();
+        var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
         var before = getPatientProcedures().results();
 
         new CrudRequester(
@@ -235,17 +265,6 @@ public class CreateProcedureApiTests extends BaseTest {
     }
 
     // ======== HELPERS ========
-    // Valid procedure with required fields only: baseline for negative cases
-    private CreateProcedureRequestBuilder validProcedure() {
-        return CreateProcedureRequest.builder()
-                .patient(patientUUID)
-                .procedureCoded(LAPAROSCOPIC_CHOLECYSTECTOMY.getUuid())
-                .procedureType(EMERGENCY.getUuid())
-                .bodySite(ABDOMEN.getUuid())
-                .startDateTime(format(START))
-                .status(COMPLETED.getUuid());
-    }
-
     private SearchResult<ProcedureResponse> getPatientProcedures() {
         return new SuccessfulSearchRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -259,12 +278,12 @@ public class CreateProcedureApiTests extends BaseTest {
     }
 
     private static Stream<Arguments> emptyOrNonExistent(String field,
-                                                        BiFunction<CreateProcedureRequestBuilder, String, CreateProcedureRequestBuilder> setter,
+                                                        BiConsumer<CreateProcedureRequest, String> setter,
                                                         ProcedureGlobalError error) {
         return Stream.of(
-                Arguments.of(field + " = null", mutate(b -> setter.apply(b, null)), error),
-                Arguments.of(field + " = \"\"", mutate(b -> setter.apply(b, "")), error),
-                Arguments.of(field + " = non-existent uuid", mutate(b -> setter.apply(b, UUID.randomUUID().toString())), error)
+                Arguments.of(field + " = null", mutate(r -> setter.accept(r, null)), error),
+                Arguments.of(field + " = \"\"", mutate(r -> setter.accept(r, "")), error),
+                Arguments.of(field + " = non-existent uuid", mutate(r -> setter.accept(r, UUID.randomUUID().toString())), error)
         );
     }
 
@@ -276,12 +295,16 @@ public class CreateProcedureApiTests extends BaseTest {
         return dateTime.format(OPENMRS_REQUEST_DATE_TIME);
     }
 
+    private static OffsetDateTime startOf(CreateProcedureRequest request) {
+        return OffsetDateTime.parse(request.getStartDateTime(), OPENMRS_REQUEST_DATE_TIME);
+    }
+
     private static String uuidOf(HasUuid value) {
         return value == null ? null : value.getUuid();
     }
 
     // only for type inference of lambdas inside Arguments.of(...)
-    private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
+    private static Consumer<CreateProcedureRequest> mutate(Consumer<CreateProcedureRequest> mutation) {
         return mutation;
     }
 }

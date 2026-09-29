@@ -2,13 +2,14 @@ package common.storages;
 
 import apiParts.models.encounter.CreateEncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.visit.CreateVisitResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 
-// Preconditions created by extensions within one test (server responses only).
+// Preconditions created by extensions within one test (server responses; for procedures - also sent requests).
 // ThreadLocal - so parallel tests do not share data.
 // Numbers (number) start from 1.
 public class SessionStorage {
@@ -16,6 +17,7 @@ public class SessionStorage {
 
     private final List<CreatePatientResponse> patients = new ArrayList<>();
     private final List<ProcedureResponse> procedures = new ArrayList<>();
+    private final List<CreateProcedureRequest> procedureRequests = new ArrayList<>();
     private final List<CreateEncounterResponse> orderEncounters = new ArrayList<>();
     private final List<CreateEncounterResponse> encounters = new ArrayList<>();
     private final List<CreateVisitResponse> visits = new ArrayList<>();
@@ -45,7 +47,9 @@ public class SessionStorage {
     }
 
     // ======== PROCEDURES (@CreateProcedure) ========
-    public static void addProcedure(ProcedureResponse procedure) {
+    // request is generated randomly, so it is kept too - it is the expected model for the procedure
+    public static void addProcedure(CreateProcedureRequest request, ProcedureResponse procedure) {
+        INSTANCE.get().procedureRequests.add(request);
         INSTANCE.get().procedures.add(procedure);
     }
 
@@ -57,8 +61,17 @@ public class SessionStorage {
         return get(INSTANCE.get().procedures, number, "procedures", "@CreateProcedure");
     }
 
+    public static CreateProcedureRequest getProcedureRequest() {
+        return getProcedureRequest(1);
+    }
+
+    public static CreateProcedureRequest getProcedureRequest(int number) {
+        return get(INSTANCE.get().procedureRequests, number, "procedures", "@CreateProcedure");
+    }
+
     public static void clearProcedures() {
         INSTANCE.get().procedures.clear();
+        INSTANCE.get().procedureRequests.clear();
     }
 
     // ======== ORDERS (@CreateOrder) ========

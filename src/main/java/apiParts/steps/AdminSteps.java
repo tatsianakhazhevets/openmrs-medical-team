@@ -16,6 +16,7 @@ import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
@@ -38,7 +39,6 @@ import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
-import apiParts.testdata.ProcedureTestData;
 import apiParts.testdata.VitalsTestData;
 
 import java.util.List;
@@ -169,14 +169,12 @@ public class AdminSteps {
                 .create(OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid()));
     }
 
-    // Valid procedure with required fields only as a standard fixture for procedure tests.
-    // Request: ProcedureTestData.procedureRequest(patientUUID)
-    public static ProcedureResponse createProcedure(String patientUUID) {
+    public static ProcedureResponse createProcedure(CreateProcedureRequest request) {
         return new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURE_POST,
                 ResponseSpecs.requestReturnsCreated())
-                .create(ProcedureTestData.procedureRequest(patientUUID));
+                .create(request);
     }
 
     public static void deleteVisit(String visitUUID) {

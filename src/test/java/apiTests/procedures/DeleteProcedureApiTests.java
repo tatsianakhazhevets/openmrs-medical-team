@@ -12,7 +12,6 @@ import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.testdata.ProcedureTestData;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -38,7 +37,7 @@ public class DeleteProcedureApiTests extends BaseTest {
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
-        createRequest = ProcedureTestData.procedureRequest(patientUUID);
+        createRequest = SessionStorage.getProcedureRequest();
         procedure = SessionStorage.getProcedure();
 
         assertThat(Uuids.of(getPatientProcedures(false).results()))

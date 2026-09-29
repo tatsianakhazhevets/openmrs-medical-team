@@ -7,14 +7,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Before each test creates valid procedure(s) via AdminSteps.createProcedure()
- * for the first patient from SessionStorage and puts the response to SessionStorage.
+ * Before each test creates valid random procedure(s) (RandomModelGenerator, rules in CreateProcedureRequest)
+ * for the first patient from SessionStorage and puts the request and the response to SessionStorage.
  * <p>
  * Needs a patient: mark test class or method with @CreatePatient too (in any order and on any level).
  * Handled by CreateProcedureExtension, registered in apiTests.BaseTest after CreatePatientExtension.
  * <p>
- * Access: SessionStorage.getProcedure() / getProcedure(n).
- * Expected model: ProcedureTestData.procedureRequest(patientUUID) - the same request that was sent on create.
+ * Access: SessionStorage.getProcedure() / getProcedure(n) - response,
+ * SessionStorage.getProcedureRequest() / getProcedureRequest(n) - sent request (expected model).
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

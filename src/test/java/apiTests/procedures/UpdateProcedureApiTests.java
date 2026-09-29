@@ -4,7 +4,6 @@ import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.errors.ProcedureGlobalError;
 import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.CreateProcedureRequest.CreateProcedureRequestBuilder;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
@@ -14,7 +13,6 @@ import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.testdata.ProcedureTestData;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -33,8 +31,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import static apiParts.models.errors.ProcedureGlobalError.*;
@@ -50,8 +47,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @CreatePatient
 @CreateProcedure
 public class UpdateProcedureApiTests extends BaseTest {
-    // startDateTime of procedure from @CreateProcedure - dates in cases are relative to it
-    private static final OffsetDateTime START = ProcedureTestData.PROCEDURE_START;
     private static final String NON_CODED_PROCEDURE = RandomModelGenerator.randomSentence();
 
     // Any duration is handled by the same server logic
@@ -66,12 +61,13 @@ public class UpdateProcedureApiTests extends BaseTest {
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
-        createRequest = ProcedureTestData.procedureRequest(patientUUID);
+        createRequest = SessionStorage.getProcedureRequest();
         procedure = SessionStorage.getProcedure();
     }
 
-    // Each case = one change. The same mutation builds partial update request (empty builder)
-    // and expected procedure (request of procedure from @CreateProcedure + change)
+    // Each case = one change, set by setters. The same mutation fills partial update request (new, empty)
+    // and expected procedure (request of procedure from @CreateProcedure + change).
+    // Procedure from @CreateProcedure is random: mutation gets its request (created) to build dates relative to it
     // The same mutation is applied twice (update request and expected procedure), so generated
     // values are taken here and captured by the lambda - a call inside it would give two results
     static Stream<Arguments> validUpdates() {
@@ -82,18 +78,22 @@ public class UpdateProcedureApiTests extends BaseTest {
         String otherNotes = RandomModelGenerator.randomSentence();
 
         return Stream.of(
-                Arguments.of("procedureCoded", mutate(b -> b.procedureCoded(X_RAY_CHEST.getUuid()))),
-                Arguments.of("procedureType", mutate(b -> b.procedureType(SURGICAL.getUuid()))),
-                Arguments.of("bodySite", mutate(b -> b.bodySite(CHEST.getUuid()))),
-                Arguments.of("status", mutate(b -> b.status(IN_PROGRESS.getUuid()))),
-                Arguments.of("startDateTime", mutate(b -> b.startDateTime(format(START.minusDays(daysEarlier))))),
-                Arguments.of("endDateTime", mutate(b -> b.endDateTime(format(START.plusHours(hoursLater))))),
-                Arguments.of("duration with durationUnit", mutate(b -> b.duration(duration).durationUnit(DAYS.getUuid()))),
-                Arguments.of("notes", mutate(b -> b.notes(notes))),
-                Arguments.of("several fields", mutate(b -> b
-                        .bodySite(CHEST.getUuid())
-                        .status(IN_PROGRESS.getUuid())
-                        .notes(otherNotes)))
+                Arguments.of("procedureCoded", mutate((r, created) -> r.setProcedureCoded(X_RAY_CHEST.getUuid()))),
+                Arguments.of("procedureType", mutate((r, created) -> r.setProcedureType(SURGICAL.getUuid()))),
+                Arguments.of("bodySite", mutate((r, created) -> r.setBodySite(CHEST.getUuid()))),
+                Arguments.of("status", mutate((r, created) -> r.setStatus(IN_PROGRESS.getUuid()))),
+                Arguments.of("startDateTime", mutate((r, created) -> r.setStartDateTime(format(startOf(created).minusDays(daysEarlier))))),
+                Arguments.of("endDateTime", mutate((r, created) -> r.setEndDateTime(format(startOf(created).plusHours(hoursLater))))),
+                Arguments.of("duration with durationUnit", mutate((r, created) -> {
+                    r.setDuration(duration);
+                    r.setDurationUnit(DAYS.getUuid());
+                })),
+                Arguments.of("notes", mutate((r, created) -> r.setNotes(notes))),
+                Arguments.of("several fields", mutate((r, created) -> {
+                    r.setBodySite(CHEST.getUuid());
+                    r.setStatus(IN_PROGRESS.getUuid());
+                    r.setNotes(otherNotes);
+                }))
         );
     }
 
@@ -101,27 +101,34 @@ public class UpdateProcedureApiTests extends BaseTest {
     static Stream<Arguments> invalidUpdates() {
         return Stream.of(
                 // Required references: "" and non-existent uuid (null is not sent = no change)
-                emptyOrNonExistent("patient", CreateProcedureRequestBuilder::patient, PATIENT_REQUIRED),
-                emptyOrNonExistent("procedureType", CreateProcedureRequestBuilder::procedureType, PROCEDURE_TYPE_REQUIRED),
-                emptyOrNonExistent("procedureCoded", CreateProcedureRequestBuilder::procedureCoded, PROCEDURE_REQUIRED),
-                emptyOrNonExistent("bodySite", CreateProcedureRequestBuilder::bodySite, BODY_SITE_REQUIRED),
-                emptyOrNonExistent("status", CreateProcedureRequestBuilder::status, STATUS_REQUIRED),
+                emptyOrNonExistent("patient", CreateProcedureRequest::setPatient, PATIENT_REQUIRED),
+                emptyOrNonExistent("procedureType", CreateProcedureRequest::setProcedureType, PROCEDURE_TYPE_REQUIRED),
+                emptyOrNonExistent("procedureCoded", CreateProcedureRequest::setProcedureCoded, PROCEDURE_REQUIRED),
+                emptyOrNonExistent("bodySite", CreateProcedureRequest::setBodySite, BODY_SITE_REQUIRED),
+                emptyOrNonExistent("status", CreateProcedureRequest::setStatus, STATUS_REQUIRED),
                 Stream.of(
                         Arguments.of("endDateTime before startDateTime",
-                                mutate(b -> b.endDateTime(format(START.minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
-                        Arguments.of("duration without durationUnit", mutate(b -> b.duration(randomDuration())), DURATION_UNIT_REQUIRED),
+                                mutate((r, created) -> r.setEndDateTime(format(startOf(created).minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
+                        // created procedure already has durationUnit (partial update keeps it), so it is cleared by ""
+                        Arguments.of("duration without durationUnit",
+                                mutate((r, created) -> {
+                                    r.setDuration(randomDuration());
+                                    r.setDurationUnit("");
+                                }), DURATION_UNIT_REQUIRED),
                         Arguments.of("procedureNonCoded to procedure with procedureCoded",
-                                mutate(b -> b.procedureNonCoded(NON_CODED_PROCEDURE)), PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE)
+                                mutate((r, created) -> r.setProcedureNonCoded(NON_CODED_PROCEDURE)), PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE)
                 )
         ).flatMap(cases -> cases);
     }
 
     @ParameterizedTest(name = "update {0}")
     @MethodSource("validUpdates")
-    public void adminCanUpdateProcedure(String caseName, UnaryOperator<CreateProcedureRequestBuilder> mutation) {
-        var updateRequest = mutation.apply(CreateProcedureRequest.builder()).build();
-        // procedure from @CreateProcedure + change
-        var expected = mutation.apply(createRequest.toBuilder()).build();
+    public void adminCanUpdateProcedure(String caseName, Mutation mutation) {
+        var updateRequest = new CreateProcedureRequest();
+        mutation.accept(updateRequest, createRequest);
+        // procedure from @CreateProcedure + change: request from SessionStorage is new for each test, so it is changed in place
+        var expected = createRequest;
+        mutation.accept(expected, createRequest);
 
         var updated = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -147,10 +154,10 @@ public class UpdateProcedureApiTests extends BaseTest {
     @ParameterizedTest(name = "estimatedStartDate in format {0}")
     @ValueSource(strings = {"yyyy", "yyyy-MM", "yyyy-MM-dd"})
     public void adminCanSetEstimatedStartDateForExistingProcedure(String pattern) {
-        var estimatedStartDate = START.format(DateTimeFormatter.ofPattern(pattern));
-        var updateRequest = CreateProcedureRequest.builder()
-                .estimatedStartDate(estimatedStartDate)
-                .build();
+        var start = startOf(createRequest);
+        var estimatedStartDate = start.format(DateTimeFormatter.ofPattern(pattern));
+        var updateRequest = new CreateProcedureRequest();
+        updateRequest.setEstimatedStartDate(estimatedStartDate);
 
         var updated = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -160,14 +167,13 @@ public class UpdateProcedureApiTests extends BaseTest {
                 .update(procedure.getUuid(), updateRequest);
 
         LocalDate periodStart = switch (pattern) {
-            case "yyyy" -> START.toLocalDate().withDayOfYear(1);
-            case "yyyy-MM" -> START.toLocalDate().withDayOfMonth(1);
-            default -> START.toLocalDate();
+            case "yyyy" -> start.toLocalDate().withDayOfYear(1);
+            case "yyyy-MM" -> start.toLocalDate().withDayOfMonth(1);
+            default -> start.toLocalDate();
         };
-        var expected = createRequest.toBuilder()
-                .estimatedStartDate(estimatedStartDate)
-                .startDateTime(format(periodStart.atStartOfDay().atOffset(ZoneOffset.UTC)))
-                .build();
+        var expected = createRequest;
+        expected.setEstimatedStartDate(estimatedStartDate);
+        expected.setStartDateTime(format(periodStart.atStartOfDay().atOffset(ZoneOffset.UTC)));
 
         ModelAssertions.assertThatModels(softly, expected, updated)
                 .as("POST /procedure/{uuid} response")
@@ -180,9 +186,10 @@ public class UpdateProcedureApiTests extends BaseTest {
     @ParameterizedTest(name = "{0} -> {2}")
     @MethodSource("invalidUpdates")
     public void adminCannotUpdateProcedureWithInvalidData(String caseName,
-                                                          UnaryOperator<CreateProcedureRequestBuilder> mutation,
+                                                          Mutation mutation,
                                                           ProcedureGlobalError error) {
-        var updateRequest = mutation.apply(CreateProcedureRequest.builder()).build();
+        var updateRequest = new CreateProcedureRequest();
+        mutation.accept(updateRequest, createRequest);
         var before = getProcedure();
 
         new CrudRequester(
@@ -197,9 +204,8 @@ public class UpdateProcedureApiTests extends BaseTest {
 
     @Test
     public void adminCannotUpdateNonExistentProcedure() {
-        var updateRequest = CreateProcedureRequest.builder()
-                .notes(RandomModelGenerator.randomSentence())
-                .build();
+        var updateRequest = new CreateProcedureRequest();
+        updateRequest.setNotes(RandomModelGenerator.randomSentence());
         var before = getProcedure();
 
         new CrudRequester(
@@ -214,9 +220,8 @@ public class UpdateProcedureApiTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotUpdateProcedure() {
-        var updateRequest = CreateProcedureRequest.builder()
-                .notes(RandomModelGenerator.randomSentence())
-                .build();
+        var updateRequest = new CreateProcedureRequest();
+        updateRequest.setNotes(RandomModelGenerator.randomSentence());
         var before = getProcedure();
 
         new CrudRequester(
@@ -256,11 +261,11 @@ public class UpdateProcedureApiTests extends BaseTest {
     }
 
     private static Stream<Arguments> emptyOrNonExistent(String field,
-                                                        BiFunction<CreateProcedureRequestBuilder, String, CreateProcedureRequestBuilder> setter,
+                                                        BiConsumer<CreateProcedureRequest, String> setter,
                                                         ProcedureGlobalError error) {
         return Stream.of(
-                Arguments.of(field + " = \"\"", mutate(b -> setter.apply(b, "")), error),
-                Arguments.of(field + " = non-existent uuid", mutate(b -> setter.apply(b, UUID.randomUUID().toString())), error)
+                Arguments.of(field + " = \"\"", mutate((r, created) -> setter.accept(r, "")), error),
+                Arguments.of(field + " = non-existent uuid", mutate((r, created) -> setter.accept(r, UUID.randomUUID().toString())), error)
         );
     }
 
@@ -272,8 +277,16 @@ public class UpdateProcedureApiTests extends BaseTest {
         return dateTime.format(OPENMRS_REQUEST_DATE_TIME);
     }
 
+    private static OffsetDateTime startOf(CreateProcedureRequest request) {
+        return OffsetDateTime.parse(request.getStartDateTime(), OPENMRS_REQUEST_DATE_TIME);
+    }
+
+    // (request to change by setters, request of procedure from @CreateProcedure)
+    interface Mutation extends BiConsumer<CreateProcedureRequest, CreateProcedureRequest> {
+    }
+
     // only for type inference of lambdas inside Arguments.of(...)
-    private static UnaryOperator<CreateProcedureRequestBuilder> mutate(UnaryOperator<CreateProcedureRequestBuilder> mutation) {
+    private static Mutation mutate(Mutation mutation) {
         return mutation;
     }
 }
