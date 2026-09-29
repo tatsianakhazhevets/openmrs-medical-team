@@ -47,7 +47,7 @@ public class DeleteProcedureApiTests extends BaseTest {
 
     @Test
     public void adminCanDeleteProcedure() {
-        new SuccessfulCrudRequester<BaseModel>(
+        new SuccessfulCrudRequester<>(
                 RequestSpecs.adminSpec(),
                 Endpoint.PROCEDURE_DELETE,
                 ResponseSpecs.requestReturnsNoContent()
