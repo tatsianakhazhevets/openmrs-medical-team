@@ -7,6 +7,10 @@ import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
+import apiParts.models.euncouterTest.EncounterListResponse;
+import apiParts.models.euncouterTest.EncounterTestRequest;
+import apiParts.models.euncouterTest.EncounterTestResponse;
+import apiParts.models.euncouterTest.GetEncounterResponse;
 import apiParts.models.order.DiscontinueOrderRequest;
 import apiParts.models.order.FulfillerDetailsRequest;
 import apiParts.models.order.GetOrderResponse;
@@ -65,27 +69,36 @@ public enum Endpoint {
             "/patient",
             BaseModel.class,
             BaseModel.class),
+
     IDENTIFIER_GET(
             "/idgen/identifiersource/8549f706-7e85-4c1d-9424-217d50a2988b/identifier",
-            BaseModel.class,
+            GetIdentifierRequest.class,
             GetIdentifierResponse.class),
 
-    // Flat CRUD for encounter (CrudRequester) - one constant for create/get/update/delete,
-    // since all four use the same path and the same request/response models.
     ENCOUNTER_POST(
             "/encounter",
             CreateEncounterRequest.class,
-            EncounterResponse.class),
+            CreateEncounterResponse.class),
+
+    ENCOUNTER_CREATE_POST(
+            "/encounter",
+            EncounterTestRequest.class,
+            EncounterTestResponse.class),
 
     ENCOUNTER_GET(
             "/encounter",
             BaseModel.class,
-            EncounterResponse.class),
+            CreateEncounterResponse.class),
+
+    ENCOUNTER_SEARCH_GET(
+            "/encounter",
+            BaseModel.class,
+            EncounterListResponse.class),
 
     ENCOUNTER_RETRIEVE(
             "/encounter",
             BaseModel.class,
-            EncounterResponse.class),
+            GetEncounterResponse.class),
 
     ENCOUNTER_DELETE(
             "/encounter",
@@ -202,10 +215,15 @@ public enum Endpoint {
             AllergyRequest.class,
             AllergyResponse.class),
 
+    PATIENT_GET_ALLERGY_NESTED(
+            "/patient/{parentUuid}/allergy",
+            BaseModel.class,
+            GetPatientResponse.class),
+
     PATIENT_IDENTIFIER_NESTED(
             "/patient/{parentUuid}/identifier",
             PatientIdentifierRequest.class,
-            PatientIdentifierResponse.class),
+            IdentifierResponse.class),
 
     // Action endpoints (ActionRequester): {resourceUuid} is the resource the command is performed on.
     APPOINTMENT_CHANGE_STATUS(

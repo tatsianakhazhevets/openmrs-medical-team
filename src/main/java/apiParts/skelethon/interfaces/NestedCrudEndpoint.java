@@ -31,6 +31,8 @@ public interface NestedCrudEndpoint<R> {
 
     R get(String parentUuid, String childUuid, Map<String, ?> queryParams);
 
+    R get(String parentUuid);
+
     R update(String parentUuid, String childUuid, BaseModel model);
 
     ValidatableResponse delete(String parentUuid, String childUuid);

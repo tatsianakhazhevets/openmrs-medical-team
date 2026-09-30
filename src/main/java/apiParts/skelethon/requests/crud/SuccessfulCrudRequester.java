@@ -40,6 +40,11 @@ public class SuccessfulCrudRequester<T extends BaseModel> extends HttpRequest im
     }
 
     @Override
+    public T get(Map<String, ?> queryParams) {
+        return (T) crudRequester.get(queryParams).extract().as(endpoint.getResponseModel());
+    }
+
+    @Override
     public T update(String uuid, BaseModel model) {
         return (T) crudRequester.update(uuid, model).extract().as(endpoint.getResponseModel());
     }

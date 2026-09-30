@@ -15,6 +15,8 @@ import java.util.Map;
 public class GetParams {
 
     public static final String FULL = "full";
+    public static final String DEFAULT = "default";
+    private String patient;
 
     private String v;
 
@@ -23,6 +25,10 @@ public class GetParams {
 
         if (v != null) {
             queryParams.put("v", v);
+        }
+
+        if (patient != null) {
+            queryParams.put("patient", patient);
         }
 
         return queryParams;

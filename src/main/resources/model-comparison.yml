@@ -100,7 +100,9 @@ rules:
       - person.dead
 
   - request: AllergyRequest
-    response: AllergyResponse
+    response:
+    - AllergyResponse
+    - GetPatientResponse
     fields:
       - allergen.allergenType
       - allergen.codedAllergen.uuid: allergen.codedAllergen.uuid
@@ -143,3 +145,26 @@ rules:
       - location: location.uuid
       - startDatetime
       - stopDatetime
+
+  - request: EncounterTestRequest
+    response:
+    - EncounterTestResponse
+    - GetEncounterResponse
+    fields:
+      - patient: patient.uuid
+      - encounterType: encounterType.uuid
+      - encounterDatetime
+      - location: location.uuid
+
+  - request: PatientIdentifierRequest
+    response: IdentifierResponse
+    fields:
+      - identifier
+      - identifierType: identifierType.uuid
+      - location: location.uuid
+      - preferred
+
+  - request: LoginAdminRequest
+    response: LoginAdminResponse
+    fields:
+      - username: user.display

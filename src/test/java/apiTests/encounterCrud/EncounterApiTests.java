@@ -1,16 +1,20 @@
-package apiTests;
+package apiTests.encounterCrud;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.generators.RandomUuidGenerator;
 import apiParts.models.GetParams;
-import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.EncounterResponse;
+import apiParts.models.euncouterTest.EncounterListResponse;
+import apiParts.models.euncouterTest.EncounterTestRequest;
+import apiParts.models.euncouterTest.EncounterTestResponse;
+import apiParts.models.euncouterTest.GetEncounterResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiParts.steps.EncounterSteps;
+import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.Test;
@@ -26,28 +30,18 @@ public class EncounterApiTests extends BaseTest {
     @CreatePatient
     public void adminCanCreateEncounter() {
 
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
 
-        EncounterResponse encounterResponse = new SuccessfulCrudRequester<EncounterResponse>(
+        EncounterTestResponse encounterResponse = new SuccessfulCrudRequester<EncounterTestResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(encounterRequest);
 
-        EncounterResponse receivedEncounterResponse =
-                new SuccessfulCrudRequester<EncounterResponse>(
-                        RequestSpecs.adminSpec(),
-                        Endpoint.ENCOUNTER_RETRIEVE,
-                        ResponseSpecs.requestReturnsOk())
-                        .get(encounterResponse.getUuid(),
-                                GetParams.builder()
-                                        .v(GetParams.FULL)
-                                        .build()
-                                        .toQueryParams());
-
-        ModelAssertions.assertThatModels(encounterRequest, receivedEncounterResponse).match();
-
-        softly.assertThat(receivedEncounterResponse.getVoided()).isFalse();
+        GetEncounterResponse receivedEncounterResponse = EncounterSteps.getEncounter(
+                encounterResponse.getUuid());
+        ModelAssertions.assertThatModels(softly, encounterRequest, receivedEncounterResponse).match();
+        softly.assertThat(receivedEncounterResponse.isVoided()).isFalse();
         softly.assertThat(receivedEncounterResponse.getPatient().getDisplay())
                 .isEqualTo(SessionStorage.getPatient().getDisplay());
     }
@@ -55,52 +49,68 @@ public class EncounterApiTests extends BaseTest {
     @Test
     @CreatePatient
     public void adminCannotCreateEncounterWithInvalidPatient() {
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
         encounterRequest.setPatient(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(MISSING_PATIENT.getMessage()))
+                Endpoint.ENCOUNTER_CREATE_POST,
+                ResponseSpecs.requestReturnsBadRequestWithTwoMessages(
+                        INVALID_SUBMISSION.getMessage(),
+                        PATIENT_IS_REQUIRES.getMessage()))
                 .create(encounterRequest);
+
+        EncounterListResponse encounterListOne = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounterListOne.getResults()).isEmpty();
 
         encounterRequest.setPatient(nonExistingUuid);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsBadRequestWithTwoMessages(
                         INVALID_SUBMISSION.getMessage(),
                         PATIENT_IS_REQUIRES.getMessage()))
                 .create(encounterRequest);
+
+        EncounterListResponse encounterListTwo = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounterListTwo.getResults()).isEmpty();
     }
 
     @Test
     @CreatePatient
     public void adminCannotCreateEncounterWithoutEncounterType() {
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
         encounterRequest.setEncounterType(null);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(MISSING_ENCOUNTER_TYPE.getMessage()))
+                Endpoint.ENCOUNTER_CREATE_POST,
+                ResponseSpecs.requestReturnsBadRequestWithTwoMessages(
+                        INVALID_SUBMISSION.getMessage(),
+                        ENCOUNTER_TYPE_IS_REQUIRED.getMessage()))
                 .create(encounterRequest);
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 
     @Test
     @CreatePatient
     public void adminCannotCreateEncounterWithFutureDatetime() {
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
         encounterRequest.setEncounterDatetime(RandomModelGenerator.futureDateTime());
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsBadRequestWithTwoMessages(
                         INVALID_SUBMISSION.getMessage(),
                         ENCOUNTER_DATETIME_SHOULD_BE_BEFORE_THE_CURRENT_DATA.getMessage()))
                 .create(encounterRequest);
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 
     @Test
@@ -112,78 +122,74 @@ public class EncounterApiTests extends BaseTest {
                 Endpoint.ENCOUNTER_RETRIEVE,
                 ResponseSpecs.requestReturnsNotFound(
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .get(nonExistingUuid,
-                        GetParams.builder()
-                                .v(GetParams.FULL)
-                                .build()
-                                .toQueryParams());
+                .get(nonExistingUuid, GetParams.builder().v(GetParams.FULL).build().toQueryParams());
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 
     @Test
     @CreatePatient
     public void adminCanUpdateEncounter() {
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
 
-        EncounterResponse encounterResponse = new SuccessfulCrudRequester<EncounterResponse>(
+        EncounterTestResponse encounterResponse = new SuccessfulCrudRequester<EncounterTestResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(encounterRequest);
 
         encounterRequest.setEncounterDatetime(RandomModelGenerator.pastDateTime());
 
-        EncounterResponse updatedEncounterResponse = new SuccessfulCrudRequester<EncounterResponse>(
+        EncounterTestResponse updatedEncounterResponse = new SuccessfulCrudRequester<EncounterTestResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsOk())
                 .update(encounterResponse.getUuid(), encounterRequest);
 
-        EncounterResponse receivedEncounterResponse =
-                new SuccessfulCrudRequester<EncounterResponse>(
-                        RequestSpecs.adminSpec(),
-                        Endpoint.ENCOUNTER_RETRIEVE,
-                        ResponseSpecs.requestReturnsOk())
-                        .get(encounterResponse.getUuid(),
-                                GetParams.builder()
-                                        .v(GetParams.FULL)
-                                        .build()
-                                        .toQueryParams());
-
-        ModelAssertions.assertThatModels(encounterRequest, receivedEncounterResponse).match();
+        GetEncounterResponse receivedEncounterResponse = EncounterSteps.getEncounter(
+                encounterResponse.getUuid());
+        ModelAssertions.assertThatModels(softly, encounterRequest, receivedEncounterResponse).match();
         softly.assertThat(updatedEncounterResponse.getUuid()).isEqualTo(encounterResponse.getUuid());
-        softly.assertThat(updatedEncounterResponse.getVoided()).isFalse();
+        softly.assertThat(updatedEncounterResponse.isVoided()).isFalse();
     }
 
     @Test
     @CreatePatient
     public void adminCannotUpdateNonExistingEncounter() {
-        CreateEncounterRequest updateRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest updateRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
         updateRequest.setEncounterDatetime(RandomModelGenerator.pastDateTime());
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsNotFound(
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .update(nonExistingUuid, updateRequest);
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 
     @Test
     @CreatePatient
     public void adminCanDeleteEncounter() {
-        CreateEncounterRequest encounterRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        EncounterTestRequest encounterRequest = RandomModelGenerator.generate(EncounterTestRequest.class);
 
-        EncounterResponse encounterResponse = new SuccessfulCrudRequester<EncounterResponse>(
+        EncounterTestResponse encounterResponse = new SuccessfulCrudRequester<EncounterTestResponse>(
                 RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
+                Endpoint.ENCOUNTER_CREATE_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(encounterRequest);
 
-        new SuccessfulCrudRequester<EncounterResponse>(
+        new SuccessfulCrudRequester<EncounterTestResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_DELETE,
                 ResponseSpecs.requestReturnsNoContent())
                 .delete(encounterResponse.getUuid());
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 
     @Test
@@ -195,5 +201,8 @@ public class EncounterApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsNotFound(
                         OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
                 .delete(nonExistingUuid);
+
+        EncounterListResponse encounter = EncounterSteps.getPatientEncounters(SessionStorage.getPatient().getUuid());
+        softly.assertThat(encounter.getResults()).isEmpty();
     }
 }

@@ -69,6 +69,17 @@ public class NestedCrudRequester extends HttpRequest implements NestedCrudEndpoi
                 .spec(responseSpecification);
     }
 
+    @Override
+    public ValidatableResponse get(String parentUuid) {
+        return given()
+                .spec(requestSpecification)
+                .pathParam(PARENT_UUID, parentUuid)
+                .get(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
     // OpenMRS updates via POST to the resource address, not via PUT
     @Override
     public ValidatableResponse update(String parentUuid, String childUuid, BaseModel model) {

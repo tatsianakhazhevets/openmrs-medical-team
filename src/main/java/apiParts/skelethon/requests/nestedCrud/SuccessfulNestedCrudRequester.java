@@ -44,6 +44,11 @@ public class SuccessfulNestedCrudRequester<T extends BaseModel> extends HttpRequ
     }
 
     @Override
+    public T get(String parentUuid) {
+        return as(nestedCrudRequester.get(parentUuid));
+    }
+
+    @Override
     public T update(String parentUuid, String childUuid, BaseModel model) {
         return as(nestedCrudRequester.update(parentUuid, childUuid, model));
     }
