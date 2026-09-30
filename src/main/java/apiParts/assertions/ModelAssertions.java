@@ -2,14 +2,14 @@ package apiParts.assertions;
 
 import apiParts.assertions.comparison.ModelListMatcher;
 import apiParts.assertions.comparison.ModelMatcher;
-import org.assertj.core.api.SoftAssertions;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Entry point for model assertions.
+ * Entry point for model assertions. Uses the current test's SoftAssertions from {@link SoftlyContext}
+ * (set by BaseTest), so it does not need to be passed as a parameter.
  * <ul>
  *   <li>{@link #assertThatModels} - echo check: fields sent in request came back in response.
  *       Rules (which fields, how paths map, converters, list pairing) are in model-comparison.yml;</li>
@@ -25,33 +25,44 @@ public class ModelAssertions {
     }
 
     // echo check request -> response by rule from model-comparison.yml
-    public static ModelMatcher assertThatModels(SoftAssertions softly, Object request, Object response) {
-        return new ModelMatcher(softly, request, response);
+    public static ModelMatcher assertThatModels(Object request, Object response) {
+        return new ModelMatcher(SoftlyContext.get(), request, response);
     }
 
     // same for lists: pairs are found by matchBy of the rule
-    public static ModelListMatcher assertThatModels(SoftAssertions softly, List<?> requests, List<?> responses) {
-        return new ModelListMatcher(softly, requests, responses);
+    public static ModelListMatcher assertThatModels(List<?> requests, List<?> responses) {
+        return new ModelListMatcher(SoftlyContext.get(), requests, responses);
     }
 
     // models of the same type: only non-null fields of expected are checked, nested objects field by field
-    public static void assertMatchesExpected(SoftAssertions softly, Object actual, Object expected, String description) {
-        softly.assertThat(actual)
+    public static void assertMatchesExpected(Object actual, Object expected, String description) {
+        SoftlyContext.get().assertThat(actual)
                 .as(description)
                 .usingRecursiveComparison()
                 .ignoringExpectedNullFields()
                 .isEqualTo(expected);
     }
 
+    public static void assertMatchesExpectedIgnoringFields(Object actual,
+                                                           Object expected,
+                                                           String description,
+                                                           String... ignoredFields) {
+        SoftlyContext.get().assertThat(actual)
+                .as(description)
+                .usingRecursiveComparison()
+                .ignoringExpectedNullFields()
+                .ignoringFields(ignoredFields)
+                .isEqualTo(expected);
+    }
+
     // Both lists are sorted by key and compared by index, so failure names the field:
     // (ignoringCollectionOrder() only reports "expected element was not matched" without the field)
-    public static <T> void assertListMatchesExpected(SoftAssertions softly,
-                                                     List<T> actual,
+    public static <T> void assertListMatchesExpected(List<T> actual,
                                                      List<T> expected,
                                                      Function<T, String> key,
                                                      String description) {
         Comparator<T> byKey = Comparator.comparing(key, Comparator.nullsFirst(Comparator.naturalOrder()));
-        assertMatchesExpected(softly,
+        assertMatchesExpected(
                 actual.stream().sorted(byKey).toList(),
                 expected.stream().sorted(byKey).toList(),
                 description);
@@ -59,8 +70,8 @@ public class ModelAssertions {
 
     // state (GET response) after rejected request is the same as before it:
     // all fields including nulls (a field filled by the request is caught), collections in any order
-    public static void assertUnchanged(SoftAssertions softly, Object before, Object after, String description) {
-        softly.assertThat(after)
+    public static void assertUnchanged(Object before, Object after, String description) {
+        SoftlyContext.get().assertThat(after)
                 .as(description)
                 .usingRecursiveComparison()
                 .ignoringCollectionOrder()

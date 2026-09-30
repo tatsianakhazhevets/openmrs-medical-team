@@ -1,6 +1,6 @@
 package apiParts.models.patient;
 
-import apiParts.generators.StringGeneratingRule;
+import apiParts.generators.GeneratingRule;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -14,15 +14,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PersonAddress extends BaseModel {
-    @StringGeneratingRule(regex = "[A-Za-z0-9.,'/-](?:[A-Za-z0-9 .,'/-]{0,253}[A-Za-z0-9.,'/-])?")
+    @GeneratingRule(regex = "[A-Za-z0-9.,'/-](?:[A-Za-z0-9 .,'/-]{0,253}[A-Za-z0-9.,'/-])?")
     private String address1;
 
-    @StringGeneratingRule(regex = "[A-Za-z0-9 .,'/-]{1,255}")
+    @GeneratingRule(regex = "[A-Za-z0-9 .,'/-]{1,255}")
     private String cityVillage;
 
-    @StringGeneratingRule(regex = "[A-Za-z0-9 .,'/-]{1,255}")
+    @GeneratingRule(regex = "[A-Za-z0-9 .,'/-]{1,255}")
     private String country;
 
-    @StringGeneratingRule(regex = "[A-Za-z0-9 -]{1,50}")
+    @GeneratingRule(regex = "[A-Za-z0-9 -]{1,50}")
     private String postalCode;
 }

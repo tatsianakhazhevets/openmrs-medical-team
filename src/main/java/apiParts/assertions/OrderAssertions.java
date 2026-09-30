@@ -1,9 +1,9 @@
 package apiParts.assertions;
 
 import apiParts.models.HasUuid;
+import apiParts.models.Ref;
 import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.Ref;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.utils.DateTimeUtils;
@@ -36,7 +36,7 @@ public class OrderAssertions {
     }
 
     // order uuids returned by POST /encounter
-    public static Set<String> uuidsOf(CreateEncounterResponse response) {
+    public static Set<String> uuidsOf(EncounterResponse response) {
         return response.getOrders().stream()
                 .map(Ref::getUuid)
                 .collect(Collectors.toCollection(TreeSet::new));

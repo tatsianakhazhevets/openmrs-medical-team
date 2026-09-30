@@ -17,27 +17,29 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateVisitRequest extends BaseModel {
 
-    @PatientUuidGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.PATIENT_UUID)
     private String patient;
 
     private VisitType visitType;
-    private VisitLocation location;
+    @GeneratingRule(enumClass = Location.class, enumValue = "MOBILE_CLINIC")
+    private Location location;
 
-    @DateTimeGeneratingRule(minutesFromNow = 60)
+    @GeneratingRule(strategy = GenerationStrategy.DATE_TIME, minutesFromNow = 60)
     private String startDatetime;
 
-    @DateTimeGeneratingRule(
+    @GeneratingRule(
+            strategy = GenerationStrategy.DATE_TIME,
             baseField = "startDatetime",
             minutesFromBase = 30
     )
     private String stopDatetime;
 
-    @StringGeneratingRule(regex = "[A-Za-z ]{5,100}")
+    @GeneratingRule(regex = "[A-Za-z ]{5,100}")
     private String indication;
 
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private List<String> encounters;
 
-    @CollectionGeneratingRule(minSize = 1, maxSize = 1)
+    @GeneratingRule(minSize = 1, maxSize = 1)
     private List<Attribute> attributes;
 }

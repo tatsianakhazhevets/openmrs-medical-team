@@ -1,6 +1,6 @@
 package common.storages;
 
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
@@ -18,8 +18,8 @@ public class SessionStorage {
     private final List<CreatePatientResponse> patients = new ArrayList<>();
     private final List<ProcedureResponse> procedures = new ArrayList<>();
     private final List<CreateProcedureRequest> procedureRequests = new ArrayList<>();
-    private final List<CreateEncounterResponse> orderEncounters = new ArrayList<>();
-    private final List<CreateEncounterResponse> encounters = new ArrayList<>();
+    private final List<EncounterResponse> orderEncounters = new ArrayList<>();
+    private final List<EncounterResponse> encounters = new ArrayList<>();
     private final List<CreateVisitResponse> visits = new ArrayList<>();
 
     private SessionStorage() {
@@ -75,11 +75,11 @@ public class SessionStorage {
     }
 
     // ======== ORDERS (@CreateOrder) ========
-    public static void addOrderEncounter(CreateEncounterResponse encounter) {
+    public static void addOrderEncounter(EncounterResponse encounter) {
         INSTANCE.get().orderEncounters.add(encounter);
     }
 
-    public static CreateEncounterResponse getOrderEncounter() {
+    public static EncounterResponse getOrderEncounter() {
         return get(INSTANCE.get().orderEncounters, 1, "orders", "@CreateOrder");
     }
 
@@ -93,19 +93,19 @@ public class SessionStorage {
     }
 
     // ======== ENCOUNTERS (@CreateEncounter) ========
-    public static void addEncounter(CreateEncounterResponse encounter) {
+    public static void addEncounter(EncounterResponse encounter) {
         INSTANCE.get().encounters.add(encounter);
     }
 
-    public static CreateEncounterResponse getEncounter() {
+    public static EncounterResponse getEncounter() {
         return getEncounter(1);
     }
 
-    public static CreateEncounterResponse getEncounter(int number) {
+    public static EncounterResponse getEncounter(int number) {
         return get(INSTANCE.get().encounters, number, "encounters", "@CreateEncounter");
     }
 
-    public static List<CreateEncounterResponse> getEncounters() {
+    public static List<EncounterResponse> getEncounters() {
         return List.copyOf(INSTANCE.get().encounters);
     }
 

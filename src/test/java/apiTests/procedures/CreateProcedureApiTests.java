@@ -147,13 +147,13 @@ public class CreateProcedureApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
-        ModelAssertions.assertThatModels(softly, request, procedure)
+        ModelAssertions.assertThatModels(request, procedure)
                 .as("POST /procedure response")
                 .match();
 
         var patientProcedures = getPatientProcedures();
 
-        ModelAssertions.assertThatModels(softly, List.of(request), patientProcedures.results())
+        ModelAssertions.assertThatModels(List.of(request), patientProcedures.results())
                 .as("procedures saved for patient")
                 .match();
         softly.assertThat(Uuids.of(patientProcedures.results()))
@@ -187,13 +187,13 @@ public class CreateProcedureApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
-        ModelAssertions.assertThatModels(softly, request, procedure)
+        ModelAssertions.assertThatModels(request, procedure)
                 .as("POST /procedure response")
                 .match();
 
         var patientProcedures = getPatientProcedures();
 
-        ModelAssertions.assertThatModels(softly, List.of(request), patientProcedures.results())
+        ModelAssertions.assertThatModels(List.of(request), patientProcedures.results())
                 .as("procedures saved for patient")
                 .match();
         softly.assertThat(Uuids.of(patientProcedures.results()))
@@ -217,7 +217,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+        ModelAssertions.assertUnchanged(before, getPatientProcedures().results(),
                 "patient procedures after invalid POST /procedure");
     }
 
@@ -243,7 +243,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+        ModelAssertions.assertUnchanged(before, getPatientProcedures().results(),
                 "patient procedures after POST /procedure with invalid startDateTime");
     }
 
@@ -260,7 +260,7 @@ public class CreateProcedureApiTests extends BaseTest {
         )
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures().results(),
+        ModelAssertions.assertUnchanged(before, getPatientProcedures().results(),
                 "patient procedures after unauthorized POST /procedure");
     }
 

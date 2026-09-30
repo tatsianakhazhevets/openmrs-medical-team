@@ -3,7 +3,7 @@ package apiTests.medications;
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.errors.DrugOrderFieldError;
 import apiParts.models.errors.OrderErrorMessage;
 import apiParts.models.order.CareSetting;
@@ -169,13 +169,13 @@ public class DrugOrderApiTests extends BaseTest {
         mutation.accept(order);
         var request = encounterWith(order);
 
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
         softly.assertThat(encounter.getOrders())
@@ -184,7 +184,7 @@ public class DrugOrderApiTests extends BaseTest {
 
         var patientOrders = getPatientOrders();
 
-        ModelAssertions.assertThatModels(softly, request.getOrders(), patientOrders.results())
+        ModelAssertions.assertThatModels(request.getOrders(), patientOrders.results())
                 .as("drug orders saved for patient")
                 .match();
         // concept may be omitted in request ("without concept" case) - server takes it from drug
@@ -210,13 +210,13 @@ public class DrugOrderApiTests extends BaseTest {
         order.setDurationUnits(unit);
 
         var request = encounterWith(order);
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
 
@@ -224,7 +224,7 @@ public class DrugOrderApiTests extends BaseTest {
         assertThat(orders)
                 .as("precondition: patient has exactly one drug order")
                 .hasSize(1);
-        ModelAssertions.assertThatModels(softly, List.of(order), orders)
+        ModelAssertions.assertThatModels(List.of(order), orders)
                 .as("drug order saved for patient")
                 .match();
         var saved = orders.get(0);
@@ -254,7 +254,7 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(order));
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientOrders().results(),
+        ModelAssertions.assertUnchanged(before, getPatientOrders().results(),
                 "patient drug orders after invalid POST /encounter");
     }
 
@@ -262,7 +262,7 @@ public class DrugOrderApiTests extends BaseTest {
     @DisplayName("[known issue] admin cannot create second active order for the same drug (server returns 500)")
     public void adminCannotCreateSecondActiveOrderForSameDrug() {
         var firstOrder = RandomModelGenerator.generate(DrugOrder.class);
-        new SuccessfulCrudRequester<CreateEncounterResponse>(
+        new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
@@ -281,7 +281,7 @@ public class DrugOrderApiTests extends BaseTest {
         )
                 .create(encounterWith(secondOrder));
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientOrders().results(),
+        ModelAssertions.assertUnchanged(before, getPatientOrders().results(),
                 "patient drug orders after second active order for the same drug");
     }
 

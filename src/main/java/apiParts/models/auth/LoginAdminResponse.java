@@ -1,8 +1,7 @@
 package apiParts.models.auth;
 
 import apiParts.models.BaseModel;
-import apiParts.models.User;
-import apiParts.models.encounter.Ref;
+import apiParts.models.Ref;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

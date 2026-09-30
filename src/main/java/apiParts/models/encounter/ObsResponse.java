@@ -1,5 +1,6 @@
 package apiParts.models.encounter;
 
+import apiParts.models.Ref;
 import apiParts.models.HasUuid;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

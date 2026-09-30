@@ -1,5 +1,6 @@
 package apiTests;
 
+import apiParts.generators.RandomModelGenerator;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -22,10 +23,8 @@ public class AuthenticationApiTests extends BaseTest {
 
     @Test
     public void adminCanLogin() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username(VALID_USERNAME)
-                .password(VALID_PASSWORD)
-                .build();
+        LoginAdminRequest loginAdminRequest =
+                RandomModelGenerator.generate(LoginAdminRequest.class);
 
         LoginAdminResponse loginAdminResponse = new SuccessfulAuthRequester<LoginAdminResponse>(
                 RequestSpecs.unAuthSpec(),
@@ -73,10 +72,8 @@ public class AuthenticationApiTests extends BaseTest {
 
     @Test
     public void adminCanLogout() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username(VALID_USERNAME)
-                .password(VALID_PASSWORD)
-                .build();
+        LoginAdminRequest loginAdminRequest =
+                RandomModelGenerator.generate(LoginAdminRequest.class);
 
         ValidatableResponse loginResponse = new AuthRequester(
                 RequestSpecs.unAuthSpec(),

@@ -136,11 +136,11 @@ public class UpdateProcedureApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk()
         )
                 .update(procedure.getUuid(), updateRequest);
-        ModelAssertions.assertThatModels(softly, expected, updated)
+        ModelAssertions.assertThatModels(expected, updated)
                 .as("POST /procedure/{uuid} response")
                 .match();
 
-        ModelAssertions.assertThatModels(softly, expected, getProcedure())
+        ModelAssertions.assertThatModels(expected, getProcedure())
                 .as("updated procedure")
                 .match();
         softly.assertThat(Uuids.of(getPatientProcedures().results()))
@@ -175,10 +175,10 @@ public class UpdateProcedureApiTests extends BaseTest {
         expected.setEstimatedStartDate(estimatedStartDate);
         expected.setStartDateTime(format(periodStart.atStartOfDay().atOffset(ZoneOffset.UTC)));
 
-        ModelAssertions.assertThatModels(softly, expected, updated)
+        ModelAssertions.assertThatModels(expected, updated)
                 .as("POST /procedure/{uuid} response")
                 .match();
-        ModelAssertions.assertThatModels(softly, expected, getProcedure())
+        ModelAssertions.assertThatModels(expected, getProcedure())
                 .as("procedure with estimatedStartDate")
                 .match();
     }
@@ -199,7 +199,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(procedure.getUuid(), updateRequest);
 
-        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "procedure after invalid update");
+        ModelAssertions.assertUnchanged(before, getProcedure(), "procedure after invalid update");
     }
 
     @Test
@@ -215,7 +215,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(UUID.randomUUID().toString(), updateRequest);
 
-        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "existing procedure after update of non-existent one");
+        ModelAssertions.assertUnchanged(before, getProcedure(), "existing procedure after update of non-existent one");
     }
 
     @Test
@@ -231,7 +231,7 @@ public class UpdateProcedureApiTests extends BaseTest {
         )
                 .update(procedure.getUuid(), updateRequest);
 
-        ModelAssertions.assertUnchanged(softly, before, getProcedure(), "procedure after unauthorized update");
+        ModelAssertions.assertUnchanged(before, getProcedure(), "procedure after unauthorized update");
     }
 
     // ======== HELPERS ========

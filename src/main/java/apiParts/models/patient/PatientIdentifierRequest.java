@@ -1,9 +1,8 @@
 package apiParts.models.patient;
 
-import apiParts.generators.BooleanGeneratingRule;
-import apiParts.generators.EnumGeneratingRule;
-import apiParts.generators.IdentifierGeneratingRule;
-import apiParts.generators.StringGeneratingRule;
+import apiParts.generators.BooleanGeneration;
+import apiParts.generators.GeneratingRule;
+import apiParts.generators.GenerationStrategy;
 import apiParts.models.BaseModel;
 import apiParts.models.Location;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -18,15 +17,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PatientIdentifierRequest extends BaseModel {
-    @IdentifierGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.IDENTIFIER, sourceField = "identifierType")
     private String identifier;
 
-    @EnumGeneratingRule(enumClass = IdentifierType.class, valueMethod = "getUuid")
+    @GeneratingRule(enumClass = IdentifierType.class)
     private String identifierType;
 
-    @EnumGeneratingRule(enumClass = Location.class, valueMethod = "getUuid")
+    @GeneratingRule(enumClass = Location.class)
     private String location;
 
-    @BooleanGeneratingRule(true)
+    @GeneratingRule(booleanValue = BooleanGeneration.TRUE)
     private Boolean preferred;
 }

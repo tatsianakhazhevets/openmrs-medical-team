@@ -2,7 +2,6 @@ package apiParts.models.appointment;
 
 import apiParts.generators.*;
 import apiParts.models.BaseModel;
-import apiParts.models.Location;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,53 +15,40 @@ import java.util.List;
 @AllArgsConstructor
 public class UpdateAppointmentRequest extends BaseModel {
 
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String uuid;
 
-    @FixedEnumGeneratingRule(
-            enumClass = AppointmentKind.class,
-            valueMethod = "getValue",
-            value = "SCHEDULED"
-    )
+    @GeneratingRule(property = "test_appointment_kind")
     private String appointmentKind;
 
-    @FixedEnumGeneratingRule(
-            enumClass = AppointmentStatus.class,
-            valueMethod = "getValue",
-            value = "CHECKED_IN"
-    )
+    @GeneratingRule(property = "test_appointment_update_status")
     private String status;
 
-    @EnumGeneratingRule(
-            enumClass = AppointmentService.class,
-            valueMethod = "getUuid"
-    )
+    @GeneratingRule(property = "test_appointment_service_uuid")
     private String serviceUuid;
 
-    @DateTimeGeneratingRule(minutesFromNow = 60)
+    @GeneratingRule(strategy = GenerationStrategy.DATE_TIME, minutesFromNow = 60)
     private String startDateTime;
 
-    @DateTimeGeneratingRule(
+    @GeneratingRule(
+            strategy = GenerationStrategy.DATE_TIME,
             baseField = "startDateTime",
             minutesFromBase = 30
     )
     private String endDateTime;
 
-    @EnumGeneratingRule(
-            enumClass = Location.class,
-            valueMethod = "getUuid"
-    )
+    @GeneratingRule(property = "test_location_uuid")
     private String locationUuid;
 
-    @CollectionGeneratingRule(minSize = 1, maxSize = 1)
+    @GeneratingRule(minSize = 1, maxSize = 1)
     private List<CreateAppointmentRequest.Provider> providers;
 
-    @PatientUuidGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.PATIENT_UUID)
     private String patientUuid;
 
-    @StringGeneratingRule(regex = "[A-Za-z ]{5,100}")
+    @GeneratingRule(regex = "[A-Za-z ]{5,100}")
     private String comments;
 
-    @DateGeneratingRule(minYear = 2026, maxYear = 2026)
+    @GeneratingRule(strategy = GenerationStrategy.DATE, minYear = 2026, maxYear = 2026)
     private String dateAppointmentScheduled;
 }

@@ -1,12 +1,17 @@
-package apiParts.models.euncouterTest;
+package apiParts.models.encounter;
 
+import apiParts.models.HasUuid;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Encounter types of the reference application (GET /encountertype).
+ * Serialized as its uuid, which is what the REST API expects in encounter.encounterType.
+ */
 @Getter
 @RequiredArgsConstructor
-public enum EncounterTypeForApi {
-
+public enum EncounterType implements HasUuid {
     ADMISSION("e22e39fd-7db2-45e7-80f1-60fa0d5a4378"),
     ADULT_VISIT("0e8230ce-bd1d-43f5-a863-cf44344fa4b0"),
     ATTACHMENT_UPLOAD("5021b1a1-e7f6-44b4-ba02-da2f2bcf8718"),
@@ -27,5 +32,6 @@ public enum EncounterTypeForApi {
     VISIT_NOTE("d7151f82-c1f3-4152-a605-2f9ea7414a79"),
     VITALS("67a71486-1a54-468f-ac3e-7091a9a79584");
 
+    @JsonValue
     private final String uuid;
 }

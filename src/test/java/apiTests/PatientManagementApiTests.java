@@ -33,7 +33,7 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated())
                 .create(createPatientRequest);
 
-        ModelAssertions.assertThatModels(softly, createPatientRequest, createdPatientResponse).match();
+        ModelAssertions.assertThatModels(createPatientRequest, createdPatientResponse).match();
 
         GetPatientResponse getPatientResponse = new SuccessfulCrudRequester<GetPatientResponse>(
                 RequestSpecs.adminSpec(),
@@ -41,7 +41,7 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .get(createdPatientResponse.getUuid());
 
-        ModelAssertions.assertThatModels(softly, createPatientRequest, getPatientResponse).match();
+        ModelAssertions.assertThatModels(createPatientRequest, getPatientResponse).match();
 
         softly.assertThat(getPatientResponse.getUuid()).isEqualTo(createdPatientResponse.getUuid());
         softly.assertThat(getPatientResponse.getPerson()).isNotNull();
@@ -125,7 +125,7 @@ public class PatientManagementApiTests extends BaseTest {
         softly.assertThat(foundPatient).isNotNull();
 
         if (foundPatient != null) {
-            ModelAssertions.assertThatModels(softly, request, foundPatient).match();
+            ModelAssertions.assertThatModels(request, foundPatient).match();
         }
     }
 
@@ -173,7 +173,7 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .get(createdPatient.getUuid());
 
-        ModelAssertions.assertThatModels(softly, request, getPatientResponse).match();
+        ModelAssertions.assertThatModels(request, getPatientResponse).match();
         softly.assertThat(getPatientResponse.getPerson()).isNotNull();
         softly.assertThat(getPatientResponse.getPerson().getPreferredName()).isNotNull();
         softly.assertThat(getPatientResponse.getPerson().getPreferredName().getDisplay())

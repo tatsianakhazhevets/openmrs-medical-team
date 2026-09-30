@@ -65,7 +65,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         softly.assertThat(deletedProcedure.getVoided())
                 .as("deleted procedure is marked as voided")
                 .isTrue();
-        ModelAssertions.assertThatModels(softly, createRequest, deletedProcedure)
+        ModelAssertions.assertThatModels(createRequest, deletedProcedure)
                 .as("data of deleted procedure is kept")
                 .match();
     }
@@ -81,7 +81,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientProcedures(false).results(),
+        ModelAssertions.assertUnchanged(before, getPatientProcedures(false).results(),
                 "patient procedures after delete of non-existent one");
     }
 
@@ -96,7 +96,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(procedure.getUuid());
 
-        ModelAssertions.assertUnchanged(softly, before, getProcedure(procedure.getUuid()),
+        ModelAssertions.assertUnchanged(before, getProcedure(procedure.getUuid()),
                 "procedure after unauthorized delete (not voided)");
         softly.assertThat(Uuids.of(getPatientProcedures(false).results()))
                 .as("procedure is still returned by search")

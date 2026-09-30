@@ -1,6 +1,7 @@
-package apiParts.models.euncouterTest;
+package apiParts.models.auth;
 
-import apiParts.models.BaseModel;
+import apiParts.models.Ref;
+import apiParts.models.auth.Role;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,8 +15,13 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class EncounterLocationResponse extends BaseModel {
+public class User {
     private String uuid;
     private String display;
-    private List<EncounterLinkResponse> links;
+    private String username;
+    private String systemId;
+    private UserProperties userProperties;
+    private Ref person;
+    private List<Role> roles;
+    private List<String> privileges;
 }

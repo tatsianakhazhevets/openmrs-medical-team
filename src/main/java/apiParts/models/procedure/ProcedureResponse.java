@@ -2,7 +2,7 @@ package apiParts.models.procedure;
 
 import apiParts.models.BaseModel;
 import apiParts.models.HasUuid;
-import apiParts.models.encounter.Ref;
+import apiParts.models.Ref;
 import apiParts.utils.DateTimeUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

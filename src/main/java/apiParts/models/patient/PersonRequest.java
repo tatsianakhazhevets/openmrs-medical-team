@@ -1,9 +1,8 @@
 package apiParts.models.patient;
 
-import apiParts.generators.BooleanGeneratingRule;
-import apiParts.generators.CollectionGeneratingRule;
-import apiParts.generators.DateGeneratingRule;
-import apiParts.generators.StringGeneratingRule;
+import apiParts.generators.BooleanGeneration;
+import apiParts.generators.GeneratingRule;
+import apiParts.generators.GenerationStrategy;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,21 +20,21 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PersonRequest extends BaseModel {
-    @StringGeneratingRule(regex = "(M|F|UNKNOWN)")
+    @GeneratingRule(regex = "(M|F|UNKNOWN)")
     private String gender;
 
-    @DateGeneratingRule(minYear = 1926, maxYear = 2025)
+    @GeneratingRule(strategy = GenerationStrategy.DATE, minYear = 1926, maxYear = 2025)
     private String birthdate;
 
-    @BooleanGeneratingRule(false)
+    @GeneratingRule(booleanValue = BooleanGeneration.FALSE)
     private Boolean birthdateEstimated;
 
-    @BooleanGeneratingRule(false)
+    @GeneratingRule(booleanValue = BooleanGeneration.FALSE)
     private Boolean dead;
 
-    @CollectionGeneratingRule(minSize = 1, maxSize = 1)
+    @GeneratingRule(minSize = 1, maxSize = 1)
     private List<PersonName> names;
 
-    @CollectionGeneratingRule(minSize = 1, maxSize = 1)
+    @GeneratingRule(minSize = 1, maxSize = 1)
     private List<PersonAddress> addresses;
 }

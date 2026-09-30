@@ -1,6 +1,6 @@
 package common.extensions;
 
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.steps.AdminSteps;
 import common.annotations.CreateEncounter;
 import common.storages.SessionStorage;
@@ -25,10 +25,13 @@ public class CreateEncounterExtension implements BeforeEachCallback, AfterEachCa
 
         String patientUUID = ExtensionUtils.requirePatientUuid(CreateEncounter.class);
 
-        CreateEncounterResponse encounter = switch (annotation.get().value()) {
+        EncounterResponse encounter = switch (annotation.get().value()) {
             case VITALS -> AdminSteps.createVitalsEncounter(patientUUID);
             case ORDER -> throw new IllegalArgumentException(
                     "Use @CreateOrder for ORDER encounter"
+            );
+            default -> throw new IllegalArgumentException(
+                    "No setup step for encounter type " + annotation.get().value()
             );
         };
 

@@ -1,12 +1,7 @@
 package apiParts.models.procedure;
 
-import apiParts.generators.DurationGeneratingRule;
-import apiParts.generators.EndDateGeneratingRule;
-import apiParts.generators.EnumGeneratingRule;
-import apiParts.generators.IgnoreGeneratingRule;
-import apiParts.generators.PatientUuidGeneratingRule;
-import apiParts.generators.StartDateGeneratingRule;
-import apiParts.generators.StringGeneratingRule;
+import apiParts.generators.GeneratingRule;
+import apiParts.generators.GenerationStrategy;
 import apiParts.models.BaseModel;
 import apiParts.models.order.DurationUnit;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -27,39 +22,39 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateProcedureRequest extends BaseModel {
-    @PatientUuidGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.PATIENT_UUID)
     private String patient;                     // patient uuid, created in test setup
 
-    @EnumGeneratingRule(enumClass = ProcedureConcept.class)
+    @GeneratingRule(enumClass = ProcedureConcept.class)
     private String procedureCoded;              // concept uuid, mutually exclusive with procedureNonCoded
 
-    @IgnoreGeneratingRule                       // mutually exclusive with procedureCoded: set explicitly in tests
+    @GeneratingRule(nullable = true)            // mutually exclusive with procedureCoded: set explicitly in tests
     private String procedureNonCoded;           // free text instead of procedureCoded
 
-    @EnumGeneratingRule(enumClass = ProcedureType.class)
+    @GeneratingRule(enumClass = ProcedureType.class)
     private String procedureType;
 
-    @EnumGeneratingRule(enumClass = BodySite.class)
+    @GeneratingRule(enumClass = BodySite.class)
     private String bodySite;                    // concept uuid
 
-    @StartDateGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.DATE_RANGE_START)
     private String startDateTime;               // ISO-8601 with offset, e.g. 2026-09-17T22:00:00+03:00
 
-    @EndDateGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.DATE_RANGE_END)
     private String endDateTime;                 // startDateTime + up to 10 hours
 
-    @IgnoreGeneratingRule                       // optional, mutually exclusive with startDateTime
+    @GeneratingRule(nullable = true)            // optional, mutually exclusive with startDateTime
     private String estimatedStartDate;          // yyyy / yyyy-MM / yyyy-MM-dd, mutually exclusive with startDateTime for new procedure
 
-    @EnumGeneratingRule(enumClass = ProcedureStatus.class)
+    @GeneratingRule(enumClass = ProcedureStatus.class)
     private String status;                      // concept uuid
 
-    @StringGeneratingRule(regex = "[A-Za-z]{5,100}")
+    @GeneratingRule(regex = "[A-Za-z]{5,100}")
     private String notes;
 
-    @DurationGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.DURATION)
     private Integer duration;
 
-    @EnumGeneratingRule(enumClass = DurationUnit.class)
+    @GeneratingRule(enumClass = DurationUnit.class)
     private String durationUnit;                // concept uuid, required with duration
 }

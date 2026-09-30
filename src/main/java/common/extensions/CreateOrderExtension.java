@@ -1,6 +1,6 @@
 package common.extensions;
 
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.steps.AdminSteps;
 import common.annotations.CreateOrder;
 import common.storages.SessionStorage;
@@ -22,7 +22,7 @@ public class CreateOrderExtension implements BeforeEachCallback, AfterEachCallba
         }
 
         String patientUUID = ExtensionUtils.requirePatientUuid(CreateOrder.class);
-        CreateEncounterResponse encounter = switch (annotation.get().value()) {
+        EncounterResponse encounter = switch (annotation.get().value()) {
             case DRUG -> AdminSteps.createDrugOrderEncounter(patientUUID);
             case LAB -> AdminSteps.createLabOrderEncounter(patientUUID);
         };
