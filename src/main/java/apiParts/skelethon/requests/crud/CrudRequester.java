@@ -61,6 +61,17 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
                 .spec(responseSpecification);
     }
 
+    @Override
+    public ValidatableResponse get(Map<String, ?> queryParams) {
+        return given()
+                .spec(requestSpecification)
+                .queryParams(queryParams)
+                .get(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
     //WITH POST METHOD
     @Override
     public ValidatableResponse update(String uuid, BaseModel model) {

@@ -1,4 +1,4 @@
-package apiTests;
+package apiTests.patientManagement;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
@@ -15,13 +15,13 @@ import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
+import apiParts.steps.PatientSteps;
+import apiTests.BaseTest;
 import org.junit.jupiter.api.Test;
 
 import static apiParts.models.errors.PatientErrorMessages.*;
 
 public class PatientManagementApiTests extends BaseTest {
-
-    String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
     @Test
     public void adminCanCreatePatient() {
@@ -35,11 +35,7 @@ public class PatientManagementApiTests extends BaseTest {
 
         ModelAssertions.assertThatModels(softly, createPatientRequest, createdPatientResponse).match();
 
-        GetPatientResponse getPatientResponse = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(createdPatientResponse.getUuid());
+        GetPatientResponse getPatientResponse = PatientSteps.getPatientPositive(createdPatientResponse.getUuid());
 
         ModelAssertions.assertThatModels(softly, createPatientRequest, getPatientResponse).match();
 
@@ -61,6 +57,7 @@ public class PatientManagementApiTests extends BaseTest {
     @Test
     public void adminCannotCreatePatientWithoutPerson() {
         CreatePatientRequest createPatientRequest = RandomModelGenerator.generate(CreatePatientRequest.class);
+        String savedIdentifier = createPatientRequest.getIdentifiers().get(0).getIdentifier();
         createPatientRequest.setPerson(null);
 
         new CrudRequester(
@@ -69,11 +66,15 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsBadRequestWithMessage(
                         PERSON_IS_MISSING.getMessage()))
                 .create(createPatientRequest);
+
+        SearchResult<GetPatientResponse> allPatients = PatientSteps.getPatients( savedIdentifier);
+        softly.assertThat(allPatients.size()).isEqualTo(0);
     }
 
     @Test
     public void adminCannotCreatePatientWithoutIdentifiers() {
         CreatePatientRequest createPatientRequest = RandomModelGenerator.generate(CreatePatientRequest.class);
+        String savedIdentifier = createPatientRequest.getIdentifiers().get(0).getIdentifier();
         createPatientRequest.setIdentifiers(null);
 
         new CrudRequester(
@@ -81,16 +82,23 @@ public class PatientManagementApiTests extends BaseTest {
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsBadRequestWithMessage(IDENTIFIER_CANNOT_INVOKE.getMessage()))
                 .create(createPatientRequest);
+
+        SearchResult<GetPatientResponse> allPatients = PatientSteps.getPatients( savedIdentifier);
+        softly.assertThat(allPatients.size()).isEqualTo(0);
     }
 
     @Test
     public void adminCannotGetPatientWithNonExistingUuid() {
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_GET,
                 ResponseSpecs.requestReturnsNotFound())
                 .get(nonExistingUuid);
+
+        GetPatientResponse patient = PatientSteps.getPatientNegative(nonExistingUuid);
+        softly.assertThat(patient).hasAllNullFieldsOrProperties();
     }
 
     @Test
@@ -167,11 +175,7 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .update(createdPatient.getUuid(), request);
 
-        GetPatientResponse getPatientResponse = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(createdPatient.getUuid());
+        GetPatientResponse getPatientResponse = PatientSteps.getPatientPositive(createdPatient.getUuid());
 
         ModelAssertions.assertThatModels(softly, request, getPatientResponse).match();
         softly.assertThat(getPatientResponse.getPerson()).isNotNull();
@@ -184,12 +188,16 @@ public class PatientManagementApiTests extends BaseTest {
     @Test
     public void adminCannotUpdateNonExistingPatient() {
         CreatePatientRequest request = RandomModelGenerator.generate(CreatePatientRequest.class);
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsServerError())
                 .update(nonExistingUuid, request);
+
+        GetPatientResponse patient = PatientSteps.getPatientNegative(nonExistingUuid);
+        softly.assertThat(patient).hasAllNullFieldsOrProperties();
     }
 
     @Test
@@ -206,16 +214,14 @@ public class PatientManagementApiTests extends BaseTest {
                                 .build()
                                 .toQueryParams());
 
-        new CrudRequester(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .get(createPatientResponse.getUuid());
+        GetPatientResponse patient = PatientSteps.getPatientNegative(createPatientResponse.getUuid());
+        softly.assertThat(patient).hasAllNullFieldsOrProperties();
     }
 
     /// Fix needed: Expected 404 Not Found, but received 204 No Content.
     @Test
     public void adminCannotDeleteNonExistingPatient() {
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -226,6 +232,9 @@ public class PatientManagementApiTests extends BaseTest {
                                 .purge(true)
                                 .build()
                                 .toQueryParams());
+
+        GetPatientResponse patient = PatientSteps.getPatientNegative(nonExistingUuid);
+        softly.assertThat(patient).hasAllNullFieldsOrProperties();
     }
 
     @Test
@@ -234,16 +243,15 @@ public class PatientManagementApiTests extends BaseTest {
         int identifiersBefore = createPatientResponse.getIdentifiers().size();
         PatientIdentifierRequest identifierRequest = RandomModelGenerator.generate(PatientIdentifierRequest.class);
 
-        new SuccessfulNestedCrudRequester<PatientIdentifierRequest>(RequestSpecs.adminSpec(),
+        IdentifierResponse identifierResponse = new SuccessfulNestedCrudRequester<IdentifierResponse>(
+                RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_IDENTIFIER_NESTED,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createPatientResponse.getUuid(), identifierRequest);
 
-        GetPatientResponse patientAfter = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(createPatientResponse.getUuid());
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(createPatientResponse.getUuid());
+
+        ModelAssertions.assertThatModels(softly, identifierRequest, identifierResponse).match();
 
         softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore + 1);
         softly.assertThat(patientAfter.getIdentifiers()
@@ -255,12 +263,21 @@ public class PatientManagementApiTests extends BaseTest {
     @Test
     public void adminCannotGetNonExistingPatientIdentifier() {
         CreatePatientResponse createPatientResponse = AdminSteps.createPatientWithoutInvokedIdentifier();
+        int identifiersBefore = createPatientResponse.getIdentifiers().size();
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_IDENTIFIER_NESTED,
                 ResponseSpecs.requestReturnsNotFound())
                 .get(createPatientResponse.getUuid(), nonExistingUuid);
+
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(createPatientResponse.getUuid());
+
+        softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore);
+        softly.assertThat(patientAfter.getIdentifiers())
+                .extracting(id -> id.getDisplay())
+                .doesNotContain(nonExistingUuid);
     }
 
     @Test
@@ -269,16 +286,15 @@ public class PatientManagementApiTests extends BaseTest {
         String identifierUuid = patientBefore.getIdentifiers().get(0).getUuid();
         PatientIdentifierRequest updateRequest = RandomModelGenerator.generate(PatientIdentifierRequest.class);
 
-        new SuccessfulNestedCrudRequester<PatientIdentifierRequest>(RequestSpecs.adminSpec(),
+        IdentifierResponse identifierResponse = new SuccessfulNestedCrudRequester<IdentifierResponse>(
+                RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_IDENTIFIER_NESTED,
                 ResponseSpecs.requestReturnsOk())
                 .update(patientBefore.getUuid(), identifierUuid, updateRequest);
 
-        GetPatientResponse patientAfter = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(patientBefore.getUuid());
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(patientBefore.getUuid());
+
+        ModelAssertions.assertThatModels(softly, updateRequest, identifierResponse).match();
 
         softly.assertThat(patientAfter.getIdentifiers()).anyMatch(id ->
                 id.getUuid().equals(identifierUuid) && id.getDisplay().endsWith(updateRequest.getIdentifier()));
@@ -286,15 +302,29 @@ public class PatientManagementApiTests extends BaseTest {
 
     @Test
     public void adminCannotUpdateNonExistingPatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatientWithoutInvokedIdentifier();
+        CreatePatientResponse patientBefore = AdminSteps.createPatientWithoutInvokedIdentifier();
+        String originalDisplay = patientBefore.getIdentifiers().get(0).getDisplay();
+        String identifierUuid = patientBefore.getIdentifiers().get(0).getUuid();
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
         PatientIdentifierRequest updateRequest = RandomModelGenerator.generate(PatientIdentifierRequest.class);
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_IDENTIFIER_NESTED,
                 ResponseSpecs.requestReturnsNotFound(OBJECT_WITH_UUID_DOES_NOT_EXIST.getMessage()))
-                .update(createdPatient.getUuid(), nonExistingUuid, updateRequest);
+                .update(patientBefore.getUuid(), nonExistingUuid, updateRequest);
+
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(patientBefore.getUuid());
+
+        PatientIdentifierResponse identifierAfter = patientAfter.getIdentifiers().stream()
+                .filter(id -> id.getUuid().equals(identifierUuid))
+                .findFirst()
+                .orElse(null);
+
+        softly.assertThat(identifierAfter).isNotNull();
+        softly.assertThat(identifierAfter.getDisplay()).isEqualTo(originalDisplay);
     }
+
 
     @Test
     public void adminCanDeletePatientIdentifier() {
@@ -306,11 +336,7 @@ public class PatientManagementApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated())
                 .create(createdPatient.getUuid(), identifierRequest);
 
-        GetPatientResponse patientBefore = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(createdPatient.getUuid());
+        GetPatientResponse patientBefore = PatientSteps.getPatientPositive(createdPatient.getUuid());
 
         int identifiersBefore = patientBefore.getIdentifiers().size();
 
@@ -331,11 +357,7 @@ public class PatientManagementApiTests extends BaseTest {
                                 .build()
                                 .toQueryParams());
 
-        GetPatientResponse patientAfter = new SuccessfulCrudRequester<GetPatientResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PATIENT_GET,
-                ResponseSpecs.requestReturnsOk())
-                .get(createdPatient.getUuid());
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(createdPatient.getUuid());
 
         softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore - 1);
         softly.assertThat(patientAfter.getIdentifiers()
@@ -347,16 +369,26 @@ public class PatientManagementApiTests extends BaseTest {
     /// Fix needed: Expected 404 Not Found, but received 204 No Content.
     @Test
     public void adminCannotDeleteNonExistingPatientIdentifier() {
-        CreatePatientResponse createdPatient = AdminSteps.createPatientWithoutInvokedIdentifier();
+        CreatePatientResponse patientBefore = AdminSteps.createPatientWithoutInvokedIdentifier();
+        int identifiersBefore = patientBefore.getIdentifiers().size();
+        String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
         new NestedCrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_IDENTIFIER_NESTED,
                 ResponseSpecs.requestReturnsNoContent())
-                .delete(createdPatient.getUuid(), nonExistingUuid,
+                .delete(patientBefore.getUuid(), nonExistingUuid,
                         PatientDeleteParams.builder()
                                 .purge(true)
                                 .build()
                                 .toQueryParams());
+
+        GetPatientResponse patientAfter = PatientSteps.getPatientPositive(patientBefore.getUuid());
+
+        softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore);
+        softly.assertThat(patientAfter.getIdentifiers()
+                        .stream()
+                        .noneMatch(id -> id.getUuid().equals(nonExistingUuid)))
+                .isTrue();
     }
 }

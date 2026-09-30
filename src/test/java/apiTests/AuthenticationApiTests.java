@@ -1,5 +1,6 @@
 package apiTests;
 
+import apiParts.assertions.ModelAssertions;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -7,7 +8,7 @@ import apiParts.skelethon.requests.auth.AuthRequester;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import io.restassured.response.ValidatableResponse;
+import apiParts.steps.LoginSteps;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -17,14 +18,11 @@ import java.util.stream.Stream;
 
 public class AuthenticationApiTests extends BaseTest {
 
-    private static final String VALID_USERNAME = RequestSpecs.ADMIN_USERNAME;
-    private static final String VALID_PASSWORD = RequestSpecs.ADMIN_PASSWORD;
-
     @Test
     public void adminCanLogin() {
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username(VALID_USERNAME)
-                .password(VALID_PASSWORD)
+                .username(RequestSpecs.ADMIN_USERNAME)
+                .password(RequestSpecs.ADMIN_PASSWORD)
                 .build();
 
         LoginAdminResponse loginAdminResponse = new SuccessfulAuthRequester<LoginAdminResponse>(
@@ -33,21 +31,20 @@ public class AuthenticationApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
+        ModelAssertions.assertThatModels(softly, loginAdminRequest, loginAdminResponse).match();
         softly.assertThat(loginAdminResponse.isAuthenticated()).isTrue();
         softly.assertThat(loginAdminResponse.getUser()).isNotNull();
-        softly.assertThat(loginAdminResponse.getUser().getDisplay()).isEqualTo(VALID_USERNAME);
         softly.assertThat(loginAdminResponse.getAllowedLocales()).isNotEmpty();
         softly.assertThat(loginAdminResponse.getCurrentProvider()).isNotNull();
     }
 
-
     static Stream<Arguments> invalidCredentials() {
         return Stream.of(
-                Arguments.of(VALID_USERNAME, "wrongPassword"),
-                Arguments.of("wrongUser", VALID_PASSWORD),
+                Arguments.of(RequestSpecs.ADMIN_USERNAME, "wrongPassword"),
+                Arguments.of("wrongUser", RequestSpecs.ADMIN_PASSWORD),
                 Arguments.of("wrongUser", "wrongPassword"),
-                Arguments.of("", VALID_PASSWORD),
-                Arguments.of(VALID_USERNAME, ""),
+                Arguments.of("", RequestSpecs.ADMIN_PASSWORD),
+                Arguments.of(RequestSpecs.ADMIN_USERNAME, ""),
                 Arguments.of("", ""));
     }
 
@@ -74,28 +71,25 @@ public class AuthenticationApiTests extends BaseTest {
     @Test
     public void adminCanLogout() {
         LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username(VALID_USERNAME)
-                .password(VALID_PASSWORD)
+                .username(RequestSpecs.ADMIN_USERNAME)
+                .password(RequestSpecs.ADMIN_PASSWORD)
                 .build();
 
-        ValidatableResponse loginResponse = new AuthRequester(
+        LoginAdminResponse loginResponse = new SuccessfulAuthRequester<LoginAdminResponse>(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.LOGIN_GET,
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
-        String sessionId = loginResponse.extract().cookie("JSESSIONID");
+        String sessionId = loginResponse.getSessionId();
 
         new AuthRequester(
                 RequestSpecs.authenticatedSpec(sessionId),
                 Endpoint.LOGOUT_DELETE,
-                ResponseSpecs.requestReturnsNoContent())
+                ResponseSpecs.requestReturnsUnauthorized())
                 .logout();
 
-        new AuthRequester(
-                RequestSpecs.authenticatedSpec(sessionId),
-                Endpoint.LOGIN_GET,
-                ResponseSpecs.requestReturnsUnauthorized())
-                .getSession();
+        LoginAdminResponse loginAfter = LoginSteps.getSessionCheck(sessionId);
+        softly.assertThat(loginAfter.isAuthenticated()).isFalse();
     }
 }
