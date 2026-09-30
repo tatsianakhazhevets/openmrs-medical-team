@@ -6,6 +6,7 @@ import apiParts.models.BaseModel;
 import apiParts.models.Location;
 import apiParts.models.vitals.Obs;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.experimental.FieldNameConstants;
 import lombok.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
  * set it explicitly, e.g. {@code request.setEncounterDatetime(RandomModelGenerator.pastDateTime())}.
  */
 @Data
+@FieldNameConstants   // Fields.<name> - field names for overrides, case names, generating rules
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,6 +34,7 @@ public class CreateEncounterRequest extends BaseModel {
     private String visit;              // visit uuid, optional
     @GeneratingRule(nullable = true)
     private String encounterDatetime;  // ISO-8601, must have if visit is present
+    @GeneratingRule(enumClass = Location.class)   // any location
     private Location location;
     @GeneratingRule(nullable = true)
     private List<Obs> obs;

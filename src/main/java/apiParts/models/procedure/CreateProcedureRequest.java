@@ -5,6 +5,7 @@ import apiParts.generators.GenerationStrategy;
 import apiParts.models.BaseModel;
 import apiParts.models.order.DurationUnit;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.experimental.FieldNameConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
  * Valid values: ProcedureType, ProcedureConcept, BodySite, ProcedureStatus, order.DurationUnit -> getUuid().
  */
 @Data
+@FieldNameConstants   // Fields.<name> - field names for overrides, case names, generating rules
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor

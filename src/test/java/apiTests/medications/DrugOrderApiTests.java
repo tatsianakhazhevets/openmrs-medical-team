@@ -1,8 +1,9 @@
 package apiTests.medications;
 
+import common.annotations.CreatePatient;
+import apiParts.steps.DrugOrderSteps;
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.errors.DrugOrderFieldError;
 import apiParts.models.errors.OrderErrorMessage;
@@ -16,15 +17,10 @@ import apiParts.models.order.OrderFrequency;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.models.search.SearchResult;
-import apiParts.models.order.DrugOrderResponse;
-import apiParts.models.order.OrderSearchParams;
-import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
-import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,9 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.List;
@@ -48,20 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @CreatePatient
 public class DrugOrderApiTests extends BaseTest {
-    // Any duration inside these bounds is handled by the same server logic
-    private static final int MIN_DURATION = 1;
-    private static final int MAX_DURATION = 10;
-    private static final int MINUTES_PER_DAY = 24 * 60;
-
-    // Dose below one unit: server must keep the fractional part as sent
-    private static final double MIN_FRACTIONAL_DOSE = 0.1;
-    private static final double MAX_FRACTIONAL_DOSE = 0.9;
-    private static final int DOSE_SCALE = 1;
-
-    // Lower bounds for invalid values: anything below zero must be rejected
-    private static final double MIN_INVALID_DOSE = -100;
-    private static final int MIN_INVALID_NUM_REFILLS = -100;
-
     private String patientUUID;
 
     // new patient for each test and each parameter - no "duplicate active order" conflicts
@@ -76,8 +56,8 @@ public class DrugOrderApiTests extends BaseTest {
         return Stream.of(
                 Arguments.of("valid outpatient order", mutate(o -> {
                 })),
-                Arguments.of("fractional dose", mutate(o -> o.setDose(
-                        RandomModelGenerator.randomDouble(MIN_FRACTIONAL_DOSE, MAX_FRACTIONAL_DOSE, DOSE_SCALE)))),
+                // dose below one unit: server must keep the fractional part as sent
+                Arguments.of("fractional dose", mutate(o -> o.setDose(RandomModelGenerator.randomFraction(DrugOrder.DOSE_SCALE)))),
                 Arguments.of("quantityUnits from dispensing set", mutate(o -> o.setQuantityUnits(DosingUnit.BOTTLE))),
                 Arguments.of("inpatient without quantity, quantityUnits, numRefills", mutate(o -> {
                     o.setCareSetting(CareSetting.INPATIENT);
@@ -86,7 +66,7 @@ public class DrugOrderApiTests extends BaseTest {
                     o.setNumRefills(null);
                 })),
                 Arguments.of("duration with durationUnits", mutate(o -> {
-                    o.setDuration(randomDuration());
+                    o.setDuration(DrugOrderSteps.randomDuration());
                     o.setDurationUnits(RandomModelGenerator.oneOf(DurationUnit.class));
                 })),
                 Arguments.of("durationUnits without duration", mutate(o ->
@@ -124,7 +104,7 @@ public class DrugOrderApiTests extends BaseTest {
                 // Simple dosing: required fields and dose > 0
                 Arguments.of("dose = 0", mutate(o -> o.setDose(0.0)), DOSE_ZERO_OR_LESS),
                 Arguments.of("negative dose", mutate(o -> o.setDose(
-                        RandomModelGenerator.randomNegativeDouble(MIN_INVALID_DOSE, DOSE_SCALE))), DOSE_ZERO_OR_LESS),
+                        RandomModelGenerator.randomNegativeDouble(DrugOrder.DOSE_SCALE))), DOSE_ZERO_OR_LESS),
                 Arguments.of("simple dosing without dose", mutate(o -> o.setDose(null)), DOSE_IS_NULL_FOR_SIMPLE_DOSING),
                 Arguments.of("simple dosing without route", mutate(o -> o.setRoute(null)), ROUTE_IS_NULL_FOR_SIMPLE_DOSING),
                 Arguments.of("doseUnits from dispensing set only", mutate(o -> o.setDoseUnits(DosingUnit.BOTTLE)),
@@ -147,7 +127,7 @@ public class DrugOrderApiTests extends BaseTest {
                 Arguments.of("outpatient without numRefills", mutate(o -> o.setNumRefills(null)), NUM_REFILLS_IS_NULL_FOR_OUTPATIENT),
 
                 // Duration
-                Arguments.of("duration without durationUnits", mutate(o -> o.setDuration(randomDuration())),
+                Arguments.of("duration without durationUnits", mutate(o -> o.setDuration(DrugOrderSteps.randomDuration())),
                         DURATION_UNITS_REQUIRED_WITH_DURATION),
 
                 // Drug and concept: drug is random, so concept is taken from any other drug
@@ -158,7 +138,7 @@ public class DrugOrderApiTests extends BaseTest {
                 // KNOWN ISSUES: server accepts these (201), test is expected to fail until fixed
                 Arguments.of("[known issue] quantity = 0", mutate(o -> o.setQuantity(0.0)), QUANTITY_ZERO_OR_LESS),
                 Arguments.of("[known issue] negative numRefills", mutate(o -> o.setNumRefills(
-                        RandomModelGenerator.randomNegativeInt(MIN_INVALID_NUM_REFILLS))), NUM_REFILLS_NEGATIVE)
+                        RandomModelGenerator.randomNegativeInt())), NUM_REFILLS_NEGATIVE)
         );
     }
 
@@ -167,7 +147,7 @@ public class DrugOrderApiTests extends BaseTest {
     public void adminCanCreateDrugOrder(String caseName, Consumer<DrugOrder> mutation) {
         var order = RandomModelGenerator.generate(DrugOrder.class);
         mutation.accept(order);
-        var request = encounterWith(order);
+        var request = DrugOrderSteps.encounterWith(order);
 
         var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -182,7 +162,7 @@ public class DrugOrderApiTests extends BaseTest {
                 .as("orders in POST /encounter response")
                 .hasSize(request.getOrders().size());
 
-        var patientOrders = getPatientOrders();
+        var patientOrders = DrugOrderSteps.getPatientDrugOrders(patientUUID);
 
         ModelAssertions.assertThatModels(request.getOrders(), patientOrders.results())
                 .as("drug orders saved for patient")
@@ -209,7 +189,7 @@ public class DrugOrderApiTests extends BaseTest {
         order.setDuration(duration);
         order.setDurationUnits(unit);
 
-        var request = encounterWith(order);
+        var request = DrugOrderSteps.encounterWith(order);
         var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
@@ -220,7 +200,7 @@ public class DrugOrderApiTests extends BaseTest {
                 .as("POST /encounter response")
                 .match();
 
-        var orders = getPatientOrders().results();
+        var orders = DrugOrderSteps.getPatientDrugOrders(patientUUID).results();
         assertThat(orders)
                 .as("precondition: patient has exactly one drug order")
                 .hasSize(1);
@@ -245,16 +225,16 @@ public class DrugOrderApiTests extends BaseTest {
                                                   DrugOrderFieldError error) {
         var order = RandomModelGenerator.generate(DrugOrder.class);
         mutation.accept(order);
-        var before = getPatientOrders().results();
+        var before = DrugOrderSteps.getPatientDrugOrders(patientUUID).results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsInvalidSubmission(error)
         )
-                .create(encounterWith(order));
+                .create(DrugOrderSteps.encounterWith(order));
 
-        ModelAssertions.assertUnchanged(before, getPatientOrders().results(),
+        ModelAssertions.assertUnchanged(before, DrugOrderSteps.getPatientDrugOrders(patientUUID).results(),
                 "patient drug orders after invalid POST /encounter");
     }
 
@@ -267,8 +247,8 @@ public class DrugOrderApiTests extends BaseTest {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
-                .create(encounterWith(firstOrder));
-        var before = getPatientOrders().results();
+                .create(DrugOrderSteps.encounterWith(firstOrder));
+        var before = DrugOrderSteps.getPatientDrugOrders(patientUUID).results();
 
         // another random order for the same drug
         var secondOrder = RandomModelGenerator.generate(DrugOrder.class);
@@ -279,55 +259,16 @@ public class DrugOrderApiTests extends BaseTest {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsBadRequestWithMessage(OrderErrorMessage.MORE_THAN_ONE_ACTIVE_ORDER)
         )
-                .create(encounterWith(secondOrder));
+                .create(DrugOrderSteps.encounterWith(secondOrder));
 
-        ModelAssertions.assertUnchanged(before, getPatientOrders().results(),
+        ModelAssertions.assertUnchanged(before, DrugOrderSteps.getPatientDrugOrders(patientUUID).results(),
                 "patient drug orders after second active order for the same drug");
     }
 
-    // ======== HELPERS ========
-    private static int randomDuration() {
-        return RandomModelGenerator.randomInt(MIN_DURATION, MAX_DURATION);
-    }
-
+    // ======== HELPERS (test case factories for @MethodSource) ========
     private static Arguments durationCase(DurationUnit unit, OrderFrequency frequency) {
-        int duration = randomDuration();
-        return Arguments.of(duration, unit, frequency, periodOf(duration, unit, frequency));
-    }
-
-    // Period the server adds to dateActivated for the given duration
-    private static TemporalAmount periodOf(int duration, DurationUnit unit, OrderFrequency frequency) {
-        return switch (unit) {
-            case SECONDS -> Duration.ofSeconds(duration);
-            case MINUTES -> Duration.ofMinutes(duration);
-            case HOURS -> Duration.ofHours(duration);
-            case DAYS -> Period.ofDays(duration);
-            case WEEKS -> Period.ofWeeks(duration);
-            case MONTHS -> Period.ofMonths(duration);
-            case YEARS -> Period.ofYears(duration);
-            // duration = number of doses, period = doses / frequency per day: 3 doses twice a day = 36 hours
-            case OCCURRENCES -> Duration.ofMinutes((long) duration * MINUTES_PER_DAY / frequency.getDosesPerDay());
-        };
-    }
-
-    // Random order encounter (rules in CreateEncounterRequest) with the given order
-    private static CreateEncounterRequest encounterWith(DrugOrder order) {
-        var request = RandomModelGenerator.generate(CreateEncounterRequest.class);
-        request.setOrders(List.of(order));
-        return request;
-    }
-
-    private SearchResult<DrugOrderResponse> getPatientOrders() {
-        return new SuccessfulSearchRequester<DrugOrderResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .search(OrderSearchParams.builder()
-                        .patient(patientUUID)
-                        .type("drugorder")
-                        .representation("full")
-                        .build());
+        int duration = DrugOrderSteps.randomDuration();
+        return Arguments.of(duration, unit, frequency, DrugOrderSteps.durationPeriod(duration, unit, frequency));
     }
 
     // only for type inference of lambdas inside Arguments.of(...)

@@ -46,8 +46,9 @@ public final class RandomModelGenerator {
     private static final double DEFAULT_DOUBLE_MAX = 1000.0;
     private static final int DEFAULT_COLLECTION_MIN_SIZE = 1;
     private static final int DEFAULT_COLLECTION_MAX_SIZE = 3;
-    private static final int DATE_RANGE_START_MIN_DAYS_AGO = 1;
-    private static final int DATE_RANGE_START_MAX_DAYS_AGO = 30;
+    // Lower bound of random invalid (negative) values: any value below zero is handled by the same server logic
+    private static final double DEFAULT_NEGATIVE_DOUBLE_MIN = -100;
+    private static final int DEFAULT_NEGATIVE_INT_MIN = -100;
     private static final int DATE_RANGE_MIN_MINUTES = 1;
     private static final int DATE_RANGE_MAX_MINUTES = 10 * 60;
     private static final String DATE_RANGE_START = "dateRangeStart";
@@ -379,9 +380,8 @@ public final class RandomModelGenerator {
 
     private static Map<String, Object> dateRange(Map<String, Object> generated) {
         if (!generated.containsKey(DATE_RANGE_START)) {
-            OffsetDateTime start = DateTimeUtils.now()
-                    .minusDays(randomInt(DATE_RANGE_START_MIN_DAYS_AGO, DATE_RANGE_START_MAX_DAYS_AGO))
-                    .minusMinutes(randomInt(0, 24 * 60 - 1));
+            // start - random minute 1..30 days ago (see DateTimeUtils), end - start + 1 minute..10 hours
+            OffsetDateTime start = DateTimeUtils.randomPastDateTime();
             OffsetDateTime end = start.plusMinutes(randomInt(DATE_RANGE_MIN_MINUTES, DATE_RANGE_MAX_MINUTES));
             generated.put(DATE_RANGE_START, start.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME));
             generated.put(DATE_RANGE_END, end.format(DateTimeUtils.OPENMRS_REQUEST_DATE_TIME));
@@ -419,12 +419,46 @@ public final class RandomModelGenerator {
         return Math.round(value * factor) / factor;
     }
 
+    /**
+     * Random negative double in [min, -step], where step is the smallest value at this precision
+     * (scale = 1 -> -0.1, scale = 0 -> -1). Rounding never turns the result into 0.
+     */
     public static double randomNegativeDouble(double min, int scale) {
-        return randomDouble(min, -(1 / Math.pow(10, scale)), scale);
+        return randomDouble(min, -step(scale), scale);
     }
 
+    /**
+     * Random negative double with default lower bound, e.g. invalid dose.
+     */
+    public static double randomNegativeDouble(int scale) {
+        return randomNegativeDouble(DEFAULT_NEGATIVE_DOUBLE_MIN, scale);
+    }
+
+    /**
+     * Random double in (0, 1) at this precision: [step, 1 - step] (scale = 1 -> 0.1..0.9), e.g. dose below one unit.
+     * Rounding never turns the result into 0 or 1.
+     */
+    public static double randomFraction(int scale) {
+        return randomDouble(step(scale), 1 - step(scale), scale);
+    }
+
+    /**
+     * Random negative int, e.g. invalid numRefills.
+     */
     public static int randomNegativeInt(int min) {
         return randomInt(min, -1);
+    }
+
+    /**
+     * Random negative int with default lower bound.
+     */
+    public static int randomNegativeInt() {
+        return randomNegativeInt(DEFAULT_NEGATIVE_INT_MIN);
+    }
+
+    // smallest value at this precision: scale = 1 -> 0.1, scale = 0 -> 1
+    private static double step(int scale) {
+        return 1 / Math.pow(10, scale);
     }
 
     public static String randomWord() {

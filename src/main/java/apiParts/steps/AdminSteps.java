@@ -18,8 +18,6 @@ import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
-import apiParts.models.procedure.CreateProcedureRequest;
-import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.models.visit.CreateVisitRequest;
@@ -41,7 +39,6 @@ import apiParts.specs.ResponseSpecs;
 import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
-import apiParts.testdata.VitalsTestData;
 
 import java.util.List;
 import java.util.Map;
@@ -76,19 +73,10 @@ public class AdminSteps {
                 .create(PatientTestData.createPatientRequest(getId()));
     }
 
+    // Random vitals encounter (rules in CreateVitalsRequest): one obs per VitalsConcept
     public static EncounterResponse createVitalsEncounter(String patientUUID) {
-        CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
-                .patient(patientUUID)
-                .encounterType(EncounterType.VITALS)
-                .location(Location.OUTPATIENT_CLINIC)
-                .obs(VitalsTestData.vitalsObs())
-                .build();
-
-        return new SuccessfulCrudRequester<EncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(createEncounterRequest);
+        return createEncounter(RandomModelGenerator.generate(
+                CreateVitalsRequest.class, Map.of(CreateVitalsRequest.Fields.patient, patientUUID)));
     }
 
     public static EncounterResponse createEncounter(CreateEncounterRequest request) {
@@ -183,14 +171,6 @@ public class AdminSteps {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid()));
-    }
-
-    public static ProcedureResponse createProcedure(CreateProcedureRequest request) {
-        return new SuccessfulCrudRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(request);
     }
 
     public static void deleteVisit(String visitUUID) {
@@ -434,7 +414,7 @@ public class AdminSteps {
                 .search(OrderSearchParams.builder()
                         .patient(patientUUID)
                         .type("testorder")
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build());
     }
 
@@ -446,7 +426,7 @@ public class AdminSteps {
                 .search(OrderSearchParams.builder()
                         .patient(patientUUID)
                         .type("drugorder")
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build());
     }
 
@@ -464,7 +444,7 @@ public class AdminSteps {
                 "patient", patientUUID,
                 "careSetting", CareSetting.OUTPATIENT.getUuid(),
                 "orderTypes", DrugOrder.ORDER_TYPE_UUID,
-                "v", "full",
+                "v", GetParams.FULL,
                 "excludeDiscontinueOrders", "true");
 
         return new SuccessfulSearchRequester<DrugOrderResponse>(
@@ -481,7 +461,7 @@ public class AdminSteps {
                 RequestSpecs.adminSpec(),
                 Endpoint.ORDER_POST,
                 ResponseSpecs.requestReturnsOk())
-                .get(orderUUID, Map.of("v", "full"));
+                .get(orderUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
 
     // Single obs by uuid for a patient, as returned by GET /obs?patient={uuid}&v=full
@@ -492,7 +472,7 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk())
                 .search(ObsSearchParams.builder()
                         .patient(patientUUID)
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build())
                 .requireOne(obs -> obs.getUuid().equals(obsUUID), "obs " + obsUUID);
     }

@@ -5,11 +5,13 @@ import apiParts.generators.GenerationStrategy;
 import apiParts.models.*;
 import apiParts.models.encounter.EncounterType;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.experimental.FieldNameConstants;
 import lombok.*;
 
 import java.util.List;
 
 @Data
+@FieldNameConstants   // Fields.<name> - field names for overrides, case names, generating rules
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,6 +26,7 @@ public class CreateVitalsRequest extends BaseModel {
     @GeneratingRule(nullable = true)
     private String visit;              // visit uuid, optional
 
+    @GeneratingRule(enumClass = Location.class)   // any location
     private Location location;
 
     @GeneratingRule(strategy = GenerationStrategy.VITALS_OBSERVATIONS)

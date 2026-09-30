@@ -1,5 +1,8 @@
 package apiTests.procedures;
 
+import apiParts.models.GetParams;
+import common.annotations.CreatePatient;
+import apiParts.steps.ProcedureSteps;
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.errors.ProcedureErrorMessage;
@@ -9,15 +12,12 @@ import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.models.search.SearchResult;
 import apiParts.models.procedure.ProcedureSearchParams;
 import apiParts.skelethon.requests.search.SearchRequester;
-import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
-import common.annotations.CreatePatient;
 import common.annotations.CreateProcedure;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +44,7 @@ public class GetProcedureApiTests extends BaseTest {
     public void adminCanGetProcedureByUuid() {
         var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
 
-        var procedure = createProcedure(request);
+        var procedure = ProcedureSteps.createProcedure(request);
 
         var savedProcedure = new SuccessfulCrudRequester<ProcedureResponse>(
                 RequestSpecs.adminSpec(),
@@ -77,10 +77,10 @@ public class GetProcedureApiTests extends BaseTest {
             var request = RandomModelGenerator.generate(CreateProcedureRequest.class);
             request.setProcedureCoded(ProcedureConcept.values()[i].getUuid());
             requests.add(request);
-            procedures.add(createProcedure(request));
+            procedures.add(ProcedureSteps.createProcedure(request));
         }
 
-        var patientProcedures = getPatientProcedures();
+        var patientProcedures = ProcedureSteps.getPatientProcedures(patientUUID);
 
         ModelAssertions.assertThatModels(requests, patientProcedures.results())
                 .as("procedures returned for patient")
@@ -109,7 +109,7 @@ public class GetProcedureApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsBadRequestWithMessage(ProcedureErrorMessage.OPERATION_NOT_SUPPORTED)
         )
                 .search(ProcedureSearchParams.builder()
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build());
     }
 
@@ -123,7 +123,7 @@ public class GetProcedureApiTests extends BaseTest {
         )
                 .search(ProcedureSearchParams.builder()
                         .patient(UUID.randomUUID().toString())
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build());
     }
 
@@ -150,29 +150,7 @@ public class GetProcedureApiTests extends BaseTest {
         )
                 .search(ProcedureSearchParams.builder()
                         .patient(patientUUID)
-                        .representation("full")
-                        .build());
-    }
-
-    // ======== HELPERS ========
-    private ProcedureResponse createProcedure(CreateProcedureRequest request) {
-        return new SuccessfulCrudRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_POST,
-                ResponseSpecs.requestReturnsCreated()
-        )
-                .create(request);
-    }
-
-    private SearchResult<ProcedureResponse> getPatientProcedures() {
-        return new SuccessfulSearchRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURES_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .search(ProcedureSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
+                        .representation(GetParams.FULL)
                         .build());
     }
 }

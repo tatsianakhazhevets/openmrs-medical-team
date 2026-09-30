@@ -3,6 +3,7 @@ package apiParts.models.order;
 import apiParts.generators.*;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.experimental.FieldNameConstants;
 import lombok.*;
 
 /**
@@ -12,6 +13,7 @@ import lombok.*;
  * agree with the drug form are constrained by their generation rules; optional fields are omitted.
  */
 @Data
+@FieldNameConstants   // Fields.<name> - field names for overrides, case names, generating rules
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,6 +23,7 @@ public class DrugOrder extends BaseModel {
     public static final String FREE_TEXT_DOSING = "org.openmrs.FreeTextDosingInstructions"; // dosingInstructions required
     public static final String URGENCY_ROUTINE = "ROUTINE";                    // server default when urgency is omitted (Active Medications)
     public static final String URGENCY_ON_SCHEDULED_DATE = "ON_SCHEDULED_DATE"; // sent together with scheduledDate (Upcoming Medications)
+    public static final int DOSE_SCALE = 1;   // decimal places of dose: generated and used in tests
     public static final String ORDER_TYPE_UUID = "131168f4-15f5-102d-96e4-000c29c2a5d7"; // "Drug Order", GET /order?orderTypes={uuid}
 
     @GeneratingRule(fixedValue = "drugorder")
@@ -40,11 +43,11 @@ public class DrugOrder extends BaseModel {
     private Drug drug;
     @GeneratingRule(
             strategy = GenerationStrategy.DEPENDS_ON_FIELD,
-            sourceField = "drug",
+            sourceField = Fields.drug,
             valueMethod = "getConceptUuid"
     )
     private String concept;             // concept of the drug, filled by builder.drug(...) / setDrug(...)
-    @GeneratingRule(min = 0.5, max = 4.0, scale = 1)
+    @GeneratingRule(min = 0.5, max = 4.0, scale = DOSE_SCALE)
     private Double dose;
     @GeneratingRule(enumClass = DosingUnit.class, enumValue = "TABLET")      // BOTTLE is not allowed for dose
     private DosingUnit doseUnits;

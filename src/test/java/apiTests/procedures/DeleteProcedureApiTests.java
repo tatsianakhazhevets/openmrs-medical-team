@@ -1,15 +1,12 @@
 package apiTests.procedures;
 
+import apiParts.steps.ProcedureSteps;
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.BaseModel;
 import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.models.search.SearchResult;
-import apiParts.models.procedure.ProcedureSearchParams;
-import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.utils.Uuids;
@@ -40,7 +37,7 @@ public class DeleteProcedureApiTests extends BaseTest {
         createRequest = SessionStorage.getProcedureRequest();
         procedure = SessionStorage.getProcedure();
 
-        assertThat(Uuids.of(getPatientProcedures(false).results()))
+        assertThat(Uuids.of(ProcedureSteps.getPatientProcedures(patientUUID, false).results()))
                 .as("precondition: patient has created procedure")
                 .isEqualTo(Set.of(procedure.getUuid()));
     }
@@ -54,14 +51,14 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(procedure.getUuid());
 
-        softly.assertThat(getPatientProcedures(false).results())
+        softly.assertThat(ProcedureSteps.getPatientProcedures(patientUUID, false).results())
                 .as("deleted procedure is not returned by search")
                 .isEmpty();
-        softly.assertThat(Uuids.of(getPatientProcedures(true).results()))
+        softly.assertThat(Uuids.of(ProcedureSteps.getPatientProcedures(patientUUID, true).results()))
                 .as("deleted procedure is returned by search with includeAll=true (soft delete)")
                 .isEqualTo(Set.of(procedure.getUuid()));
 
-        var deletedProcedure = getProcedure(procedure.getUuid());
+        var deletedProcedure = ProcedureSteps.getProcedure(procedure.getUuid());
         softly.assertThat(deletedProcedure.getVoided())
                 .as("deleted procedure is marked as voided")
                 .isTrue();
@@ -72,7 +69,7 @@ public class DeleteProcedureApiTests extends BaseTest {
 
     @Test
     public void adminCannotDeleteNonExistentProcedure() {
-        var before = getPatientProcedures(false).results();
+        var before = ProcedureSteps.getPatientProcedures(patientUUID, false).results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -81,13 +78,13 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        ModelAssertions.assertUnchanged(before, getPatientProcedures(false).results(),
+        ModelAssertions.assertUnchanged(before, ProcedureSteps.getPatientProcedures(patientUUID, false).results(),
                 "patient procedures after delete of non-existent one");
     }
 
     @Test
     public void unauthorizedUserCannotDeleteProcedure() {
-        var before = getProcedure(procedure.getUuid());
+        var before = ProcedureSteps.getProcedure(procedure.getUuid());
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -96,33 +93,10 @@ public class DeleteProcedureApiTests extends BaseTest {
         )
                 .delete(procedure.getUuid());
 
-        ModelAssertions.assertUnchanged(before, getProcedure(procedure.getUuid()),
+        ModelAssertions.assertUnchanged(before, ProcedureSteps.getProcedure(procedure.getUuid()),
                 "procedure after unauthorized delete (not voided)");
-        softly.assertThat(Uuids.of(getPatientProcedures(false).results()))
+        softly.assertThat(Uuids.of(ProcedureSteps.getPatientProcedures(patientUUID, false).results()))
                 .as("procedure is still returned by search")
                 .isEqualTo(Set.of(procedure.getUuid()));
-    }
-
-    // ======== HELPERS ========
-    private ProcedureResponse getProcedure(String uuid) {
-        return new SuccessfulCrudRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURE_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .get(uuid);
-    }
-
-    private SearchResult<ProcedureResponse> getPatientProcedures(boolean includeAll) {
-        return new SuccessfulSearchRequester<ProcedureResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.PROCEDURES_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .search(ProcedureSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .includeAll(includeAll)
-                        .build());
     }
 }
