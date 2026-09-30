@@ -1,14 +1,15 @@
 package common.storages;
 
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.patient.CreatePatientResponse;
+import apiParts.models.procedure.CreateProcedureRequest;
 import apiParts.models.procedure.ProcedureResponse;
 import apiParts.models.visit.CreateVisitResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 
-// Preconditions created by extensions within one test (server responses only).
+// Preconditions created by extensions within one test (server responses; for procedures - also sent requests).
 // ThreadLocal - so parallel tests do not share data.
 // Numbers (number) start from 1.
 public class SessionStorage {
@@ -16,8 +17,9 @@ public class SessionStorage {
 
     private final List<CreatePatientResponse> patients = new ArrayList<>();
     private final List<ProcedureResponse> procedures = new ArrayList<>();
-    private final List<CreateEncounterResponse> orderEncounters = new ArrayList<>();
-    private final List<CreateEncounterResponse> encounters = new ArrayList<>();
+    private final List<CreateProcedureRequest> procedureRequests = new ArrayList<>();
+    private final List<EncounterResponse> orderEncounters = new ArrayList<>();
+    private final List<EncounterResponse> encounters = new ArrayList<>();
     private final List<CreateVisitResponse> visits = new ArrayList<>();
 
     private SessionStorage() {
@@ -45,7 +47,9 @@ public class SessionStorage {
     }
 
     // ======== PROCEDURES (@CreateProcedure) ========
-    public static void addProcedure(ProcedureResponse procedure) {
+    // request is generated randomly, so it is kept too - it is the expected model for the procedure
+    public static void addProcedure(CreateProcedureRequest request, ProcedureResponse procedure) {
+        INSTANCE.get().procedureRequests.add(request);
         INSTANCE.get().procedures.add(procedure);
     }
 
@@ -57,16 +61,25 @@ public class SessionStorage {
         return get(INSTANCE.get().procedures, number, "procedures", "@CreateProcedure");
     }
 
+    public static CreateProcedureRequest getProcedureRequest() {
+        return getProcedureRequest(1);
+    }
+
+    public static CreateProcedureRequest getProcedureRequest(int number) {
+        return get(INSTANCE.get().procedureRequests, number, "procedures", "@CreateProcedure");
+    }
+
     public static void clearProcedures() {
         INSTANCE.get().procedures.clear();
+        INSTANCE.get().procedureRequests.clear();
     }
 
     // ======== ORDERS (@CreateOrder) ========
-    public static void addOrderEncounter(CreateEncounterResponse encounter) {
+    public static void addOrderEncounter(EncounterResponse encounter) {
         INSTANCE.get().orderEncounters.add(encounter);
     }
 
-    public static CreateEncounterResponse getOrderEncounter() {
+    public static EncounterResponse getOrderEncounter() {
         return get(INSTANCE.get().orderEncounters, 1, "orders", "@CreateOrder");
     }
 
@@ -80,19 +93,19 @@ public class SessionStorage {
     }
 
     // ======== ENCOUNTERS (@CreateEncounter) ========
-    public static void addEncounter(CreateEncounterResponse encounter) {
+    public static void addEncounter(EncounterResponse encounter) {
         INSTANCE.get().encounters.add(encounter);
     }
 
-    public static CreateEncounterResponse getEncounter() {
+    public static EncounterResponse getEncounter() {
         return getEncounter(1);
     }
 
-    public static CreateEncounterResponse getEncounter(int number) {
+    public static EncounterResponse getEncounter(int number) {
         return get(INSTANCE.get().encounters, number, "encounters", "@CreateEncounter");
     }
 
-    public static List<CreateEncounterResponse> getEncounters() {
+    public static List<EncounterResponse> getEncounters() {
         return List.copyOf(INSTANCE.get().encounters);
     }
 

@@ -12,6 +12,11 @@ public final class Uuids {
     private Uuids() {
     }
 
+    // uuid of a reference or null, e.g. optional enum value in a parameterized case
+    public static String uuidOf(HasUuid value) {
+        return value == null ? null : value.getUuid();
+    }
+
     // uuids of models / refs as a sorted set: order of search results does not matter,
     // e.g. Uuids.of(encounter.getObs()) vs Uuids.of(patientObs.results())
     public static Set<String> of(Collection<? extends HasUuid> models) {

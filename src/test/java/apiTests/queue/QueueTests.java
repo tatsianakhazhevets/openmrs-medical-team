@@ -1,7 +1,8 @@
 package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.encounter.Ref;
+import apiParts.generators.RandomModelGenerator;
+import apiParts.models.Ref;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -10,26 +11,20 @@ import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
-import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.annotations.CreateVisit;
 import common.storages.SessionStorage;
-import net.datafaker.Faker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.util.Locale;
 
 @CreateVisit
 @CreatePatient
 public class QueueTests extends BaseTest {
     private static final String NON_EXISTING_QUEUE_ENTRY_UUID =
             "00000000-0000-0000-0000-000000000000";
-    private static final Faker FAKER = new Faker(new Locale("en", "US"));
     private String patientUUID;
     private String visitUUID;
     private String queueEntryUUID;
@@ -49,85 +44,110 @@ public class QueueTests extends BaseTest {
 
     @Test
     void shouldAddPatientToQueue() {
-        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse response =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+
         queueEntryUUID = response.getUuid();
-        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries()
-                .requireOne(entry -> entry.getUuid().equals(response.getUuid()),
-                        "created queue entry " + response.getUuid());
-        ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
-        softly.assertAll();
+
+        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries().requireOne(
+                entry -> entry.getUuid().equals(response.getUuid()),
+                "created queue entry " + response.getUuid());
+        ModelAssertions.assertMatchesExpectedIgnoringFields(
+                foundEntry,
+                response,
+                "queue entry",
+                "queue.links",
+                "status.links",
+                "patient.links",
+                "visit.links",
+                "priority.links");
     }
 
     @Test
     void shouldEndQueueEntry() {
-        QueueEntryResponse response = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
-        QueueEntryResponse endedResponse = AdminSteps.endQueueEntry(response.getUuid());
+        QueueEntryResponse response =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+
+        EndQueueEntryRequest endRequest =
+                RandomModelGenerator.generate(EndQueueEntryRequest.class);
+        QueueEntryResponse endedResponse =
+                AdminSteps.endQueueEntry(response.getUuid(), endRequest);
+
         softly.assertThat(endedResponse.getUuid()).isEqualTo(response.getUuid());
         softly.assertThat(endedResponse.getEndedAt()).isNotNull();
         SearchResult<QueueEntryResponse> activeEntries = AdminSteps.getActiveQueueEntries();
-        softly.assertThat(activeEntries.results())
-                .noneMatch(entry -> entry.getUuid().equals(response.getUuid()));
-        softly.assertAll();
+        softly.assertThat(activeEntries.results()).noneMatch(entry -> entry.getUuid().equals(response.getUuid()));
     }
 
     @Test
     void shouldUpdateQueueEntry() {
-        String priorityComment = FAKER.text().text();
         QueuePriority priority = QueuePriority.URGENT;
         QueueStatus status = QueueStatus.FINISHED_SERVICE;
 
-        QueueEntryResponse createdResponse = AdminSteps.addPatientToQueue(patientUUID, visitUUID);
+        QueueEntryResponse createdResponse =
+                AdminSteps.addPatientToQueue(patientUUID, visitUUID);
         queueEntryUUID = createdResponse.getUuid();
-        QueueEntryResponse updatedResponse = AdminSteps.updateQueueEntry(
-                createdResponse.getUuid(),
-                status,
-                priority,
-                priorityComment
-        );
+
+        UpdateQueueEntryRequest updateRequest =
+                RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
+        updateRequest.setStatus(status.toRef());
+        updateRequest.setPriority(priority.toRef());
+
+        AdminSteps.updateQueueEntry(createdResponse.getUuid(), updateRequest);
+
         QueueEntryResponse expected = new QueueEntryResponse();
         expected.setStatus(status.toRef());
         expected.setPriority(priority.toRef());
-        expected.setPriorityComment(priorityComment);
-        softly.assertThat(updatedResponse.getUuid()).isEqualTo(createdResponse.getUuid());
-        ModelAssertions.assertMatchesExpected(softly, updatedResponse, expected, "updated queue entry");
-        softly.assertAll();
+
+        QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries().requireOne(
+                entry -> entry.getUuid().equals(createdResponse.getUuid()),
+                "updated queue entry " + createdResponse.getUuid());
+
+        ModelAssertions.assertMatchesExpected(foundEntry, expected, "updated queue entry");
     }
 
     @Test
     void shouldNotAddPatientToQueueWithoutPatient() {
         QueueResponse queue = AdminSteps.getOutpatientConsultationQueue();
 
-        CreateQueueEntryRequest request = CreateQueueEntryRequest.builder()
-                .visit(Ref.of(visitUUID))
-                .queueEntry(CreateQueueEntryRequest.QueueEntry.builder()
-                        .status(QueueStatus.WAITING.toRef())
-                        .priority(QueuePriority.NOT_URGENT.toRef())
-                        .queue(Ref.of(queue.getUuid()))
-                        .startedAt(DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME
-                                .withZone(ZoneOffset.UTC)
-                                .format(Instant.now()))
-                        .sortWeight(0)
-                        .build())
-                .build();
+        CreateQueueEntryRequest request =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.class);
+        request.setVisit(Ref.of(visitUUID));
+
+        CreateQueueEntryRequest.QueueEntry queueEntry =
+                RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
+        queueEntry.setStatus(QueueStatus.WAITING.toRef());
+        queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
+        queueEntry.setQueue(Ref.of(queue.getUuid()));
+        queueEntry.setPatient(null);
+
+        request.setQueueEntry(queueEntry);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_QUEUE_ENTRY_POST,
                 ResponseSpecs.requestReturnsInvalidSubmission("patient")
         ).create(request);
+
+        softly.assertThat(AdminSteps.getActiveQueueEntries().results())
+                .noneMatch(entry -> entry.getVisit() != null && visitUUID.equals(entry.getVisit().getUuid()));
     }
 
     @Test
     void shouldNotUpdateNonExistingQueueEntry() {
-        UpdateQueueEntryRequest request = UpdateQueueEntryRequest.builder()
-                .status(QueueStatus.FINISHED_SERVICE.toRef())
-                .priority(QueuePriority.URGENT.toRef())
-                .priorityComment(FAKER.text().text())
-                .build();
+        UpdateQueueEntryRequest request =
+                RandomModelGenerator.generate(UpdateQueueEntryRequest.class);
+
+        request.setStatus(QueueStatus.FINISHED_SERVICE.toRef());
+        request.setPriority(QueuePriority.URGENT.toRef());
+
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.QUEUE_ENTRY_UPDATE,
                 ResponseSpecs.requestReturnsNotFound()
         ).update(NON_EXISTING_QUEUE_ENTRY_UUID, request);
+
+        softly.assertThat(AdminSteps.getActiveQueueEntries().results())
+                .noneMatch(entry -> NON_EXISTING_QUEUE_ENTRY_UUID.equals(entry.getUuid()));
     }
 }

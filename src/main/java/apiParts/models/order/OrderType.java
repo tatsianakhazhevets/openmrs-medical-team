@@ -1,5 +1,7 @@
 package apiParts.models.order;
 
+import apiParts.models.Link;
+import apiParts.models.Ref;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,8 +25,8 @@ public class OrderType {
     private Boolean retired;
     private String description;
 
-    private List<ResourceReference> conceptClasses;
-    private ResourceReference parent;
+    private List<Ref> conceptClasses;
+    private Ref parent;
 
     private List<Link> links;
 

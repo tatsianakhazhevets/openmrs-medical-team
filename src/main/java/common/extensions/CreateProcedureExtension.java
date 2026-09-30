@@ -1,12 +1,15 @@
 package common.extensions;
 
-import apiParts.steps.AdminSteps;
+import apiParts.generators.RandomModelGenerator;
+import apiParts.models.procedure.CreateProcedureRequest;
+import apiParts.steps.ProcedureSteps;
 import common.annotations.CreateProcedure;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class CreateProcedureExtension implements BeforeEachCallback, AfterEachCallback {
@@ -27,7 +30,8 @@ public class CreateProcedureExtension implements BeforeEachCallback, AfterEachCa
 
         String patientUUID = ExtensionUtils.requirePatientUuid(CreateProcedure.class);
         for (int i = 0; i < count; i++) {
-            SessionStorage.addProcedure(AdminSteps.createProcedure(patientUUID));
+            var request = RandomModelGenerator.generate(CreateProcedureRequest.class, Map.of(CreateProcedureRequest.Fields.patient, patientUUID));
+            SessionStorage.addProcedure(request, ProcedureSteps.createProcedure(request));
         }
     }
 

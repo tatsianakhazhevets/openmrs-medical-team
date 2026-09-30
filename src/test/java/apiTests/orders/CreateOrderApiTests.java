@@ -1,16 +1,18 @@
 package apiTests.orders;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.EncounterType;
+import apiParts.generators.DrugOrderGenerator;
+import apiParts.generators.RandomModelGenerator;
+import apiParts.models.encounter.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.Ref;
+import apiParts.models.encounter.EncounterResponse;
+import apiParts.models.Ref;
+import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
-import apiParts.models.search.SearchResult;
+import apiParts.models.order.TestOrder;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
-import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
@@ -27,54 +29,62 @@ public class CreateOrderApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateDrugOrder() {
-        // create a patient with a standard drug order encounter
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest drugOrderRequest = AdminSteps.drugOrderEncounterRequest(patientUUID);
-        CreateEncounterResponse encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(drugOrderRequest);
+        DrugOrder drugOrder = DrugOrderGenerator.generateDrugOrder();
+        CreateEncounterRequest drugOrderRequest = DrugOrderGenerator.generateEncounterRequest(drugOrder);
+        EncounterResponse encounter = AdminSteps.createEncounter(drugOrderRequest);
+        EncounterResponse savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
+        softly.assertThat(savedEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted drug order references")
+                .hasSize(drugOrderRequest.getOrders().size())
+                .containsExactlyInAnyOrderElementsOf(
+                        encounter.getOrders().stream().map(Ref::getUuid).toList());
 
         softly.assertThat(encounter.getOrders())
                 .as("created drug order")
-                .hasSize(1);
+                .hasSize(drugOrderRequest.getOrders().size());
         String orderUUID = encounter.getOrders().get(0).getUuid();
 
         // verify the order was actually persisted and matches what was sent
         List<DrugOrderResponse> drugOrders = AdminSteps.fetchDrugOrders(patientUUID).results();
         softly.assertThat(drugOrders)
                 .as("created drug order is retrievable via GET /order")
-                .hasSize(1);
+                .hasSize(drugOrderRequest.getOrders().size());
         DrugOrderResponse savedOrder = drugOrders.get(0);
         softly.assertThat(savedOrder.getUuid())
                 .as("created drug order uuid")
                 .isEqualTo(orderUUID);
 
-        ModelAssertions.assertThatModels(softly, drugOrderRequest.getOrders(), List.of(savedOrder))
+        ModelAssertions.assertThatModels(drugOrderRequest.getOrders(), List.of(savedOrder))
                 .as("saved drug order")
                 .match();
     }
 
     @Test
     public void adminCanCreateLabOrder() {
-        // create a patient with a lab order (Alkaline phosphatase test) encounter
         String patientUUID = SessionStorage.getPatient().getUuid();
 
-        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
-        CreateEncounterResponse labEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(labOrderRequest);
+        TestOrder labOrder = RandomModelGenerator.generate(TestOrder.class);
+        CreateEncounterRequest labOrderRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        labOrderRequest.setLocation(Location.INPATIENT_WARD);
+        labOrderRequest.setOrders(List.of(labOrder));
+        EncounterResponse labEncounter = AdminSteps.createEncounter(labOrderRequest);
+        EncounterResponse savedLabEncounter = AdminSteps.getEncounter(labEncounter.getUuid());
+        softly.assertThat(savedLabEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted lab order references")
+                .hasSize(labOrderRequest.getOrders().size())
+                .containsExactlyInAnyOrderElementsOf(
+                        labEncounter.getOrders().stream().map(Ref::getUuid).toList());
 
-        CreateEncounterResponse expectedLabEncounter = new CreateEncounterResponse();
+        EncounterResponse expectedLabEncounter = new EncounterResponse();
         expectedLabEncounter.setPatient(Ref.of(patientUUID));
         expectedLabEncounter.setLocation(Ref.of(Location.INPATIENT_WARD.getUuid()));
         expectedLabEncounter.setEncounterType(Ref.of(EncounterType.ORDER.getUuid()));
 
-        ModelAssertions.assertMatchesExpected(softly, labEncounter, expectedLabEncounter, "lab order encounter");
+        ModelAssertions.assertMatchesExpected(labEncounter, expectedLabEncounter, "lab order encounter");
 
         softly.assertThat(labEncounter.getObs())
                 .as("lab encounter obs")
@@ -84,18 +94,17 @@ public class CreateOrderApiTests extends BaseTest {
                 .isFalse();
         softly.assertThat(labEncounter.getOrders())
                 .as("lab encounter orders")
-                .hasSize(1);
-        softly.assertThat(labEncounter.getOrders().get(0).getDisplay())
-                .as("lab order display")
-                .isEqualTo("Alkaline phosphatase");
-
-        // verify the order was actually persisted
+                .hasSize(labOrderRequest.getOrders().size());
+        // Verify the order was actually persisted and matches the generated request.
         String orderUUID = labEncounter.getOrders().get(0).getUuid();
-        SearchResult<DrugOrderResponse> patientOrders = AdminSteps.fetchTestOrders(patientUUID);
-
-        softly.assertThat(patientOrders.results())
-                .as("created lab order is retrievable via GET /order")
-                .anyMatch(order -> order.getUuid().equals(orderUUID));
+        DrugOrderResponse savedOrder = AdminSteps.fetchTestOrders(patientUUID)
+                .requireOne(order -> order.getUuid().equals(orderUUID), "created lab order");
+        softly.assertThat(savedOrder.getPatient().getUuid())
+                .as("saved lab order patient")
+                .isEqualTo(patientUUID);
+        softly.assertThat(savedOrder.getConcept().getUuid())
+                .as("saved lab order concept")
+                .isEqualTo(labOrder.getConcept().getUuid());
     }
 
     @Test
@@ -104,7 +113,10 @@ public class CreateOrderApiTests extends BaseTest {
         String patientUUID = SessionStorage.getPatient().getUuid();
         List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
-        CreateEncounterRequest labOrderRequest = AdminSteps.labOrderEncounterRequest(patientUUID);
+        TestOrder labOrder = RandomModelGenerator.generate(TestOrder.class);
+        CreateEncounterRequest labOrderRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        labOrderRequest.setLocation(Location.INPATIENT_WARD);
+        labOrderRequest.setOrders(List.of(labOrder));
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -112,7 +124,7 @@ public class CreateOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsBadRequest())
                 .create(labOrderRequest);
 
-        ModelAssertions.assertUnchanged(softly, before, AdminSteps.fetchTestOrders(patientUUID).results(),
+        ModelAssertions.assertUnchanged(before, AdminSteps.fetchTestOrders(patientUUID).results(),
                 "test orders after unauthorized create");
     }
 
@@ -122,16 +134,19 @@ public class CreateOrderApiTests extends BaseTest {
         List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
         // concept is required for a test order and is intentionally omitted here
-        CreateEncounterRequest request = AdminSteps.labOrderRequestWithoutConcept(patientUUID);
+        TestOrder labOrder = RandomModelGenerator.generate(TestOrder.class);
+        labOrder.setConcept(null);
+        CreateEncounterRequest request = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        request.setLocation(Location.INPATIENT_WARD);
+        request.setOrders(List.of(labOrder));
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsInvalidSubmission("concept"))
+                ResponseSpecs.requestReturnsInvalidSubmission(TestOrder.CONCEPT_FIELD_NAME))
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly,
-                before,
+        ModelAssertions.assertUnchanged(before,
                 AdminSteps.fetchTestOrders(patientUUID).results(),
                 "test orders after create without concept");
     }
@@ -143,7 +158,11 @@ public class CreateOrderApiTests extends BaseTest {
         List<DrugOrderResponse> before = AdminSteps.fetchTestOrders(patientUUID).results();
 
         // careSetting is required for an order and is intentionally omitted here
-        CreateEncounterRequest request = AdminSteps.labOrderRequestWithoutCareSetting(patientUUID);
+        TestOrder labOrder = RandomModelGenerator.generate(TestOrder.class);
+        labOrder.setCareSetting(null);
+        CreateEncounterRequest request = RandomModelGenerator.generate(CreateEncounterRequest.class);
+        request.setLocation(Location.INPATIENT_WARD);
+        request.setOrders(List.of(labOrder));
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -151,8 +170,7 @@ public class CreateOrderApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsServerError())
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly,
-                before,
+        ModelAssertions.assertUnchanged(before,
                 AdminSteps.fetchTestOrders(patientUUID).results(),
                 "test orders after create without careSetting");
     }

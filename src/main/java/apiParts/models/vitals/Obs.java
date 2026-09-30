@@ -2,7 +2,6 @@ package apiParts.models.vitals;
 
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.HasUuid;
-import apiParts.models.VitalsConcept;
 import apiParts.models.encounter.ObsStatus;
 import apiParts.models.order.LabTestConcept;
 import com.fasterxml.jackson.annotation.JsonInclude;

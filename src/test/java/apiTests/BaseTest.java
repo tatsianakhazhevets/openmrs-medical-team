@@ -1,6 +1,8 @@
 package apiTests;
 
+import apiParts.assertions.SoftlyContext;
 import common.extensions.*;
+import common.storages.SessionStorage;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +24,12 @@ public class BaseTest {
     @BeforeEach
     public void setUpTest(){
         this.softly = new SoftAssertions();
+        SoftlyContext.set(this.softly);
     }
 
     @AfterEach
     public void afterTest() {
+        SoftlyContext.clear();
         softly.assertAll();
     }
 }

@@ -1,6 +1,6 @@
 package common.annotations;
 
-import apiParts.models.EncounterType;
+import apiParts.models.encounter.EncounterType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;

@@ -1,5 +1,6 @@
 package apiParts.models.order;
 
+import apiParts.models.Link;
 import apiParts.models.BaseModel;
 import apiParts.models.search.SearchResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

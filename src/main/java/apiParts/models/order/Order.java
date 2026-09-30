@@ -1,5 +1,7 @@
 package apiParts.models.order;
 
+import apiParts.models.Link;
+import apiParts.models.Ref;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -20,26 +22,26 @@ public class Order extends BaseModel {
     private String orderNumber;
     private String accessionNumber;
 
-    private ResourceReference patient;
-    private ResourceReference concept;
+    private Ref patient;
+    private Ref concept;
 
     private String action;
 
-    private ResourceReference careSetting;
-    private ResourceReference previousOrder;
+    private Ref careSetting;
+    private Ref previousOrder;
 
     private String dateActivated;
     private String scheduledDate;
     private String dateStopped;
     private String autoExpireDate;
 
-    private ResourceReference encounter;
-    private ResourceReference orderer;
+    private Ref encounter;
+    private Ref orderer;
 
     private FulfillerStatus fulfillerStatus;
     private String fulfillerComment;
 
-    private ResourceReference orderReason;
+    private Ref orderReason;
     private String orderReasonNonCoded;
 
     private OrderType orderType;
@@ -49,10 +51,10 @@ public class Order extends BaseModel {
     private String commentToFulfiller;
     private String display;
 
-    private ResourceReference specimenSource;
+    private Ref specimenSource;
     private String laterality;
     private String clinicalHistory;
-    private ResourceReference frequency;
+    private Ref frequency;
 
     private Integer numberOfRepeats;
 

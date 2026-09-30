@@ -28,6 +28,7 @@ import apiParts.models.queueEntry.QueueEntryResponse;
 import apiParts.models.visit.CreateVisitRequest;
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.models.visit.GetVisitResponse;
+import apiParts.models.visit.GetVisitsResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -111,7 +112,7 @@ public enum Endpoint {
 
     OBS_GET(
             "/obs",
-            GetObsRequest.class,
+            BaseModel.class,
             GetObsResponse.class),
 
     ORDER_GET(
@@ -177,7 +178,10 @@ public enum Endpoint {
             "/visit-queue-entry",
             CreateQueueEntryRequest.class,
             QueueEntryResponse.class),
-
+    VISITS_GET(
+            "/visit",
+            BaseModel.class,
+            GetVisitsResponse.class),
     QUEUE_ENTRY_UPDATE(
             "/queue-entry",
             EndQueueEntryRequest.class,
@@ -220,12 +224,6 @@ public enum Endpoint {
             "/patient/{parentUuid}/identifier",
             PatientIdentifierRequest.class,
             IdentifierResponse.class),
-
-    // Flat CRUD for encounter (CrudRequester) - one constant for create/get/update/delete.
-    ENCOUNTER_CRUD(
-            "/encounter",
-            CreateEncounterRequest.class,
-            CreateEncounterResponse.class),
 
     // Action endpoints (ActionRequester): {resourceUuid} is the resource the command is performed on.
     APPOINTMENT_CHANGE_STATUS(

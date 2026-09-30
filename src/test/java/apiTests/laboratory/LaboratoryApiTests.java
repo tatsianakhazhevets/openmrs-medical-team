@@ -1,7 +1,7 @@
 package apiTests.laboratory;
 
 import apiParts.models.encounter.CreateEncounterRequest;
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.encounter.ObsResponse;
 import apiParts.models.encounter.ObsStatus;
 import apiParts.models.order.DiscontinueOrderRequest;
@@ -51,7 +51,7 @@ public class LaboratoryApiTests extends BaseTest {
         // 2) laboratory enters the result against the order
         CreateEncounterRequest resultRequest = AdminSteps.labResultEncounterRequest(orderUUID, resultValue);
 
-        CreateEncounterResponse resultEncounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        EncounterResponse resultEncounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsOk())

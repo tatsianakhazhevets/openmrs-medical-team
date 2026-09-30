@@ -35,12 +35,12 @@ public class AllergyApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsCreated())
                 .create(SessionStorage.getPatient().getUuid(), allergyRequest);
 
-        ModelAssertions.assertThatModels(softly, allergyRequest, createdAllergyResponse).match();
+        ModelAssertions.assertThatModels(allergyRequest, createdAllergyResponse).match();
         softly.assertThat(createdAllergyResponse.getUuid()).isNotNull();
 
         AllergyResponse getAllergyResponse = AllergySteps.getPatientAllergyPositive(
                 SessionStorage.getPatient().getUuid(), createdAllergyResponse.getUuid());
-        ModelAssertions.assertThatModels(softly, allergyRequest, getAllergyResponse).match();
+        ModelAssertions.assertThatModels(allergyRequest, getAllergyResponse).match();
         softly.assertThat(getAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
     }
 
@@ -134,7 +134,7 @@ public class AllergyApiTests extends BaseTest {
                 .update(SessionStorage.getPatient().getUuid(), createdAllergyResponse.getUuid(),
                         allergyRequest);
 
-        ModelAssertions.assertThatModels(softly, allergyRequest, updatedAllergyResponse).match();
+        ModelAssertions.assertThatModels(allergyRequest, updatedAllergyResponse).match();
         softly.assertThat(updatedAllergyResponse.getUuid()).isEqualTo(createdAllergyResponse.getUuid());
 
         AllergyResponse getAllergyResponse = AllergySteps.getPatientAllergyPositive(

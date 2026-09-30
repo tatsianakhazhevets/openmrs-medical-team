@@ -2,21 +2,17 @@ package apiTests.vitalsAndBiometrics;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.EncounterType;
-import apiParts.models.VitalsConcept;
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterType;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.errors.ObsFieldError;
 import apiParts.models.vitals.CreateVitalsRequest;
 import apiParts.models.vitals.Obs;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.models.search.SearchResult;
-import apiParts.models.encounter.ObsResponse;
-import apiParts.models.encounter.ObsSearchParams;
-import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import apiParts.steps.VitalsSteps;
 import apiParts.utils.Uuids;
 import apiTests.BaseTest;
 import common.annotations.CreateEncounter;
@@ -28,24 +24,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CreatePatient
 public class VitalsAndBiometricsTests extends BaseTest {
-    // Step outside the reference range: 0.1 for concepts with decimals, 1 for whole-number ones
-    // (for them 0.1 is not a valid value at all and the server would fail on conversion, not on range)
-    private static final double DECIMAL_STEP = 0.1;
-    private static final double WHOLE_NUMBER_STEP = 1;
-
     private String patientUUID;
 
     @BeforeEach
@@ -57,8 +45,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
     // kept in VitalsConcept. Check: GET /obs?patient={uuid}&concept={uuid}&v=full -> referenceRange
     static Stream<Arguments> validVitalsBoundaries() {
         return Stream.of(
-                Arguments.of("lower boundary", obsAt(VitalsConcept::low)),
-                Arguments.of("upper boundary", obsAt(VitalsConcept::high))
+                Arguments.of("lower boundary", VitalsSteps.obsAtLowerBoundary()),
+                Arguments.of("upper boundary", VitalsSteps.obsAtUpperBoundary())
         );
     }
 
@@ -67,8 +55,10 @@ public class VitalsAndBiometricsTests extends BaseTest {
     // Concepts without absolute limits (MID_UPPER_ARM_CIRC, TEXT) have no negative cases
     static Stream<Arguments> outOfRangeVitals() {
         return Stream.concat(
-                obsOutOf("below lower boundary", c -> c.low() - step(c), ObsFieldError.VALUE_OUT_OF_RANGE_LOW),
-                obsOutOf("above upper boundary", c -> c.high() + step(c), ObsFieldError.VALUE_OUT_OF_RANGE_HIGH)
+                VitalsSteps.obsBelowLowerBoundary().stream()
+                        .map(obs -> Arguments.of("below lower boundary", obs, ObsFieldError.VALUE_OUT_OF_RANGE_LOW)),
+                VitalsSteps.obsAboveUpperBoundary().stream()
+                        .map(obs -> Arguments.of("above upper boundary", obs, ObsFieldError.VALUE_OUT_OF_RANGE_HIGH))
         );
     }
 
@@ -76,23 +66,23 @@ public class VitalsAndBiometricsTests extends BaseTest {
     public void adminCanAddVitals() {
         var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
 
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
         // obs in POST /encounter response are refs (uuid + display) - values are checked via GET /obs
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
         softly.assertThat(encounter.getObs())
                 .as("obs in POST /encounter response")
                 .hasSize(request.getObs().size());
 
-        var patientObs = getPatientObs();
+        var patientObs = VitalsSteps.getPatientObs(patientUUID);
 
-        ModelAssertions.assertThatModels(softly, request.getObs(), patientObs.results())
+        ModelAssertions.assertThatModels(request.getObs(), patientObs.results())
                 .as("obs saved for patient")
                 .match();
         softly.assertThat(patientObs.results().stream().map(o -> o.getPerson().getUuid()).toList())
@@ -110,23 +100,23 @@ public class VitalsAndBiometricsTests extends BaseTest {
         var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
         request.setObs(obs);
 
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
         // obs in POST /encounter response are refs (uuid + display) - values are checked via GET /obs
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
         softly.assertThat(encounter.getObs())
                 .as("obs in POST /encounter response")
                 .hasSize(request.getObs().size());
 
-        var patientObs = getPatientObs();
+        var patientObs = VitalsSteps.getPatientObs(patientUUID);
 
-        ModelAssertions.assertThatModels(softly, request.getObs(), patientObs.results())
+        ModelAssertions.assertThatModels(request.getObs(), patientObs.results())
                 .as("obs saved for patient")
                 .match();
         softly.assertThat(patientObs.results().stream().map(o -> o.getPerson().getUuid()).toList())
@@ -143,7 +133,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
         var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
         request.setObs(List.of(obs));
-        var before = getPatientObs().results();
+        var before = VitalsSteps.getPatientObs(patientUUID).results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -152,7 +142,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(before, VitalsSteps.getPatientObs(patientUUID).results(),
                 "patient obs after POST /encounter with out-of-range value");
     }
 
@@ -160,7 +150,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @CreateEncounter(EncounterType.VITALS)
     public void adminCanDeleteVitalsEncounter() {
         var encounter = SessionStorage.getEncounter();
-        assertPatientHasObsOf(encounter);
+        VitalsSteps.assertPatientHasObsOf(patientUUID, encounter);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -169,10 +159,10 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(encounter.getUuid());
 
-        softly.assertThat(getPatientObs().results())
+        softly.assertThat(VitalsSteps.getPatientObs(patientUUID).results())
                 .as("obs of deleted encounter are not returned for patient")
                 .isEmpty();
-        softly.assertThat(getEncounter(encounter.getUuid()).getVoided())
+        softly.assertThat(VitalsSteps.getEncounter(encounter.getUuid()).getVoided())
                 .as("deleted encounter is marked as voided")
                 .isTrue();
     }
@@ -181,8 +171,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @CreateEncounter(EncounterType.VITALS)
     public void adminCannotDeleteNonExistentEncounter() {
         var encounter = SessionStorage.getEncounter();
-        assertPatientHasObsOf(encounter);
-        var before = getPatientObs().results();
+        VitalsSteps.assertPatientHasObsOf(patientUUID, encounter);
+        var before = VitalsSteps.getPatientObs(patientUUID).results();
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
@@ -191,7 +181,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(before, VitalsSteps.getPatientObs(patientUUID).results(),
                 "patient obs after delete of non-existent encounter");
     }
 
@@ -199,9 +189,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @CreateEncounter(EncounterType.VITALS)
     public void unauthorizedUserCannotDeleteEncounter() {
         var encounter = SessionStorage.getEncounter();
-        assertPatientHasObsOf(encounter);
-        var obsBefore = getPatientObs().results();
-        var encounterBefore = getEncounter(encounter.getUuid());
+        VitalsSteps.assertPatientHasObsOf(patientUUID, encounter);
+        var obsBefore = VitalsSteps.getPatientObs(patientUUID).results();
+        var encounterBefore = VitalsSteps.getEncounter(encounter.getUuid());
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -210,9 +200,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(encounter.getUuid());
 
-        ModelAssertions.assertUnchanged(softly, obsBefore, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(obsBefore, VitalsSteps.getPatientObs(patientUUID).results(),
                 "patient obs after unauthorized delete");
-        ModelAssertions.assertUnchanged(softly, encounterBefore, getEncounter(encounter.getUuid()),
+        ModelAssertions.assertUnchanged(encounterBefore, VitalsSteps.getEncounter(encounter.getUuid()),
                 "encounter after unauthorized delete (not voided)");
     }
 
@@ -220,7 +210,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
     @CreateEncounter(EncounterType.VITALS)
     public void adminCanDeleteSingleObs() {
         var encounter = SessionStorage.getEncounter();
-        assertPatientHasObsOf(encounter);
+        VitalsSteps.assertPatientHasObsOf(patientUUID, encounter);
 
         String deletedObsUUID = encounter.getObs().get(0).getUuid();
 
@@ -234,68 +224,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
         Set<String> expectedObsUUIDs = new TreeSet<>(Uuids.of(encounter.getObs()));
         expectedObsUUIDs.remove(deletedObsUUID);
 
-        softly.assertThat(Uuids.of(getPatientObs().results()))
+        softly.assertThat(Uuids.of(VitalsSteps.getPatientObs(patientUUID).results()))
                 .as("only deleted obs is gone, other obs remain")
                 .isEqualTo(expectedObsUUIDs);
-    }
-
-    // ======== HELPERS ========
-    private SearchResult<ObsResponse> getPatientObs() {
-        return new SuccessfulSearchRequester<ObsResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.OBS_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .search(ObsSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation("full")
-                        .build());
-    }
-
-    private CreateEncounterResponse getEncounter(String encounterUUID) {
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_GET,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .get(encounterUUID, Map.of("v", "full"));
-    }
-
-    // Precondition (hard assert): all obs of created encounter are saved for patient
-    private void assertPatientHasObsOf(CreateEncounterResponse encounter) {
-        Set<String> expectedObsUUIDs = Uuids.of(encounter.getObs());
-        assertThat(Uuids.of(getPatientObs().results()))
-                .as("precondition: patient has %d obs of created encounter", expectedObsUUIDs.size())
-                .isEqualTo(expectedObsUUIDs);
-    }
-
-    // Every vitals concept at one edge of its range: TEXT concept gets free text,
-    // concept without absolute limits - any value inside its nominal range
-    private static List<Obs> obsAt(ToDoubleFunction<VitalsConcept> boundary) {
-        return Arrays.stream(VitalsConcept.values())
-                .map(concept -> boundaryObs(concept, boundary))
-                .toList();
-    }
-
-    private static Obs boundaryObs(VitalsConcept concept, ToDoubleFunction<VitalsConcept> boundary) {
-        if (concept.getValueType() == VitalsConcept.ValueType.TEXT) {
-            return Obs.of(concept, RandomModelGenerator.randomSentence());
-        }
-        double value = concept.hasAbsoluteRange()
-                ? boundary.applyAsDouble(concept)
-                : RandomModelGenerator.randomDouble(concept.low(), concept.high(), concept.getDecimalPlaces());
-        return Obs.of(concept, concept.valueOf(value));
-    }
-
-    // One case per concept with absolute limits: obs with value outside the range and expected error
-    private static Stream<Arguments> obsOutOf(String boundary, ToDoubleFunction<VitalsConcept> value, ObsFieldError error) {
-        return Arrays.stream(VitalsConcept.values())
-                .filter(VitalsConcept::hasAbsoluteRange)
-                .map(c -> Arguments.of(boundary, Obs.of(c, c.valueOf(value.applyAsDouble(c))), error));
-    }
-
-    // Step outside the range: 1 for whole-number concepts, 0.1 for concepts with decimals
-    private static double step(VitalsConcept concept) {
-        return concept.getDecimalPlaces() == 0 ? WHOLE_NUMBER_STEP : DECIMAL_STEP;
     }
 }

@@ -1,54 +1,59 @@
 package apiTests.medications;
 
 import apiParts.assertions.ModelAssertions;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.order.Drug;
+import apiParts.generators.DrugOrderGenerator;
+import apiParts.models.Ref;
+import apiParts.models.encounter.CreateEncounterRequest;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
-import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
 import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
-import common.annotations.CreateOrder;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-
-import static common.annotations.CreateOrder.Type.DRUG;
+import java.util.List;
 
 @CreatePatient
 public class MedicationsApiTests extends BaseTest {
 
     private String patientUUID;
+    private DrugOrder drugOrder;
+    private CreateEncounterRequest request;
 
     @BeforeEach
     void setUp() {
         patientUUID = SessionStorage.getPatient().getUuid();
+        drugOrder = DrugOrderGenerator.generateDrugOrder();
+        request = DrugOrderGenerator.generateEncounterRequest(drugOrder);
     }
 
     @Test
     public void activeMedicationHasNoScheduledDateOrDateStopped() {
-        var request = AdminSteps.drugOrderEncounterRequest(patientUUID);
-        new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(request);
+        var encounter = AdminSteps.createEncounter(request);
+        var savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
+        softly.assertThat(savedEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted order references")
+                .hasSize(request.getOrders().size())
+                .containsExactlyInAnyOrderElementsOf(
+                        encounter.getOrders().stream().map(Ref::getUuid).toList());
 
         var medications = AdminSteps.fetchMedications(patientUUID);
         softly.assertThat(medications.results())
                 .as("active drug orders saved for patient")
-                .hasSize(1);
+                .hasSize(request.getOrders().size());
 
         var saved = medications.results().get(0);
-        ModelAssertions.assertThatModels(softly, request.getOrders(), medications.results())
+        ModelAssertions.assertThatModels(request.getOrders(), medications.results())
                 .as("active drug order fields")
                 .match();
         softly.assertThat(saved.getUrgency())
@@ -64,20 +69,24 @@ public class MedicationsApiTests extends BaseTest {
 
     @Test
     public void upcomingMedicationHasFutureScheduledDateAndNoDateStopped() {
-        var request = AdminSteps.upcomingDrugOrderEncounterRequest(patientUUID);
-        new SuccessfulCrudRequester<CreateEncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(request);
+        DrugOrder upcomingDrugOrder = DrugOrderGenerator.generateUpcomingDrugOrder();
+        var upcomingRequest = DrugOrderGenerator.generateEncounterRequest(upcomingDrugOrder);
+        var encounter = AdminSteps.createEncounter(upcomingRequest);
+        var savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
+        softly.assertThat(savedEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted order references")
+                .hasSize(upcomingRequest.getOrders().size())
+                .containsExactlyInAnyOrderElementsOf(
+                        encounter.getOrders().stream().map(Ref::getUuid).toList());
 
         var medications = AdminSteps.fetchMedications(patientUUID);
         softly.assertThat(medications.results())
                 .as("upcoming drug orders saved for patient")
-                .hasSize(1);
+                .hasSize(upcomingRequest.getOrders().size());
 
         var saved = medications.results().get(0);
-        ModelAssertions.assertThatModels(softly, request.getOrders(), medications.results())
+        ModelAssertions.assertThatModels(upcomingRequest.getOrders(), medications.results())
                 .as("upcoming drug order fields")
                 .match();
         softly.assertThat(saved.getUrgency())
@@ -89,21 +98,37 @@ public class MedicationsApiTests extends BaseTest {
                 .matches(date -> Instant.parse(date).isAfter(Instant.now()), "is after now");
         softly.assertThat(saved.getScheduledDate())
                 .as("upcoming order scheduledDate matches the generated request")
-                .isEqualTo(DateTimeUtils.toInstantString(((DrugOrder) request.getOrders().get(0)).getScheduledDate()));
+                .isEqualTo(DateTimeUtils.toInstantString(upcomingDrugOrder.getScheduledDate()));
         softly.assertThat(saved.getDateStopped())
                 .as("upcoming order is not stopped")
                 .isNull();
     }
 
     @Test
-    @CreateOrder(DRUG)
     public void discontinuedMedicationBecomesPastAndReplacesOriginalInList() {
-        var originalOrderUUID = SessionStorage.getOrderUuid();
+        var originalEncounter = AdminSteps.createEncounter(request);
+        var savedOriginalEncounter = AdminSteps.getEncounter(originalEncounter.getUuid());
+        softly.assertThat(savedOriginalEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted original order references")
+                .hasSize(request.getOrders().size())
+                .containsExactlyInAnyOrderElementsOf(
+                        originalEncounter.getOrders().stream().map(Ref::getUuid).toList());
+        var originalOrderUUID = originalEncounter.getOrders().get(0).getUuid();
 
-        var discontinued = AdminSteps.discontinueDrugOrderEncounter(patientUUID, originalOrderUUID, Drug.ASPIRIN_325MG);
+        var discontinueRequest = DrugOrderGenerator.generateDiscontinueEncounterRequest(
+                originalOrderUUID, drugOrder.getDrug());
+
+        var discontinued = AdminSteps.createEncounter(discontinueRequest);
+        var savedDiscontinueEncounter = AdminSteps.getEncounter(discontinued.getUuid());
+        softly.assertThat(savedDiscontinueEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("DISCONTINUE order persisted")
+                .containsExactlyInAnyOrderElementsOf(
+                        discontinued.getOrders().stream().map(Ref::getUuid).toList());
         softly.assertThat(discontinued.getOrders())
                 .as("DISCONTINUE creates an order record")
-                .hasSize(1);
+                .hasSize(discontinueRequest.getOrders().size());
         var discontinueStubUUID = discontinued.getOrders().get(0).getUuid();
         softly.assertThat(discontinueStubUUID)
                 .as("DISCONTINUE creates a new order record, distinct from the original")
@@ -112,7 +137,7 @@ public class MedicationsApiTests extends BaseTest {
         var medications = AdminSteps.fetchMedications(patientUUID);
         softly.assertThat(medications.results())
                 .as("excludeDiscontinueOrders hides the DISCONTINUE stub, original order remains")
-                .hasSize(1)
+                .hasSize(originalEncounter.getOrders().size())
                 .first()
                 .extracting(DrugOrderResponse::getUuid)
                 .isEqualTo(originalOrderUUID);
@@ -125,7 +150,6 @@ public class MedicationsApiTests extends BaseTest {
 
     @Test
     public void unauthorizedUserCannotCreateMedication() {
-        var request = AdminSteps.drugOrderEncounterRequest(patientUUID);
         var before = AdminSteps.fetchMedications(patientUUID).results();
 
         new CrudRequester(
@@ -134,7 +158,7 @@ public class MedicationsApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsBadRequest())
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, AdminSteps.fetchMedications(patientUUID).results(),
+        ModelAssertions.assertUnchanged(before, AdminSteps.fetchMedications(patientUUID).results(),
                 "medications after unauthorized create");
     }
 
