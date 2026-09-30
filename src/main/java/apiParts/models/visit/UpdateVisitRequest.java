@@ -1,6 +1,6 @@
 package apiParts.models.visit;
 
-import apiParts.generators.StringGeneratingRule;
+import apiParts.generators.GeneratingRule;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -17,6 +17,6 @@ public class UpdateVisitRequest extends BaseModel {
 
     private VisitType visitType;
 
-    @StringGeneratingRule(regex = "[A-Za-z ]{5,100}")
+    @GeneratingRule(regex = "[A-Za-z ]{5,100}")
     private String indication;
 }

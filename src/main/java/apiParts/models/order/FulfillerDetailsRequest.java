@@ -1,5 +1,6 @@
 package apiParts.models.order;
 
+import apiParts.generators.GeneratingRule;
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -16,5 +17,7 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FulfillerDetailsRequest extends BaseModel {
     private FulfillerStatus fulfillerStatus;
+
+    @GeneratingRule(nullable = true)
     private String fulfillerComment;
 }

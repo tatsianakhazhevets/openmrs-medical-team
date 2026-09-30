@@ -1,11 +1,13 @@
 package apiParts.steps;
 
+import apiParts.models.Ref;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.*;
 import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
+import apiParts.models.vitals.CreateVitalsRequest;
 import apiParts.models.vitals.Obs;
 import apiParts.models.order.CareSetting;
 import apiParts.models.order.DiscontinueOrderRequest;
@@ -50,10 +52,8 @@ public class AdminSteps {
 
     // adminSpec() is authenticated by itself (Basic auth header), no login call is needed
     public static CreatePatientResponse createPatient() {
-        LoginAdminRequest loginAdminRequest = LoginAdminRequest.builder()
-                .username("admin")
-                .password("Admin123")
-                .build();
+        LoginAdminRequest loginAdminRequest =
+                RandomModelGenerator.generate(LoginAdminRequest.class);
 
         new SuccessfulAuthRequester<LoginAdminResponse>(
                 RequestSpecs.unAuthSpec(),
@@ -76,7 +76,7 @@ public class AdminSteps {
                 .create(PatientTestData.createPatientRequest(getId()));
     }
 
-    public static CreateEncounterResponse createVitalsEncounter(String patientUUID) {
+    public static EncounterResponse createVitalsEncounter(String patientUUID) {
         CreateEncounterRequest createEncounterRequest = CreateEncounterRequest.builder()
                 .patient(patientUUID)
                 .encounterType(EncounterType.VITALS)
@@ -84,11 +84,27 @@ public class AdminSteps {
                 .obs(VitalsTestData.vitalsObs())
                 .build();
 
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+        return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
                 .create(createEncounterRequest);
+    }
+
+    public static EncounterResponse createEncounter(CreateEncounterRequest request) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated()
+        ).create(request);
+    }
+
+    public static EncounterResponse createEncounter(CreateVitalsRequest request) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsCreated()
+        ).create(request);
     }
 
     public static CreateVisitResponse createVisitWithRequiredFields(String patientUUID) {
@@ -112,8 +128,8 @@ public class AdminSteps {
 
     // Valid outpatient drug order (Aspirin, simple dosing) as a standard fixture for order-related tests.
     // Request: OrderTestData.drugOrderEncounterRequest(patientUUID, ordererUUID)
-    public static CreateEncounterResponse createDrugOrderEncounter(String patientUUID) {
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+    public static EncounterResponse createDrugOrderEncounter(String patientUUID) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
@@ -161,8 +177,8 @@ public class AdminSteps {
 
     // Valid inpatient lab order (Alkaline phosphatase test) as a standard fixture for order-related tests.
     // Request: OrderTestData.labOrderEncounterRequest(patientUUID, ordererUUID)
-    public static CreateEncounterResponse createLabOrderEncounter(String patientUUID) {
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+    public static EncounterResponse createLabOrderEncounter(String patientUUID) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
@@ -370,12 +386,20 @@ public class AdminSteps {
         ).create(request);
     }
 
+    public static EncounterResponse getEncounter(String encounterUUID) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_GET,
+                ResponseSpecs.requestReturnsOk()
+        ).get(encounterUUID, new GetParams(GetParams.FULL).toQueryParams());
+    }
+
     public static GetVisitResponse getVisit(String visitUUID) {
         return new SuccessfulCrudRequester<GetVisitResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_GET,
                 ResponseSpecs.requestReturnsOk()
-        ).get(visitUUID);
+        ).get(visitUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
 
     public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {
@@ -497,8 +521,8 @@ public class AdminSteps {
 
     // Discontinues a drug order (POST /encounter, action=DISCONTINUE), the way the Medications page
     // stops an active/upcoming medication; the original order ends up with dateStopped set (Past Medications)
-    public static CreateEncounterResponse discontinueDrugOrderEncounter(String patientUUID, String orderUUID, Drug drug) {
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+    public static EncounterResponse discontinueDrugOrderEncounter(String patientUUID, String orderUUID, Drug drug) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated())
@@ -526,10 +550,7 @@ public class AdminSteps {
 
     // Credentials of the admin user, same source as RequestSpecs.adminSpec()
     private static LoginAdminRequest adminCredentials() {
-        return LoginAdminRequest.builder()
-                .username(RequestSpecs.ADMIN_USERNAME)
-                .password(RequestSpecs.ADMIN_PASSWORD)
-                .build();
+        return RandomModelGenerator.generate(LoginAdminRequest.class);
     }
 
     private static String getId() {

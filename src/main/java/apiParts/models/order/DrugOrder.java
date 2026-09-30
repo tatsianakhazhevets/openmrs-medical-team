@@ -8,9 +8,8 @@ import lombok.*;
 /**
  * Drug order inside CreateEncounterRequest.orders.
  * <p>
- * RandomModelGenerator gives valid outpatient order with simple dosing: fixed fields are the ones
- * negative cases depend on (careSetting, doseUnits), references with any valid value are random
- * (drug, route, frequency, quantityUnits, asNeeded), optional fields are not generated.
+ * RandomModelGenerator produces a valid outpatient simple-dosing order. Reference fields that must
+ * agree with the drug form are constrained by their generation rules; optional fields are omitted.
  */
 @Data
 @Builder
@@ -24,52 +23,56 @@ public class DrugOrder extends BaseModel {
     public static final String URGENCY_ON_SCHEDULED_DATE = "ON_SCHEDULED_DATE"; // sent together with scheduledDate (Upcoming Medications)
     public static final String ORDER_TYPE_UUID = "131168f4-15f5-102d-96e4-000c29c2a5d7"; // "Drug Order", GET /order?orderTypes={uuid}
 
-    @FixedStringGeneratingRule("drugorder")
+    @GeneratingRule(fixedValue = "drugorder")
     @Builder.Default private String type = "drugorder";
-    @FixedStringGeneratingRule("NEW")
+    @GeneratingRule(fixedValue = "NEW")
     @Builder.Default private String action = "NEW";
-    @FixedStringGeneratingRule(SIMPLE_DOSING)
+    @GeneratingRule(fixedValue = SIMPLE_DOSING)
     @Builder.Default private String dosingType = SIMPLE_DOSING;
 
-    @PatientUuidGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.PATIENT_UUID)
     private String patient;             // patient uuid, created in test setup
-    @FixedEnumGeneratingRule(enumClass = CareSetting.class, value = "OUTPATIENT")   // outpatient rules are checked in negative cases
+    @GeneratingRule(enumClass = CareSetting.class, enumValue = "OUTPATIENT")   // outpatient rules are checked in negative cases
     private CareSetting careSetting;
-    @ProviderUuidGeneratingRule
+    @GeneratingRule(strategy = GenerationStrategy.PROVIDER_UUID)
     private String orderer;             // provider uuid, AdminSteps.getCurrentProviderUuid()
-    @EnumGeneratingRule(enumClass = Drug.class)            // any: server does not validate drug against dosing
+    @GeneratingRule(enumClass = Drug.class, excludedEnumValues = "ACYCLOVIR_CREAM_3")
     private Drug drug;
-    @DependsOnFieldGeneratingRule(field = "drug", valueMethod = "getConceptUuid")
+    @GeneratingRule(
+            strategy = GenerationStrategy.DEPENDS_ON_FIELD,
+            sourceField = "drug",
+            valueMethod = "getConceptUuid"
+    )
     private String concept;             // concept of the drug, filled by builder.drug(...) / setDrug(...)
-    @DoubleGeneratingRule(min = 0.5, max = 4.0, range = 1)
+    @GeneratingRule(min = 0.5, max = 4.0, scale = 1)
     private Double dose;
-    @FixedEnumGeneratingRule(enumClass = DosingUnit.class, value = "TABLET")      // BOTTLE is not allowed for dose
+    @GeneratingRule(enumClass = DosingUnit.class, enumValue = "TABLET")      // BOTTLE is not allowed for dose
     private DosingUnit doseUnits;
-    @EnumGeneratingRule(enumClass = DrugRoute.class)       // any: server does not validate route against drug
+    @GeneratingRule(enumClass = DrugRoute.class, enumValue = "ORAL")
     private DrugRoute route;
-    @EnumGeneratingRule(enumClass = OrderFrequency.class)
+    @GeneratingRule(enumClass = OrderFrequency.class)
     private OrderFrequency frequency;
-    @BooleanGeneratingRule(false)
+    @GeneratingRule(booleanValue = BooleanGeneration.FALSE)
     private Boolean asNeeded;
-    @IntegerGeneratingRule(min = 0, max = 5)
+    @GeneratingRule(min = 0, max = 5)
     private Integer numRefills;
-    @DoubleGeneratingRule(min = 1, max = 30, range = 0)
+    @GeneratingRule(min = 1, max = 30)
     private Double quantity;
-    @EnumGeneratingRule(enumClass = DosingUnit.class)      // TABLET and BOTTLE are both valid for quantity
+    @GeneratingRule(enumClass = DosingUnit.class, enumValue = "TABLET")
     private DosingUnit quantityUnits;
-    @IgnoreGeneratingRule               // optional; with it server calculates autoExpireDate
+    @GeneratingRule(nullable = true)    // optional; with it server calculates autoExpireDate
     private Integer duration;
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private DurationUnit durationUnits;
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String dosingInstructions;  // for FREE_TEXT_DOSING
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String orderReasonNonCoded;
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String dateActivated;
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String urgency;             // ON_SCHEDULED_DATE, sent together with scheduledDate (Upcoming Medications)
-    @IgnoreGeneratingRule
+    @GeneratingRule(nullable = true)
     private String scheduledDate;       // ISO-8601 with offset, e.g. "2026-09-19T00:00:00-04:00"
 
     // Lombok keeps this setter instead of generating its own: drug and its concept always go together

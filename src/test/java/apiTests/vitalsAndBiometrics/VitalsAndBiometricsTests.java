@@ -2,9 +2,9 @@ package apiTests.vitalsAndBiometrics;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.EncounterType;
-import apiParts.models.VitalsConcept;
-import apiParts.models.encounter.CreateEncounterResponse;
+import apiParts.models.encounter.EncounterType;
+import apiParts.models.vitals.VitalsConcept;
+import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.errors.ObsFieldError;
 import apiParts.models.vitals.CreateVitalsRequest;
 import apiParts.models.vitals.Obs;
@@ -76,14 +76,14 @@ public class VitalsAndBiometricsTests extends BaseTest {
     public void adminCanAddVitals() {
         var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
 
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
         // obs in POST /encounter response are refs (uuid + display) - values are checked via GET /obs
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
         softly.assertThat(encounter.getObs())
@@ -92,7 +92,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
         var patientObs = getPatientObs();
 
-        ModelAssertions.assertThatModels(softly, request.getObs(), patientObs.results())
+        ModelAssertions.assertThatModels(request.getObs(), patientObs.results())
                 .as("obs saved for patient")
                 .match();
         softly.assertThat(patientObs.results().stream().map(o -> o.getPerson().getUuid()).toList())
@@ -110,14 +110,14 @@ public class VitalsAndBiometricsTests extends BaseTest {
         var request = RandomModelGenerator.generate(CreateVitalsRequest.class);
         request.setObs(obs);
 
-        var encounter = new SuccessfulCrudRequester<CreateEncounterResponse>(
+        var encounter = new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         )
                 .create(request);
         // obs in POST /encounter response are refs (uuid + display) - values are checked via GET /obs
-        ModelAssertions.assertThatModels(softly, request, encounter)
+        ModelAssertions.assertThatModels(request, encounter)
                 .as("POST /encounter response")
                 .match();
         softly.assertThat(encounter.getObs())
@@ -126,7 +126,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
 
         var patientObs = getPatientObs();
 
-        ModelAssertions.assertThatModels(softly, request.getObs(), patientObs.results())
+        ModelAssertions.assertThatModels(request.getObs(), patientObs.results())
                 .as("obs saved for patient")
                 .match();
         softly.assertThat(patientObs.results().stream().map(o -> o.getPerson().getUuid()).toList())
@@ -152,7 +152,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .create(request);
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(before, getPatientObs().results(),
                 "patient obs after POST /encounter with out-of-range value");
     }
 
@@ -191,7 +191,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(UUID.randomUUID().toString());
 
-        ModelAssertions.assertUnchanged(softly, before, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(before, getPatientObs().results(),
                 "patient obs after delete of non-existent encounter");
     }
 
@@ -210,9 +210,9 @@ public class VitalsAndBiometricsTests extends BaseTest {
         )
                 .delete(encounter.getUuid());
 
-        ModelAssertions.assertUnchanged(softly, obsBefore, getPatientObs().results(),
+        ModelAssertions.assertUnchanged(obsBefore, getPatientObs().results(),
                 "patient obs after unauthorized delete");
-        ModelAssertions.assertUnchanged(softly, encounterBefore, getEncounter(encounter.getUuid()),
+        ModelAssertions.assertUnchanged(encounterBefore, getEncounter(encounter.getUuid()),
                 "encounter after unauthorized delete (not voided)");
     }
 
@@ -252,8 +252,8 @@ public class VitalsAndBiometricsTests extends BaseTest {
                         .build());
     }
 
-    private CreateEncounterResponse getEncounter(String encounterUUID) {
-        return new SuccessfulCrudRequester<CreateEncounterResponse>(
+    private EncounterResponse getEncounter(String encounterUUID) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_GET,
                 ResponseSpecs.requestReturnsOk()
@@ -262,7 +262,7 @@ public class VitalsAndBiometricsTests extends BaseTest {
     }
 
     // Precondition (hard assert): all obs of created encounter are saved for patient
-    private void assertPatientHasObsOf(CreateEncounterResponse encounter) {
+    private void assertPatientHasObsOf(EncounterResponse encounter) {
         Set<String> expectedObsUUIDs = Uuids.of(encounter.getObs());
         assertThat(Uuids.of(getPatientObs().results()))
                 .as("precondition: patient has %d obs of created encounter", expectedObsUUIDs.size())

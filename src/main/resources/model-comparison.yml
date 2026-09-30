@@ -33,16 +33,17 @@ rules:
 
   # encounter itself (POST /encounter response); its obs and orders have own rules (Obs, DrugOrder)
   - request: CreateEncounterRequest
-    response: CreateEncounterResponse
+    response: EncounterResponse
     fields:
       - patient: patient.uuid
       - encounterType: encounterType.uuid
+      - encounterDatetime
       - location: location.uuid
       - visit: visit.uuid
 
   # Creating Vitals (POST /encounter response);
   - request: CreateVitalsRequest
-    response: CreateEncounterResponse
+    response: EncounterResponse
     fields:
       - patient: patient.uuid
       - encounterType: encounterType.uuid
@@ -119,6 +120,19 @@ rules:
       - endDateTime: endDateTime@epochMillis
       - providers[].uuid: providers[].uuid
 
+  # PUT /appointment response - only fields the request actually sends are echoed;
+  # status/provider response and uuid stability are business rules checked in the test itself
+  - request: UpdateAppointmentRequest
+    response: CreateAppointmentResponse
+    fields:
+      - serviceUuid: service.uuid
+      - locationUuid: location.uuid
+      - appointmentKind
+      - comments
+      - startDateTime: startDateTime@epochMillis
+      - endDateTime: endDateTime@epochMillis
+      - providers[].uuid: providers[].uuid
+
   - request: CreateVisitRequest
     response:
       - CreateVisitResponse
@@ -129,13 +143,3 @@ rules:
       - location: location.uuid
       - startDatetime
       - stopDatetime
-
-  - request: EncounterTestRequest
-    response:
-    - EncounterTestResponse
-    - GetEncounterResponse
-    fields:
-      - patient: patient.uuid
-      - encounterType: encounterType.uuid
-      - encounterDatetime
-      - location: location.uuid

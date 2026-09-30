@@ -8,7 +8,6 @@ import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 import apiParts.steps.AdminSteps;
-import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
 @CreatePatient
@@ -47,7 +45,7 @@ public class AppointmentTests extends BaseTest {
                 AdminSteps.createAppointment(request);
         appointmentUUID = appointment.getUuid();
 
-        ModelAssertions.assertThatModels(softly, request, appointment).as("POST /appointment response").match();
+        ModelAssertions.assertThatModels(request, appointment).as("POST /appointment response").match();
         softly.assertThat(appointment.getUuid()).isNotNull();
         softly.assertThat(appointment.getAppointmentNumber()).isNotNull();
         softly.assertThat(appointment.getStatus())
@@ -75,7 +73,7 @@ public class AppointmentTests extends BaseTest {
                         "Created appointment was not found in search results"
                 ));
 
-        ModelAssertions.assertThatModels(softly, request, foundAppointment).as("appointment after GET").match();
+        ModelAssertions.assertThatModels(request, foundAppointment).as("appointment after GET").match();
     }
 
     @Test
@@ -91,21 +89,12 @@ public class AppointmentTests extends BaseTest {
         CreateAppointmentResponse updatedAppointment =
                 AdminSteps.updateAppointment(request);
 
+        ModelAssertions.assertThatModels(request, updatedAppointment).as("PUT /appointment response").match();
         softly.assertThat(updatedAppointment.getUuid()).isEqualTo(appointmentUUID);
         softly.assertThat(updatedAppointment.getStatus()).isEqualTo(AppointmentStatus.CHECKED_IN.getValue());
-        softly.assertThat(updatedAppointment.getComments()).isEqualTo(request.getComments());
         softly.assertThat(updatedAppointment.getProviders()).anyMatch(provider ->
                 provider.getUuid().equals(request.getProviders().get(0).getUuid()) &&
                         AppointmentProviderResponse.ACCEPTED.getValue().equals(provider.getResponse()));
-        softly.assertThat(updatedAppointment.getStartDateTime()).isEqualTo(String.valueOf(
-                OffsetDateTime.parse(
-                                request.getStartDateTime(),
-                                DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME)
-                        .toInstant().toEpochMilli()));
-        softly.assertThat(updatedAppointment.getEndDateTime()).isEqualTo(String.valueOf(
-                OffsetDateTime.parse(
-                        request.getEndDateTime(),
-                        DateTimeUtils.OPENMRS_RESPONSE_DATE_TIME).toInstant().toEpochMilli()));
     }
 
     @Test

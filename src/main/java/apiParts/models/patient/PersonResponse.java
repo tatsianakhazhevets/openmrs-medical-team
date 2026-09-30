@@ -1,5 +1,6 @@
 package apiParts.models.patient;
 
+import apiParts.models.Ref;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,6 @@ public class PersonResponse {
     private Boolean birthdateEstimated;
     private Boolean dead;
 
-    private PersonNameResponse preferredName;
-    private PersonAddressResponse preferredAddress;
+    private Ref preferredName;
+    private Ref preferredAddress;
 }

@@ -1,5 +1,6 @@
-package apiParts.models;
+package apiParts.models.vitals;
 
+import apiParts.models.HasUuid;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

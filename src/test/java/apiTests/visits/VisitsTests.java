@@ -2,10 +2,9 @@ package apiTests.visits;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.Attribute;
-import apiParts.models.EncounterType;
+import apiParts.models.encounter.EncounterType;
 import apiParts.models.visit.*;
-import apiParts.models.encounter.Ref;
+import apiParts.models.Ref;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
@@ -58,7 +57,7 @@ public class VisitsTests extends BaseTest {
         GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
-        ModelAssertions.assertThatModels(softly, request, savedVisit).as("created visit").match();
+        ModelAssertions.assertThatModels(request, savedVisit).as("created visit").match();
         softly.assertThat(savedVisit.getLocation()).as("location").isNull();
         softly.assertThat(savedVisit.getStopDatetime()).as("stop datetime").isNull();
         softly.assertThat(savedVisit.getStartDatetime()).as("start datetime").isNotNull();
@@ -82,7 +81,7 @@ public class VisitsTests extends BaseTest {
         Attribute attribute = request.getAttributes().get(0);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
-        ModelAssertions.assertThatModels(softly, request, savedVisit).as("created visit").match();
+        ModelAssertions.assertThatModels(request, savedVisit).as("created visit").match();
         softly.assertThat(savedVisit.getAttributes()).extracting(Ref::getDisplay)
                 .containsExactly(attribute.getAttributeType().getDisplay()
                         + ": " + attribute.getValue());

@@ -9,5 +9,5 @@ public enum ReactionUuid {
     UNKNOWN("1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
     HEADACHE("139084AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-    private final String Reaction;
+    private final String uuid;
 }

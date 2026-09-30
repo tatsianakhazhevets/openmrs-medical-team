@@ -56,7 +56,7 @@ public class GetProcedureApiTests extends BaseTest {
         softly.assertThat(savedProcedure.getUuid())
                 .as("procedure uuid from GET matches POST /procedure")
                 .isEqualTo(procedure.getUuid());
-        ModelAssertions.assertThatModels(softly, request, savedProcedure)
+        ModelAssertions.assertThatModels(request, savedProcedure)
                 .as("procedure returned by GET /procedure/{uuid}")
                 .match();
     }
@@ -82,7 +82,7 @@ public class GetProcedureApiTests extends BaseTest {
 
         var patientProcedures = getPatientProcedures();
 
-        ModelAssertions.assertThatModels(softly, requests, patientProcedures.results())
+        ModelAssertions.assertThatModels(requests, patientProcedures.results())
                 .as("procedures returned for patient")
                 .match();
         softly.assertThat(Uuids.of(patientProcedures.results()))

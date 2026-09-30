@@ -1,6 +1,6 @@
 package apiParts.models.queue;
 
-import apiParts.models.encounter.Ref;
+import apiParts.models.Ref;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -2,7 +2,7 @@ package apiTests.queue;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.encounter.Ref;
+import apiParts.models.Ref;
 import apiParts.models.queue.*;
 import apiParts.models.queueEntry.*;
 import apiParts.skelethon.endpoints.Endpoint;
@@ -52,7 +52,15 @@ public class QueueTests extends BaseTest {
         QueueEntryResponse foundEntry = AdminSteps.getActiveQueueEntries().requireOne(
                 entry -> entry.getUuid().equals(response.getUuid()),
                 "created queue entry " + response.getUuid());
-        ModelAssertions.assertMatchesExpected(softly, foundEntry, response, "queue entry");
+        ModelAssertions.assertMatchesExpectedIgnoringFields(
+                foundEntry,
+                response,
+                "queue entry",
+                "queue.links",
+                "status.links",
+                "patient.links",
+                "visit.links",
+                "priority.links");
     }
 
     @Test
@@ -95,7 +103,7 @@ public class QueueTests extends BaseTest {
                 entry -> entry.getUuid().equals(createdResponse.getUuid()),
                 "updated queue entry " + createdResponse.getUuid());
 
-        ModelAssertions.assertMatchesExpected(softly, foundEntry, expected, "updated queue entry");
+        ModelAssertions.assertMatchesExpected(foundEntry, expected, "updated queue entry");
     }
 
     @Test

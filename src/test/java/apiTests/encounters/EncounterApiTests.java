@@ -1,14 +1,12 @@
 package apiTests.encounters;
 
-import apiParts.models.EncounterType;
-import apiParts.models.encounter.CreateEncounterResponse;
-import apiParts.models.encounter.Ref;
-import apiParts.models.visit.CreateVisitRequest;
-import apiParts.models.visit.CreateVisitResponse;
-import apiParts.skelethon.endpoints.Endpoint;
-import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.specs.RequestSpecs;
-import apiParts.specs.ResponseSpecs;
+import apiParts.generators.DrugOrderGenerator;
+import apiParts.generators.RandomModelGenerator;
+import apiParts.models.Location;
+import apiParts.models.Ref;
+import apiParts.models.encounter.EncounterResponse;
+import apiParts.models.encounter.EncounterType;
+import apiParts.models.vitals.CreateVitalsRequest;
 import apiParts.steps.AdminSteps;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
@@ -16,10 +14,8 @@ import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
 @CreatePatient
 public class EncounterApiTests extends BaseTest {
-    private static final int VITALS_OBS_COUNT = 11; // obs in AdminSteps.createVitalsEncounter()
 
     private String patientUUID;
 
@@ -30,7 +26,9 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateVitalsEncounter() {
-        CreateEncounterResponse encounter = AdminSteps.createVitalsEncounter(patientUUID);
+        CreateVitalsRequest request = RandomModelGenerator.generate(CreateVitalsRequest.class);
+        request.setLocation(Location.OUTPATIENT_CLINIC);
+        EncounterResponse encounter = AdminSteps.createEncounter(request);
 
         softly.assertThat(encounter.getUuid())
                 .as("encounter uuid")
@@ -43,12 +41,30 @@ public class EncounterApiTests extends BaseTest {
                 .isEqualTo(patientUUID);
         softly.assertThat(encounter.getObs())
                 .as("obs saved with encounter")
-                .hasSize(VITALS_OBS_COUNT);
+                .hasSize(request.getObs().size());
+
+        EncounterResponse savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
+        softly.assertThat(savedEncounter.getUuid())
+                .as("created vitals encounter is retrievable")
+                .isEqualTo(encounter.getUuid());
+        softly.assertThat(savedEncounter.getPatient().getUuid())
+                .as("persisted encounter patient")
+                .isEqualTo(patientUUID);
+        softly.assertThat(savedEncounter.getEncounterType().getUuid())
+                .as("persisted encounter type")
+                .isEqualTo(EncounterType.VITALS.getUuid());
+        softly.assertThat(savedEncounter.getObs())
+                .extracting(Ref::getUuid)
+                .as("persisted vitals observations")
+                .containsExactlyInAnyOrderElementsOf(
+                        encounter.getObs().stream().map(Ref::getUuid).toList());
     }
 
     @Test
     public void adminCanCreateDrugOrderEncounter() {
-        CreateEncounterResponse encounter = AdminSteps.createDrugOrderEncounter(patientUUID);
+        var order = DrugOrderGenerator.generateDrugOrder();
+        var request = DrugOrderGenerator.generateEncounterRequest(order);
+        EncounterResponse encounter = AdminSteps.createEncounter(request);
 
         softly.assertThat(encounter.getUuid())
                 .as("encounter uuid")
@@ -61,15 +77,43 @@ public class EncounterApiTests extends BaseTest {
                 .isEqualTo(patientUUID);
         softly.assertThat(encounter.getOrders())
                 .as("orders saved with encounter")
-                .hasSize(1);
+                .hasSize(request.getOrders().size());
+
+        EncounterResponse savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
+        softly.assertThat(savedEncounter.getPatient().getUuid())
+                .as("persisted encounter patient")
+                .isEqualTo(patientUUID);
+        softly.assertThat(savedEncounter.getEncounterType().getUuid())
+                .as("persisted encounter type")
+                .isEqualTo(EncounterType.ORDER.getUuid());
+        softly.assertThat(savedEncounter.getOrders())
+                .extracting(Ref::getUuid)
+                .as("persisted drug order references")
+                .containsExactlyInAnyOrderElementsOf(
+                        encounter.getOrders().stream().map(Ref::getUuid).toList());
     }
 
     // Creates a Vitals encounter and a Drug Order encounter for the same patient
     // and attaches both to one visit - checks that different encounter types coexist correctly.
+    //
+    // OpenMRS links an encounter to a visit via the encounter's own "visit" field
+    // (Encounter owns the foreign key); a visit's "encounters" list on POST /visit is not
+    // a persisted association - it's only echoed back in that response and is empty again
+    // on a subsequent GET. So the visit is created first, then each encounter is created with
+    // "visit" set to the new visit's uuid.
     @Test
     public void adminCanAttachTwoDifferentEncounterTypesToSameVisit() {
-        CreateEncounterResponse vitalsEncounter = AdminSteps.createVitalsEncounter(patientUUID);
-        CreateEncounterResponse orderEncounter = AdminSteps.createDrugOrderEncounter(patientUUID);
+        var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
+
+        CreateVitalsRequest vitalsRequest = RandomModelGenerator.generate(CreateVitalsRequest.class);
+        vitalsRequest.setLocation(Location.OUTPATIENT_CLINIC);
+        vitalsRequest.setVisit(visit.getUuid());
+        EncounterResponse vitalsEncounter = AdminSteps.createEncounter(vitalsRequest);
+
+        var drugOrder = DrugOrderGenerator.generateDrugOrder();
+        var orderRequest = DrugOrderGenerator.generateEncounterRequest(drugOrder);
+        orderRequest.setVisit(visit.getUuid());
+        EncounterResponse orderEncounter = AdminSteps.createEncounter(orderRequest);
 
         softly.assertThat(vitalsEncounter.getEncounterType().getUuid())
                 .as("vitals encounter type")
@@ -81,19 +125,10 @@ public class EncounterApiTests extends BaseTest {
                 .as("encounter types are different")
                 .isNotEqualTo(vitalsEncounter.getEncounterType().getUuid());
 
-        CreateVisitRequest visitRequest = AdminSteps.visitRequest(
-                patientUUID,
-                java.util.List.of(vitalsEncounter.getUuid(), orderEncounter.getUuid()));
-
-        var visit = new SuccessfulCrudRequester<CreateVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(visitRequest);
-
-        softly.assertThat(visit.getEncounters())
+        softly.assertThat(AdminSteps.getVisit(visit.getUuid()).getEncounters())
                 .extracting(Ref::getUuid)
-                .as("visit contains both encounters")
+                .as("created visit is retrievable with both encounters")
                 .containsExactlyInAnyOrder(vitalsEncounter.getUuid(), orderEncounter.getUuid());
     }
+
 }

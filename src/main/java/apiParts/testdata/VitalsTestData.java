@@ -1,12 +1,12 @@
 package apiParts.testdata;
 
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.VitalsConcept;
 import apiParts.models.vitals.Obs;
+import apiParts.models.vitals.VitalsConcept;
 
 import java.util.List;
 
-import static apiParts.models.VitalsConcept.*;
+import static apiParts.models.vitals.VitalsConcept.*;
 
 /**
  * Obs of the standard vitals encounter (see apiParts.steps.AdminSteps#createVitalsEncounter).

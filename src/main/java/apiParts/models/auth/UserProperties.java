@@ -1,6 +1,5 @@
-package apiParts.models.euncouterTest;
+package apiParts.models.auth;
 
-import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class EncounterLinkResponse extends BaseModel {
-    private String rel;
-    private String uri;
-    private String resourceAlias;
+public class UserProperties {
+    private String loginAttempts;
+    private String lastViewedPatientIds;
 }
