@@ -29,7 +29,7 @@ public class CreateOrderApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateDrugOrder() {
-        /*String patientUUID = SessionStorage.getPatient().getUuid();
+        String patientUUID = SessionStorage.getPatient().getUuid();
         DrugOrder drugOrder = DrugOrderGenerator.generateDrugOrder();
         CreateEncounterRequest drugOrderRequest = DrugOrderGenerator.generateEncounterRequest(drugOrder);
         EncounterResponse encounter = AdminSteps.createEncounter(drugOrderRequest);
@@ -58,12 +58,12 @@ public class CreateOrderApiTests extends BaseTest {
 
         ModelAssertions.assertThatModels(drugOrderRequest.getOrders(), List.of(savedOrder))
                 .as("saved drug order")
-                .match(); */
+                .match();
     }
 
     @Test
     public void adminCanCreateLabOrder() {
-        /*String patientUUID = SessionStorage.getPatient().getUuid();
+        String patientUUID = SessionStorage.getPatient().getUuid();
 
         TestOrder labOrder = RandomModelGenerator.generate(TestOrder.class);
         CreateEncounterRequest labOrderRequest = RandomModelGenerator.generate(CreateEncounterRequest.class);
@@ -103,7 +103,7 @@ public class CreateOrderApiTests extends BaseTest {
                 .isEqualTo(patientUUID);
         softly.assertThat(savedOrder.getConcept().getUuid())
                 .as("saved lab order concept")
-                .isEqualTo(labOrder.getConcept().getUuid());*/
+                .isEqualTo(labOrder.getConcept().getUuid());
     }
 
     @Test

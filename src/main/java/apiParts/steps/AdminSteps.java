@@ -365,7 +365,7 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsCreated()
         ).create(request);
     }
-/*
+
     public static EncounterResponse getEncounter(String encounterUUID) {
         return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -382,7 +382,7 @@ public class AdminSteps {
         ).get(visitUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
 
- */
+
 
     public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {
         SearchParams visits = () -> Map.<String, Object>of(

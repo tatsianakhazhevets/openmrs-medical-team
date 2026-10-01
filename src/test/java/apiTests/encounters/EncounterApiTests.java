@@ -26,7 +26,7 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanCreateVitalsEncounter() {
-        /*
+
         CreateVitalsRequest request = RandomModelGenerator.generate(CreateVitalsRequest.class);
         request.setLocation(Location.OUTPATIENT_CLINIC);
         EncounterResponse encounter = AdminSteps.createEncounter(request);
@@ -58,12 +58,12 @@ public class EncounterApiTests extends BaseTest {
                 .extracting(Ref::getUuid)
                 .as("persisted vitals observations")
                 .containsExactlyInAnyOrderElementsOf(
-                        encounter.getObs().stream().map(Ref::getUuid).toList()); */
+                        encounter.getObs().stream().map(Ref::getUuid).toList());
     }
 
     @Test
     public void adminCanCreateDrugOrderEncounter() {
-       /* var order = DrugOrderGenerator.generateDrugOrder();
+        var order = DrugOrderGenerator.generateDrugOrder();
         var request = DrugOrderGenerator.generateEncounterRequest(order);
         EncounterResponse encounter = AdminSteps.createEncounter(request);
 
@@ -91,20 +91,12 @@ public class EncounterApiTests extends BaseTest {
                 .extracting(Ref::getUuid)
                 .as("persisted drug order references")
                 .containsExactlyInAnyOrderElementsOf(
-                        encounter.getOrders().stream().map(Ref::getUuid).toList());*/
+                        encounter.getOrders().stream().map(Ref::getUuid).toList());
     }
 
-    // Creates a Vitals encounter and a Drug Order encounter for the same patient
-    // and attaches both to one visit - checks that different encounter types coexist correctly.
-    //
-    // OpenMRS links an encounter to a visit via the encounter's own "visit" field
-    // (Encounter owns the foreign key); a visit's "encounters" list on POST /visit is not
-    // a persisted association - it's only echoed back in that response and is empty again
-    // on a subsequent GET. So the visit is created first, then each encounter is created with
-    // "visit" set to the new visit's uuid.
     @Test
     public void adminCanAttachTwoDifferentEncounterTypesToSameVisit() {
-        /*var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
+        var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
 
         CreateVitalsRequest vitalsRequest = RandomModelGenerator.generate(CreateVitalsRequest.class);
         vitalsRequest.setLocation(Location.OUTPATIENT_CLINIC);
@@ -129,6 +121,6 @@ public class EncounterApiTests extends BaseTest {
         softly.assertThat(AdminSteps.getVisit(visit.getUuid()).getEncounters())
                 .extracting(Ref::getUuid)
                 .as("created visit is retrievable with both encounters")
-                .containsExactlyInAnyOrder(vitalsEncounter.getUuid(), orderEncounter.getUuid()); */
+                .containsExactlyInAnyOrder(vitalsEncounter.getUuid(), orderEncounter.getUuid());
     }
 }

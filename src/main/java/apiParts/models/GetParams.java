@@ -20,6 +20,9 @@ public class GetParams {
 
     private String v;
 
+    public GetParams(String full) {
+    }
+
     public Map<String, Object> toQueryParams() {
         Map<String, Object> queryParams = new LinkedHashMap<>();
 
