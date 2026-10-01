@@ -1,4 +1,5 @@
-package apiParts.models.auth;
+package apiParts.models.euncouterTest;
+
 import apiParts.models.BaseModel;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class UserProperties extends BaseModel {
+public class EncounterPatientResponse extends BaseModel {
     private String uuid;
     private String display;
+    private List<EncounterLinkResponse> links;
 }

@@ -251,7 +251,7 @@ public class PatientManagementApiTests extends BaseTest {
 
         GetPatientResponse patientAfter = PatientSteps.getPatientPositive(createPatientResponse.getUuid());
 
-        ModelAssertions.assertThatModels(softly, identifierRequest, identifierResponse).match();
+        ModelAssertions.assertThatModels(identifierRequest, identifierResponse).match();
 
         softly.assertThat(patientAfter.getIdentifiers()).hasSize(identifiersBefore + 1);
         softly.assertThat(patientAfter.getIdentifiers()
@@ -294,7 +294,7 @@ public class PatientManagementApiTests extends BaseTest {
 
         GetPatientResponse patientAfter = PatientSteps.getPatientPositive(patientBefore.getUuid());
 
-        ModelAssertions.assertThatModels(softly, updateRequest, identifierResponse).match();
+        ModelAssertions.assertThatModels(updateRequest, identifierResponse).match();
 
         softly.assertThat(patientAfter.getIdentifiers()).anyMatch(id ->
                 id.getUuid().equals(identifierUuid) && id.getDisplay().endsWith(updateRequest.getIdentifier()));

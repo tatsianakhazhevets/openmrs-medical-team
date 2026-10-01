@@ -78,7 +78,7 @@ public enum Endpoint {
     ENCOUNTER_POST(
             "/encounter",
             CreateEncounterRequest.class,
-            CreateEncounterResponse.class),
+            EncounterResponse.class),
 
     ENCOUNTER_CREATE_POST(
             "/encounter",
@@ -88,7 +88,7 @@ public enum Endpoint {
     ENCOUNTER_GET(
             "/encounter",
             BaseModel.class,
-            CreateEncounterResponse.class),
+            EncounterResponse.class),
 
     ENCOUNTER_SEARCH_GET(
             "/encounter",

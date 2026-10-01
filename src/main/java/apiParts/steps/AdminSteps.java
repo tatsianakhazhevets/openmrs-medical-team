@@ -365,7 +365,7 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsCreated()
         ).create(request);
     }
-
+/*
     public static EncounterResponse getEncounter(String encounterUUID) {
         return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
@@ -381,6 +381,8 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk()
         ).get(visitUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
+
+ */
 
     public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {
         SearchParams visits = () -> Map.<String, Object>of(
@@ -453,7 +455,7 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk())
                 .search(medications);
     }
-
+/*
     // Single order by uuid, as returned by GET /order/{uuid}?v=full. Unlike fetchTestOrders,
     // this also finds orders once they are stopped/discontinued, which the list endpoint excludes
     public static Order fetchOrder(String orderUUID) {
@@ -463,6 +465,7 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk())
                 .get(orderUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
+ */
 
     // Single obs by uuid for a patient, as returned by GET /obs?patient={uuid}&v=full
     public static ObsResponse fetchObs(String patientUUID, String obsUUID) {

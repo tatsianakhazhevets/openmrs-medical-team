@@ -101,5 +101,4 @@ public class DeleteOrderApiTests extends BaseTest {
                 .as("order still present after unauthorized delete attempt")
                 .anyMatch(order -> order.getUuid().equals(orderUUID));
     }
-
 }

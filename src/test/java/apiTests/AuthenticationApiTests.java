@@ -31,7 +31,7 @@ public class AuthenticationApiTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk())
                 .login(loginAdminRequest);
 
-        ModelAssertions.assertThatModels(softly, loginAdminRequest, loginAdminResponse).match();
+        ModelAssertions.assertThatModels(loginAdminRequest, loginAdminResponse).match();
         softly.assertThat(loginAdminResponse.isAuthenticated()).isTrue();
         softly.assertThat(loginAdminResponse.getUser()).isNotNull();
         softly.assertThat(loginAdminResponse.getAllowedLocales()).isNotEmpty();

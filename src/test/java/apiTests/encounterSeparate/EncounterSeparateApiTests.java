@@ -1,4 +1,4 @@
-package apiTests.encounterCrud;
+package apiTests.encounterSeparate;
 
 import apiParts.assertions.ModelAssertions;
 import apiParts.generators.RandomModelGenerator;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import static apiParts.models.errors.EncounterErrorMessages.*;
 
 @CreatePatient
-public class EncounterApiTests extends BaseTest {
+public class EncounterSeparateApiTests extends BaseTest {
 
     String nonExistingUuid = RandomUuidGenerator.generateUuid();
 
@@ -40,7 +40,7 @@ public class EncounterApiTests extends BaseTest {
 
         GetEncounterResponse receivedEncounterResponse = EncounterSteps.getEncounter(
                 encounterResponse.getUuid());
-        ModelAssertions.assertThatModels(softly, encounterRequest, receivedEncounterResponse).match();
+        ModelAssertions.assertThatModels(encounterRequest, receivedEncounterResponse).match();
         softly.assertThat(receivedEncounterResponse.isVoided()).isFalse();
         softly.assertThat(receivedEncounterResponse.getPatient().getDisplay())
                 .isEqualTo(SessionStorage.getPatient().getDisplay());
@@ -149,7 +149,7 @@ public class EncounterApiTests extends BaseTest {
 
         GetEncounterResponse receivedEncounterResponse = EncounterSteps.getEncounter(
                 encounterResponse.getUuid());
-        ModelAssertions.assertThatModels(softly, encounterRequest, receivedEncounterResponse).match();
+        ModelAssertions.assertThatModels(encounterRequest, receivedEncounterResponse).match();
         softly.assertThat(updatedEncounterResponse.getUuid()).isEqualTo(encounterResponse.getUuid());
         softly.assertThat(updatedEncounterResponse.isVoided()).isFalse();
     }
