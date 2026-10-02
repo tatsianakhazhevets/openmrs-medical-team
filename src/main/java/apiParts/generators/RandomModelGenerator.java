@@ -469,6 +469,10 @@ public final class RandomModelGenerator {
         return new Generex(regex).random();
     }
 
+    public static String randomUnknownUuid() {
+        return UUID.randomUUID().toString();
+    }
+
     public static String randomSentence() {
         return FAKER.lorem().sentence();
     }

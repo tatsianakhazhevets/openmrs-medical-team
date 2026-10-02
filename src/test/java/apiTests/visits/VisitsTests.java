@@ -10,7 +10,7 @@ import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
+import apiParts.steps.VisitSteps;
 import apiTests.BaseTest;
 import common.annotations.CreateEncounter;
 import common.annotations.CreatePatient;
@@ -25,7 +25,7 @@ import java.util.Map;
 @CreatePatient
 public class VisitsTests extends BaseTest {
     private static final String NON_EXISTENT_VISIT_UUID =
-            "82f18b44-6814-11e8-923f-e9a88dcb533f";
+            RandomModelGenerator.randomUnknownUuid();
     private String patientUUID;
     private String visitUUID;
 
@@ -37,7 +37,7 @@ public class VisitsTests extends BaseTest {
     @AfterEach
     public void tearDown() {
         if (visitUUID != null) {
-            AdminSteps.deleteVisit(visitUUID);
+            VisitSteps.deleteVisit(visitUUID);
         }
     }
 
@@ -52,9 +52,9 @@ public class VisitsTests extends BaseTest {
         request.setEncounters(null);
         request.setAttributes(null);
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
         visitUUID = visit.getUuid();
-        GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse savedVisit = VisitSteps.getVisit(visitUUID);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         ModelAssertions.assertThatModels(request, savedVisit).as("created visit").match();
@@ -74,10 +74,10 @@ public class VisitsTests extends BaseTest {
                 RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse savedVisit = VisitSteps.getVisit(visitUUID);
         Attribute attribute = request.getAttributes().get(0);
 
         softly.assertThat(savedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
@@ -94,7 +94,7 @@ public class VisitsTests extends BaseTest {
         CreateVisitRequest request =
                 RandomModelGenerator.generate(CreateVisitRequest.class);
 
-        List<String> visitUUIDsBefore = AdminSteps.getVisits(request.getPatient())
+        List<String> visitUUIDsBefore = VisitSteps.getVisits(request.getPatient())
                 .results()
                 .stream()
                 .map(GetVisitResponse::getUuid)
@@ -103,10 +103,10 @@ public class VisitsTests extends BaseTest {
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
                 Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage("Privileges required: Get Patients"))
+                ResponseSpecs.requestReturnsBadRequestWithMessagePrivilegesRequiredGetPatients())
                 .create(request);
 
-        List<String> visitUUIDsAfter = AdminSteps.getVisits(request.getPatient())
+        List<String> visitUUIDsAfter = VisitSteps.getVisits(request.getPatient())
                 .results()
                 .stream()
                 .map(GetVisitResponse::getUuid)
@@ -118,7 +118,7 @@ public class VisitsTests extends BaseTest {
 
     @Test
     public void cannotCreateVisitWithoutPatient() {
-        List<String> visitUUIDsBefore = AdminSteps.getVisits(patientUUID)
+        List<String> visitUUIDsBefore = VisitSteps.getVisits(patientUUID)
                 .results()
                 .stream()
                 .map(GetVisitResponse::getUuid)
@@ -131,11 +131,10 @@ public class VisitsTests extends BaseTest {
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(
-                        "Some required properties are missing: patient"))
+                ResponseSpecs.requestReturnsBadRequestWithMessageSomeRequiredPropertiesAreMissingPatient())
                 .create(request);
 
-        List<String> visitUUIDsAfter = AdminSteps.getVisits(patientUUID)
+        List<String> visitUUIDsAfter = VisitSteps.getVisits(patientUUID)
                 .results()
                 .stream()
                 .map(GetVisitResponse::getUuid)
@@ -154,7 +153,7 @@ public class VisitsTests extends BaseTest {
                 RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
         UpdateVisitRequest updatedRequest =
@@ -167,7 +166,7 @@ public class VisitsTests extends BaseTest {
                 ResponseSpecs.requestReturnsOk()
         ).update(visit.getUuid(), updatedRequest);
 
-        GetVisitResponse updatedVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse updatedVisit = VisitSteps.getVisit(visitUUID);
         softly.assertThat(updatedVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(updatedVisit.getPatient().getUuid()).as("patient uuid").isEqualTo(patientUUID);
         softly.assertThat(updatedVisit.getVisitType().getUuid()).as("visit type")
@@ -197,10 +196,10 @@ public class VisitsTests extends BaseTest {
         CreateVisitRequest request =
                 RandomModelGenerator.generate(CreateVisitRequest.class);
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse savedVisit = VisitSteps.getVisit(visitUUID);
 
         UpdateVisitRequest updatedRequest =
                 RandomModelGenerator.generate(UpdateVisitRequest.class);
@@ -211,7 +210,7 @@ public class VisitsTests extends BaseTest {
                 ResponseSpecs.requestReturnsUnauthorized())
                 .update(visit.getUuid(), updatedRequest);
 
-        GetVisitResponse actualVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse actualVisit = VisitSteps.getVisit(visitUUID);
         softly.assertThat(actualVisit.getUuid()).as("visit uuid").isEqualTo(savedVisit.getUuid());
         softly.assertThat(actualVisit.getPatient().getUuid()).as("patient uuid")
                 .isEqualTo(savedVisit.getPatient().getUuid());
@@ -226,14 +225,14 @@ public class VisitsTests extends BaseTest {
         CreateVisitRequest request =
                 RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.VISIT_DELETE,
                 ResponseSpecs.requestReturnsNoContent()).delete(visit.getUuid());
 
-        GetVisitResponse retiredVisit = AdminSteps.getVisit(visit.getUuid());
+        GetVisitResponse retiredVisit = VisitSteps.getVisit(visit.getUuid());
 
         softly.assertThat(retiredVisit.getUuid()).as("visit uuid").isEqualTo(visit.getUuid());
         softly.assertThat(retiredVisit.getVoided()).as("visit should be retired").isTrue();
@@ -247,7 +246,7 @@ public class VisitsTests extends BaseTest {
                 RandomModelGenerator.generate(CreateVisitRequest.class);
         request.setEncounters(List.of(encounterUUID));
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
 
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
@@ -280,10 +279,10 @@ public class VisitsTests extends BaseTest {
         CreateVisitRequest request =
                 RandomModelGenerator.generate(CreateVisitRequest.class);
 
-        CreateVisitResponse visit = AdminSteps.createVisit(request);
+        CreateVisitResponse visit = VisitSteps.createVisit(request);
         visitUUID = visit.getUuid();
 
-        GetVisitResponse savedVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse savedVisit = VisitSteps.getVisit(visitUUID);
 
         new CrudRequester(
                 RequestSpecs.unAuthSpec(),
@@ -291,7 +290,7 @@ public class VisitsTests extends BaseTest {
                 ResponseSpecs.requestReturnsUnauthorized())
                 .delete(visitUUID);
 
-        GetVisitResponse actualVisit = AdminSteps.getVisit(visitUUID);
+        GetVisitResponse actualVisit = VisitSteps.getVisit(visitUUID);
 
         softly.assertThat(actualVisit.getUuid()).as("visit uuid")
                 .isEqualTo(savedVisit.getUuid());

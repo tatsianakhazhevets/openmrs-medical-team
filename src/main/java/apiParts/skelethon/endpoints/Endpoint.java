@@ -197,6 +197,11 @@ public enum Endpoint {
             BaseModel.class,
             GetQueueResponse.class),
 
+    APPOINTMENTS_GET(
+            "/appointments",
+            BaseModel.class,
+            CreateAppointmentResponse.class),
+
     APPOINTMENT_POST(
             "/appointment",
             CreateAppointmentRequest.class,

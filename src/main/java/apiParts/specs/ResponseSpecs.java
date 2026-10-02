@@ -89,6 +89,9 @@ public class ResponseSpecs {
                 .expectBody("error.fieldErrors." + field, Matchers.notNullValue())
                 .build();
     }
+    public static ResponseSpecification requestReturnsInvalidSubmissionPatient() {
+        return requestReturnsInvalidSubmission("patient");
+    }
 
     // Validation error not bound to a field: 400 + {"error": {"code": "webservices.rest.error.invalid.submission", "globalErrors": [{code}]}}
     public static ResponseSpecification requestReturnsInvalidSubmissionWithGlobalError(String errorCode) {
@@ -120,6 +123,13 @@ public class ResponseSpecs {
                 .expectBody("error.message", Matchers.containsString(messagePart))
                 .build();
     }
+    // Business rule violation without field errors: 400 + {"error": {"message": "...<part>..."}}
+    public static ResponseSpecification requestReturnsBadRequestWithMessagePrivilegesRequiredGetPatients() {
+        return requestReturnsBadRequestWithMessage("Privileges required: Get Patients");
+    }
+    public static ResponseSpecification requestReturnsBadRequestWithMessageSomeRequiredPropertiesAreMissingPatient() {
+        return requestReturnsBadRequestWithMessage("Some required properties are missing: patient");
+    }
 
     public static ResponseSpecification requestReturnsBadRequestWithTwoMessages(String messagePart, String fieldMessagePart) {
         return defaultResponseSpec()
@@ -142,6 +152,16 @@ public class ResponseSpecs {
     //}
     public static ResponseSpecification requestReturnsBadRequestWithMessage(ProcedureErrorMessage error) {
         return requestReturnsBadRequestWithMessage(error.getMessage());
+    }
+    public static ResponseSpecification requestReturnsAppointmentCannotBeCreatedWithoutPatient() {
+        return requestReturnsBadRequestWithMessage(
+                "Appointment cannot be created without Patient"
+        );
+    }
+    public static ResponseSpecification requestReturnsAppointmentCannotBeCreatedWithoutService() {
+        return requestReturnsBadRequestWithMessage(
+                "Appointment cannot be created without Service"
+        );
     }
 
     public static ResponseSpecification requestReturnsBadRequest(String errorMessage) {

@@ -7,7 +7,8 @@ import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.steps.AdminSteps;
+import apiParts.steps.AppointmentSteps;
+import apiParts.utils.DateTimeUtils;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -19,8 +20,6 @@ import java.util.List;
 
 @CreatePatient
 public class AppointmentTests extends BaseTest {
-    private static final String NON_EXISTING_APPOINTMENT_UUID =
-            "00000000-0000-0000-0000-000000000000";
     private String patientUUID;
     private String appointmentUUID;
 
@@ -32,7 +31,7 @@ public class AppointmentTests extends BaseTest {
     @AfterEach
     void tearDown() {
         if (appointmentUUID != null) {
-            AdminSteps.cancelAppointment(appointmentUUID);
+            AppointmentSteps.cancelAppointment(appointmentUUID);
         }
     }
 
@@ -42,16 +41,21 @@ public class AppointmentTests extends BaseTest {
                 RandomModelGenerator.generate(CreateAppointmentRequest.class);
 
         CreateAppointmentResponse appointment =
-                AdminSteps.createAppointment(request);
+                AppointmentSteps.createAppointment(request);
+
         appointmentUUID = appointment.getUuid();
 
-        ModelAssertions.assertThatModels(request, appointment).as("POST /appointment response").match();
-        softly.assertThat(appointment.getUuid()).isNotNull();
-        softly.assertThat(appointment.getAppointmentNumber()).isNotNull();
-        softly.assertThat(appointment.getStatus())
-                .isEqualTo(AppointmentStatus.SCHEDULED.getValue());
-        softly.assertThat(appointment.getVoided()).isFalse();
-        softly.assertThat(appointment.getRecurring()).isFalse();
+        CreateAppointmentResponse foundAppointment =
+                AppointmentSteps.getAppointmentByUuid(appointmentUUID, request.getStartDateTime());
+
+        ModelAssertions.assertThatModels(request, foundAppointment)
+                .as("appointment after GET").match();
+
+        softly.assertThat(foundAppointment.getUuid()).isNotNull();
+        softly.assertThat(foundAppointment.getAppointmentNumber()).isNotNull();
+        softly.assertThat(foundAppointment.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED.getValue());
+        softly.assertThat(foundAppointment.getVoided()).isFalse();
+        softly.assertThat(foundAppointment.getRecurring()).isFalse();
     }
 
     @Test
@@ -60,36 +64,44 @@ public class AppointmentTests extends BaseTest {
                 RandomModelGenerator.generate(CreateAppointmentRequest.class);
 
         CreateAppointmentResponse appointment =
-                AdminSteps.createAppointment(request);
+                AppointmentSteps.createAppointment(request);
         appointmentUUID = appointment.getUuid();
 
+        CreateAppointmentResponse foundAppointment =
+                AppointmentSteps.getAppointmentByUuid(appointmentUUID, request.getStartDateTime());
+
+        ModelAssertions.assertThatModels(request, foundAppointment)
+                .as("appointment after GET").match();
+
         List<CreateAppointmentResponse> appointments =
-                AdminSteps.searchAppointments(patientUUID);
+                AppointmentSteps.searchAppointments(patientUUID);
 
-        CreateAppointmentResponse foundAppointment = appointments.stream()
-                .filter(found -> found.getUuid().equals(appointment.getUuid()))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError(
-                        "Created appointment was not found in search results"
-                ));
+        CreateAppointmentResponse foundInSearch =
+                AppointmentSteps.requireAppointment(appointments, appointmentUUID);
 
-        ModelAssertions.assertThatModels(request, foundAppointment).as("appointment after GET").match();
+        ModelAssertions.assertThatModels(request, foundInSearch)
+                .as("appointment after search").match();
     }
 
     @Test
     void shouldUpdateAppointment() {
         CreateAppointmentResponse appointment =
-                AdminSteps.createAppointment();
+                AppointmentSteps.createAppointment();
         appointmentUUID = appointment.getUuid();
 
         UpdateAppointmentRequest request =
                 RandomModelGenerator.generate(UpdateAppointmentRequest.class);
         request.setUuid(appointmentUUID);
 
-        CreateAppointmentResponse updatedAppointment =
-                AdminSteps.updateAppointment(request);
+        AppointmentSteps.updateAppointment(request);
 
-        ModelAssertions.assertThatModels(request, updatedAppointment).as("PUT /appointment response").match();
+        CreateAppointmentResponse updatedAppointment =
+                AppointmentSteps.getAppointmentByUuid(appointmentUUID, request.getStartDateTime());
+
+        ModelAssertions.assertThatModels(request, updatedAppointment)
+                .as("appointment after GET")
+                .match();
+
         softly.assertThat(updatedAppointment.getUuid()).isEqualTo(appointmentUUID);
         softly.assertThat(updatedAppointment.getStatus()).isEqualTo(AppointmentStatus.CHECKED_IN.getValue());
         softly.assertThat(updatedAppointment.getProviders()).anyMatch(provider ->
@@ -100,10 +112,17 @@ public class AppointmentTests extends BaseTest {
     @Test
     void shouldCancelAppointment() {
         CreateAppointmentResponse appointment =
-                AdminSteps.createAppointment();
+                AppointmentSteps.createAppointment();
+        appointmentUUID = appointment.getUuid();
+
+        AppointmentSteps.cancelAppointment(appointmentUUID);
+        appointmentUUID = null;
 
         CreateAppointmentResponse cancelledAppointment =
-                AdminSteps.cancelAppointment(appointment.getUuid());
+                AppointmentSteps.getAppointmentByUuid(
+                        appointment.getUuid(),
+                        appointment.getStartDateTime()
+                );
 
         softly.assertThat(cancelledAppointment.getUuid()).isEqualTo(appointment.getUuid());
         softly.assertThat(cancelledAppointment.getStatus()).isEqualTo(AppointmentStatus.CANCELLED.getValue());
@@ -118,10 +137,14 @@ public class AppointmentTests extends BaseTest {
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENT_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(
-                        "Appointment cannot be created without Patient"
-                )
-        ).create(request);
+                ResponseSpecs.requestReturnsAppointmentCannotBeCreatedWithoutPatient()).create(request);
+        List<CreateAppointmentResponse> appointmentsAfter =
+                AppointmentSteps.getAppointments(
+                        DateTimeUtils.toForDate(request.getStartDateTime()));
+
+        softly.assertThat(appointmentsAfter)
+                .noneMatch(appointment ->
+                        request.getComments().equals(appointment.getComments()));
     }
 
     @Test
@@ -133,22 +156,38 @@ public class AppointmentTests extends BaseTest {
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENT_POST,
-                ResponseSpecs.requestReturnsBadRequestWithMessage(
-                        "Appointment cannot be created without Service"
-                )
+                ResponseSpecs.requestReturnsAppointmentCannotBeCreatedWithoutService()
         ).create(request);
+
+        List<CreateAppointmentResponse> appointmentsAfter =
+                AppointmentSteps.getAppointments(
+                        DateTimeUtils.toForDate(request.getStartDateTime()));
+
+        softly.assertThat(appointmentsAfter)
+                .noneMatch(appointment ->
+                        request.getPatientUuid().equals(appointment.getPatient().getUuid())
+                                && request.getComments().equals(appointment.getComments()));
     }
 
     @Test
     void shouldNotUpdateNonExistingAppointment() {
+        String nonExistingAppointmentUuid =
+                RandomModelGenerator.randomUnknownUuid();
+
         UpdateAppointmentRequest request =
                 RandomModelGenerator.generate(UpdateAppointmentRequest.class);
-        request.setUuid(NON_EXISTING_APPOINTMENT_UUID);
+        request.setUuid(nonExistingAppointmentUuid);
 
         new CrudRequester(
                 RequestSpecs.adminSpec(),
                 Endpoint.APPOINTMENT_POST,
                 ResponseSpecs.requestReturnsBadRequest()
         ).create(request);
+
+        List<CreateAppointmentResponse> appointments = AppointmentSteps.getAppointments(
+                DateTimeUtils.toForDate(request.getStartDateTime()));
+
+        softly.assertThat(appointments).noneMatch(appointment ->
+                nonExistingAppointmentUuid.equals(appointment.getUuid()));
     }
 }

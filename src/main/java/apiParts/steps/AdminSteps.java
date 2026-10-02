@@ -1,9 +1,7 @@
 package apiParts.steps;
 
-import apiParts.models.Ref;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.*;
-import apiParts.models.appointment.*;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.models.auth.LoginAdminResponse;
 import apiParts.models.encounter.*;
@@ -18,16 +16,9 @@ import apiParts.models.order.FulfillerStatus;
 import apiParts.models.order.LabTestConcept;
 import apiParts.models.order.Order;
 import apiParts.models.patient.*;
-import apiParts.models.queue.*;
-import apiParts.models.queueEntry.*;
-import apiParts.models.visit.CreateVisitRequest;
-import apiParts.models.visit.CreateVisitResponse;
-import apiParts.models.visit.GetVisitResponse;
-import apiParts.models.visit.VisitType;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
-import apiParts.skelethon.requests.action.SuccessfulActionRequester;
 import apiParts.skelethon.requests.action.ActionRequester;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.models.order.DrugOrderResponse;
@@ -36,7 +27,6 @@ import apiParts.models.search.SearchParams;
 import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
-import apiParts.testdata.AppointmentTestData;
 import apiParts.testdata.OrderTestData;
 import apiParts.testdata.PatientTestData;
 
@@ -93,25 +83,6 @@ public class AdminSteps {
                 Endpoint.ENCOUNTER_POST,
                 ResponseSpecs.requestReturnsCreated()
         ).create(request);
-    }
-
-    public static CreateVisitResponse createVisitWithRequiredFields(String patientUUID) {
-        CreateVisitRequest request = CreateVisitRequest.builder().patient(patientUUID)
-                .visitType(VisitType.FACILITY_VISIT)
-                .build();
-
-        return new SuccessfulCrudRequester<CreateVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsCreated()).create(request);
-    }
-
-    public static CreateVisitRequest visitRequest(String patientUUID, List<String> encounterUUIDs) {
-        return CreateVisitRequest.builder()
-                .patient(patientUUID)
-                .visitType(VisitType.FACILITY_VISIT)
-                .encounters(encounterUUIDs)
-                .build();
     }
 
     // Valid outpatient drug order (Aspirin, simple dosing) as a standard fixture for order-related tests.
@@ -173,171 +144,6 @@ public class AdminSteps {
                 .create(OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid()));
     }
 
-    public static void deleteVisit(String visitUUID) {
-        new SuccessfulCrudRequester<CreateVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_DELETE,
-                ResponseSpecs.requestReturnsNoContent()
-        ).delete(visitUUID, Map.of("purge", true));
-    }
-
-    public static QueueEntryResponse addPatientToQueue(
-            String patientUUID,
-            String visitUUID) {
-
-        QueueResponse queue = getOutpatientConsultationQueue();
-
-        CreateQueueEntryRequest request =
-                RandomModelGenerator.generate(CreateQueueEntryRequest.class);
-
-        request.setVisit(Ref.of(visitUUID));
-
-        CreateQueueEntryRequest.QueueEntry queueEntry =
-                RandomModelGenerator.generate(CreateQueueEntryRequest.QueueEntry.class);
-
-        queueEntry.setStatus(QueueStatus.WAITING.toRef());
-        queueEntry.setPriority(QueuePriority.NOT_URGENT.toRef());
-        queueEntry.setQueue(Ref.of(queue.getUuid()));
-        queueEntry.setPatient(Ref.of(patientUUID));
-
-        request.setQueueEntry(queueEntry);
-
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_QUEUE_ENTRY_POST,
-                ResponseSpecs.requestReturnsCreated()
-        ).create(request);
-    }
-
-    public static QueueEntryResponse createQueueEntry(
-            CreateQueueEntryRequest request) {
-
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_QUEUE_ENTRY_POST,
-                ResponseSpecs.requestReturnsCreated()
-        ).create(request);
-    }
-
-    public static QueueEntryResponse updateQueueEntry(
-            String queueEntryUUID,
-            UpdateQueueEntryRequest request) {
-
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_UPDATE,
-                ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, request);
-    }
-
-    public static QueueEntryResponse endQueueEntry(
-            String queueEntryUUID,
-            EndQueueEntryRequest request) {
-
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_UPDATE,
-                ResponseSpecs.requestReturnsOk()
-        ).update(queueEntryUUID, request);
-    }
-
-    public static QueueEntryResponse endQueueEntry(String queueEntryUUID) {
-        EndQueueEntryRequest request =
-                RandomModelGenerator.generate(EndQueueEntryRequest.class);
-
-        return endQueueEntry(queueEntryUUID, request);
-    }
-
-    public static SearchResult<QueueEntryResponse> getActiveQueueEntries() {
-        return new SuccessfulSearchRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_ENTRY_GET,
-                ResponseSpecs.requestReturnsOk()
-        ).search(QueueEntrySearchParams.builder()
-                .representation(QueueEntrySearchParams.ACTIVE_ENTRY_REPRESENTATION)
-                .location(Location.OUTPATIENT_CLINIC.getUuid())
-                .isEnded(false)
-                .build());
-    }
-
-    public static QueueResponse getOutpatientConsultationQueue() {
-        return new SuccessfulSearchRequester<QueueResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.QUEUE_GET,
-                ResponseSpecs.requestReturnsOk()
-        ).search(QueueSearchParams.builder()
-                        .representation(QueueSearchParams.QUEUE_LOOKUP_REPRESENTATION)
-                        .build())
-                .requireOne(queue ->
-                                QueueType.OUTPATIENT_CONSULTATION.getDisplay().equals(queue.getName())
-                                        && Location.OUTPATIENT_CLINIC.getDisplay().equals(queue.getLocation().getDisplay()),
-                        "Queue 'Outpatient Consultation' at 'Outpatient Clinic'");
-    }
-
-    public static CreateAppointmentResponse createAppointment(CreateAppointmentRequest request) {
-        return new SuccessfulCrudRequester<CreateAppointmentResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.APPOINTMENT_POST,
-                ResponseSpecs.requestReturnsOk()
-        ).create(request);
-    }
-
-    public static CreateAppointmentResponse createAppointment() {
-        return createAppointment(
-                RandomModelGenerator.generate(CreateAppointmentRequest.class)
-        );
-    }
-
-    public static CreateAppointmentResponse createAppointment(String patientUUID) {
-        CreateAppointmentRequest request =
-                RandomModelGenerator.generate(CreateAppointmentRequest.class);
-        request.setPatientUuid(patientUUID);
-
-        return createAppointment(request);
-    }
-
-    public static CreateAppointmentResponse cancelAppointment(
-            String appointmentUUID,
-            AppointmentStatusChangeRequest request) {
-
-        // POST /appointments/{uuid}/status-change - a command on the appointment, not CRUD
-        return new SuccessfulActionRequester<CreateAppointmentResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.APPOINTMENT_CHANGE_STATUS,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .perform(appointmentUUID, request);
-    }
-
-    public static CreateAppointmentResponse cancelAppointment(String appointmentUUID) {
-        return cancelAppointment(appointmentUUID, AppointmentTestData.cancelStatusChangeRequest());
-    }
-
-    public static CreateAppointmentResponse updateAppointment(
-            UpdateAppointmentRequest request) {
-
-        // The appointments module updates via POST /appointment with the uuid INSIDE the body -
-        // the same request as create, so CrudEndpoint.update(uuid, ...) (POST /appointment/{uuid}) does not fit.
-        return new SuccessfulCrudRequester<CreateAppointmentResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.APPOINTMENT_POST,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .create(request);
-    }
-
-    // POST /appointments/search answers a bare JSON array (no {"results": [...]} wrapper);
-    // SuccessfulSearchRequester recognises that shape by itself
-    public static List<CreateAppointmentResponse> searchAppointments(String patientUUID) {
-        return new SuccessfulSearchRequester<CreateAppointmentResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.APPOINTMENTS_SEARCH,
-                ResponseSpecs.requestReturnsOk()
-        )
-                .searchByBody(AppointmentTestData.searchRequest(patientUUID))
-                .results();
-    }
-
     // Provider linked to admin user (GET /session -> currentProvider), used as order.orderer
     public static String getCurrentProviderUuid() {
         String cached = currentProviderUuid;
@@ -358,42 +164,12 @@ public class AdminSteps {
         }
     }
 
-    public static CreateVisitResponse createVisit(CreateVisitRequest request) {
-        return new SuccessfulCrudRequester<CreateVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_POST,
-                ResponseSpecs.requestReturnsCreated()
-        ).create(request);
-    }
-
     public static EncounterResponse getEncounter(String encounterUUID) {
         return new SuccessfulCrudRequester<EncounterResponse>(
                 RequestSpecs.adminSpec(),
                 Endpoint.ENCOUNTER_GET,
                 ResponseSpecs.requestReturnsOk()
         ).get(encounterUUID, new GetParams(GetParams.FULL).toQueryParams());
-    }
-
-    public static GetVisitResponse getVisit(String visitUUID) {
-        return new SuccessfulCrudRequester<GetVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_GET,
-                ResponseSpecs.requestReturnsOk()
-        ).get(visitUUID, new GetParams(GetParams.FULL).toQueryParams());
-    }
-
-
-
-    public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {
-        SearchParams visits = () -> Map.<String, Object>of(
-                "patient", patientUUID,
-                "v", "custom");
-
-        return new SuccessfulSearchRequester<GetVisitResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISITS_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(visits);
     }
 
     // Search params for GET /order limited to a patient's inpatient orders. Exposed as params only

@@ -2,6 +2,7 @@ package common.extensions;
 
 import apiParts.models.visit.CreateVisitResponse;
 import apiParts.steps.AdminSteps;
+import apiParts.steps.VisitSteps;
 import common.annotations.CreateVisit;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -26,7 +27,7 @@ public class CreateVisitExtension implements BeforeEachCallback, AfterEachCallba
         String patientUUID = ExtensionUtils.requirePatientUuid(CreateVisit.class);
 
         CreateVisitResponse visit =
-                AdminSteps.createVisitWithRequiredFields(patientUUID);
+                VisitSteps.createVisitWithRequiredFields(patientUUID);
 
         SessionStorage.addVisit(visit);
     }

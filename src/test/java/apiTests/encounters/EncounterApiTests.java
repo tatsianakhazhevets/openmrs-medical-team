@@ -8,6 +8,7 @@ import apiParts.models.Location;
 import apiParts.models.encounter.EncounterResponse;
 import apiParts.models.vitals.CreateVitalsRequest;
 import apiParts.steps.AdminSteps;
+import apiParts.steps.VisitSteps;
 import apiTests.BaseTest;
 import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
@@ -61,7 +62,7 @@ public class EncounterApiTests extends BaseTest {
 
     @Test
     public void adminCanAttachTwoDifferentEncounterTypesToSameVisit() {
-        var visit = AdminSteps.createVisitWithRequiredFields(patientUUID);
+        var visit = VisitSteps.createVisitWithRequiredFields(patientUUID);
 
         CreateVitalsRequest vitalsRequest = RandomModelGenerator.generate(CreateVitalsRequest.class);
         vitalsRequest.setLocation(Location.OUTPATIENT_CLINIC);
@@ -74,7 +75,7 @@ public class EncounterApiTests extends BaseTest {
         EncounterResponse orderEncounter = AdminSteps.createEncounter(orderRequest);
 
         EncounterAssertions.assertDifferentEncounterTypesInVisit(
-                AdminSteps.getVisit(visit.getUuid()), orderEncounter, vitalsEncounter);
+                VisitSteps.getVisit(visit.getUuid()), orderEncounter, vitalsEncounter);
         EncounterResponse savedVitalsEncounter = AdminSteps.getEncounter(vitalsEncounter.getUuid());
         EncounterResponse savedOrderEncounter = AdminSteps.getEncounter(orderEncounter.getUuid());
         ModelAssertions.assertThatModels(vitalsRequest, savedVitalsEncounter)

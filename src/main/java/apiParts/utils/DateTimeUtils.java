@@ -1,5 +1,6 @@
 package apiParts.utils;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -78,4 +79,27 @@ public class DateTimeUtils {
     private static int randomMinuteOfDay() {
         return ThreadLocalRandom.current().nextInt(MINUTES_PER_DAY);
     }
+
+    public static String toForDate(String dateTime) {
+        if (dateTime == null) {
+            return null;
+        }
+
+        if (dateTime.matches("\\d+")) {
+            return Instant.ofEpochMilli(Long.parseLong(dateTime))
+                    .atZone(ZoneOffset.UTC)
+                    .toLocalDate()
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .format(OPENMRS_RESPONSE_DATE_TIME);
+        }
+
+        String iso = dateTime.replaceFirst("([+-]\\d{2})(\\d{2})$", "$1:$2");
+
+        OffsetDateTime parsed = OffsetDateTime.parse(iso);
+
+        return parsed.toLocalDate()
+                .atStartOfDay(parsed.getOffset())
+                .format(OPENMRS_RESPONSE_DATE_TIME);
+    }
 }
+
