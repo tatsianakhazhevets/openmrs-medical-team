@@ -33,14 +33,6 @@ public class AppointmentSteps {
         );
     }
 
-    public static CreateAppointmentResponse createAppointment(String patientUUID) {
-        CreateAppointmentRequest request =
-                RandomModelGenerator.generate(CreateAppointmentRequest.class);
-        request.setPatientUuid(patientUUID);
-
-        return createAppointment(request);
-    }
-
     public static CreateAppointmentResponse cancelAppointment(
             String appointmentUUID,
             AppointmentStatusChangeRequest request) {
@@ -82,6 +74,7 @@ public class AppointmentSteps {
                 .searchByBody(AppointmentTestData.searchRequest(patientUUID))
                 .results();
     }
+
     public static List<CreateAppointmentResponse> getAppointments(String forDate) {
         SearchParams appointments = () -> Map.<String, Object>of(
                 "forDate", forDate
@@ -93,6 +86,7 @@ public class AppointmentSteps {
                 ResponseSpecs.requestReturnsOk()
         ).search(appointments).results();
     }
+
     public static CreateAppointmentResponse getAppointmentByUuid(
             String appointmentUUID,
             String startDateTime) {
@@ -105,6 +99,7 @@ public class AppointmentSteps {
                                 " was not found in GET /appointments response"
                 ));
     }
+
     public static CreateAppointmentResponse requireAppointment(
             List<CreateAppointmentResponse> appointments,
             String appointmentUUID) {

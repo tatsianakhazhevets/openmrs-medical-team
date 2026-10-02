@@ -95,45 +95,6 @@ public class AdminSteps {
                 .create(OrderTestData.drugOrderEncounterRequest(patientUUID, getCurrentProviderUuid()));
     }
 
-    // Request behind createDrugOrderEncounter, exposed so callers can build the expected
-    // response model from it (see apiParts.assertions.OrderAssertions)
-    public static CreateEncounterRequest drugOrderEncounterRequest(String patientUUID) {
-        return OrderTestData.drugOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
-    }
-
-    // Request behind createLabOrderEncounter, exposed for tests that need the exact
-    // request instance for model comparison or an alternate request specification.
-    public static CreateEncounterRequest labOrderEncounterRequest(String patientUUID) {
-        return OrderTestData.labOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
-    }
-
-    // Lab order encounter with the concept field intentionally omitted (concept is required
-    // for a test order) - used to verify the server rejects the submission
-    public static CreateEncounterRequest labOrderRequestWithoutConcept(String patientUUID) {
-        return OrderTestData.labOrderRequestWithoutConcept(patientUUID, getCurrentProviderUuid());
-    }
-
-    // Lab order encounter with careSetting intentionally omitted (careSetting is required
-    // for any order) - used to verify the server rejects the submission
-    public static CreateEncounterRequest labOrderRequestWithoutCareSetting(String patientUUID) {
-        return OrderTestData.labOrderRequestWithoutCareSetting(patientUUID, getCurrentProviderUuid());
-    }
-
-    public static CreateEncounterRequest labResultEncounterRequest(String orderUUID, Number resultValue) {
-        return CreateEncounterRequest.builder()
-                .obs(List.of(Obs.ofLabResult(
-                        LabTestConcept.ALKALINE_PHOSPHATASE, orderUUID, resultValue)))
-                .build();
-    }
-
-    // Same standard outpatient drug order as drugOrderEncounterRequest, but scheduled ahead
-    // (urgency=ON_SCHEDULED_DATE) - Upcoming Medications fixture. Exposed as a request (not create+request
-    // pair) since callers need the same instance both to POST /encounter and to build the expected
-    // response model (see apiParts.assertions.OrderAssertions) - scheduledDate is time-sensitive.
-    public static CreateEncounterRequest upcomingDrugOrderEncounterRequest(String patientUUID) {
-        return OrderTestData.upcomingDrugOrderEncounterRequest(patientUUID, getCurrentProviderUuid());
-    }
-
     // Valid inpatient lab order (Alkaline phosphatase test) as a standard fixture for order-related tests.
     // Request: OrderTestData.labOrderEncounterRequest(patientUUID, ordererUUID)
     public static EncounterResponse createLabOrderEncounter(String patientUUID) {
@@ -231,30 +192,6 @@ public class AdminSteps {
                 ResponseSpecs.requestReturnsOk())
                 .search(medications);
     }
-/*
-    // Single order by uuid, as returned by GET /order/{uuid}?v=full. Unlike fetchTestOrders,
-    // this also finds orders once they are stopped/discontinued, which the list endpoint excludes
-    public static Order fetchOrder(String orderUUID) {
-        return new SuccessfulCrudRequester<Order>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_POST,
-                ResponseSpecs.requestReturnsOk())
-                .get(orderUUID, new GetParams(GetParams.FULL).toQueryParams());
-    }
- */
-
-    // Single obs by uuid for a patient, as returned by GET /obs?patient={uuid}&v=full
-    public static ObsResponse fetchObs(String patientUUID, String obsUUID) {
-        return new SuccessfulSearchRequester<ObsResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.OBS_GET,
-                ResponseSpecs.requestReturnsOk())
-                .search(ObsSearchParams.builder()
-                        .patient(patientUUID)
-                        .representation(GetParams.FULL)
-                        .build())
-                .requireOne(obs -> obs.getUuid().equals(obsUUID), "obs " + obsUUID);
-    }
 
     // Request behind discontinueOrder, exposed so callers can send it themselves
     // (e.g. to exercise auth/error paths with a custom ResponseSpecification)
@@ -272,40 +209,11 @@ public class AdminSteps {
                 .create(discontinueOrderRequest(orderUUID, patientUUID, encounterUUID));
     }
 
-    // Request behind discontinueDrugOrderEncounter, exposed so callers can build the expected
-    // response model from it (see apiParts.assertions.OrderAssertions)
-    public static CreateEncounterRequest discontinueDrugOrderEncounterRequest(String patientUUID, String orderUUID, Drug drug) {
-        return OrderTestData.discontinueDrugOrderEncounterRequest(patientUUID, orderUUID, drug, getCurrentProviderUuid());
-    }
-
-    // Discontinues a drug order (POST /encounter, action=DISCONTINUE), the way the Medications page
-    // stops an active/upcoming medication; the original order ends up with dateStopped set (Past Medications)
-    public static EncounterResponse discontinueDrugOrderEncounter(String patientUUID, String orderUUID, Drug drug) {
-        return new SuccessfulCrudRequester<EncounterResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.ENCOUNTER_POST,
-                ResponseSpecs.requestReturnsCreated())
-                .create(discontinueDrugOrderEncounterRequest(patientUUID, orderUUID, drug));
-    }
-
-    // Updates the fulfiller status of a testorder (POST /order/{uuid}/fulfillerdetails/), the way
-    // the laboratory reports progress on a test order (e.g. IN_PROGRESS, then COMPLETED)
-    public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status, String comment) {
-        new ActionRequester(
-                RequestSpecs.adminSpec(),
-                Endpoint.ORDER_FULFILLER_DETAILS,
-                ResponseSpecs.requestReturnsCreated())
-                .perform(orderUUID, OrderTestData.fulfillerDetailsRequest(status, comment));
-    }
-
     public static FulfillerDetailsRequest fulfillerDetailsRequest(FulfillerStatus status, String comment) {
         return OrderTestData.fulfillerDetailsRequest(status, comment);
     }
 
     // ======== HELPERS ========
-    public static String getPatientIdentifier() {
-        return getId();
-    }
 
     // Credentials of the admin user, same source as RequestSpecs.adminSpec()
     private static LoginAdminRequest adminCredentials() {

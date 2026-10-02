@@ -13,7 +13,6 @@ import apiParts.skelethon.requests.search.SuccessfulSearchRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
 
-import java.util.List;
 import java.util.Map;
 
 public class VisitSteps {
@@ -28,13 +27,6 @@ public class VisitSteps {
                 ResponseSpecs.requestReturnsCreated()).create(request);
     }
 
-    public static CreateVisitRequest visitRequest(String patientUUID, List<String> encounterUUIDs) {
-        return CreateVisitRequest.builder()
-                .patient(patientUUID)
-                .visitType(VisitType.FACILITY_VISIT)
-                .encounters(encounterUUIDs)
-                .build();
-    }
     public static void deleteVisit(String visitUUID) {
         new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
@@ -42,6 +34,7 @@ public class VisitSteps {
                 ResponseSpecs.requestReturnsNoContent()
         ).delete(visitUUID, Map.of("purge", true));
     }
+
     public static CreateVisitResponse createVisit(CreateVisitRequest request) {
         return new SuccessfulCrudRequester<CreateVisitResponse>(
                 RequestSpecs.adminSpec(),
@@ -57,7 +50,6 @@ public class VisitSteps {
                 ResponseSpecs.requestReturnsOk()
         ).get(visitUUID, new GetParams(GetParams.FULL).toQueryParams());
     }
-
 
 
     public static SearchResult<GetVisitResponse> getVisits(String patientUUID) {

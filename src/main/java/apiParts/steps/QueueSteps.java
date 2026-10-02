@@ -41,16 +41,6 @@ public class QueueSteps {
         ).create(request);
     }
 
-    public static QueueEntryResponse createQueueEntry(
-            CreateQueueEntryRequest request) {
-
-        return new SuccessfulCrudRequester<QueueEntryResponse>(
-                RequestSpecs.adminSpec(),
-                Endpoint.VISIT_QUEUE_ENTRY_POST,
-                ResponseSpecs.requestReturnsCreated()
-        ).create(request);
-    }
-
     public static QueueEntryResponse updateQueueEntry(
             String queueEntryUUID,
             UpdateQueueEntryRequest request) {
