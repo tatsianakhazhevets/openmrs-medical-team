@@ -1,0 +1,35 @@
+package apiTests;
+
+import apiParts.assertions.SoftlyContext;
+import common.extensions.*;
+import common.storages.SessionStorage;
+import org.assertj.core.api.SoftAssertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+// Precondition extensions run before each test in this order (after each - in reverse).
+// Each of them does nothing if its annotation (@CreatePatient, @CreateProcedure, @CreateOrder) is absent.
+// Procedure and order need a patient, so CreatePatientExtension goes first.
+@ExtendWith({
+        CreatePatientExtension.class,
+        CreateVisitExtension.class,
+        CreateEncounterExtension.class,
+        CreateProcedureExtension.class,
+        CreateOrderExtension.class
+})
+public class BaseTest {
+    protected SoftAssertions softly;
+
+    @BeforeEach
+    public void setUpTest(){
+        this.softly = new SoftAssertions();
+        SoftlyContext.set(this.softly);
+    }
+
+    @AfterEach
+    public void afterTest() {
+        SoftlyContext.clear();
+        softly.assertAll();
+    }
+}
