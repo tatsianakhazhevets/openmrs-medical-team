@@ -1,13 +1,12 @@
 package apiTests.orders;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.assertions.OrderAssertions;
 import apiParts.generators.DrugOrderGenerator;
 import apiParts.generators.RandomModelGenerator;
-import apiParts.models.encounter.EncounterType;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
 import apiParts.models.encounter.EncounterResponse;
-import apiParts.models.Ref;
 import apiParts.models.order.DrugOrder;
 import apiParts.models.order.DrugOrderResponse;
 import apiParts.models.order.TestOrder;
@@ -34,29 +33,11 @@ public class CreateOrderApiTests extends BaseTest {
         CreateEncounterRequest drugOrderRequest = DrugOrderGenerator.generateEncounterRequest(drugOrder);
         EncounterResponse encounter = AdminSteps.createEncounter(drugOrderRequest);
         EncounterResponse savedEncounter = AdminSteps.getEncounter(encounter.getUuid());
-        softly.assertThat(savedEncounter.getOrders())
-                .extracting(Ref::getUuid)
-                .as("persisted drug order references")
-                .hasSize(drugOrderRequest.getOrders().size())
-                .containsExactlyInAnyOrderElementsOf(
-                        encounter.getOrders().stream().map(Ref::getUuid).toList());
-
-        softly.assertThat(encounter.getOrders())
-                .as("created drug order")
-                .hasSize(drugOrderRequest.getOrders().size());
-        String orderUUID = encounter.getOrders().get(0).getUuid();
-
-        // verify the order was actually persisted and matches what was sent
+        OrderAssertions.assertPersistedOrderReferences(drugOrderRequest, encounter, savedEncounter,
+                "persisted drug order references");
         List<DrugOrderResponse> drugOrders = AdminSteps.fetchDrugOrders(patientUUID).results();
-        softly.assertThat(drugOrders)
-                .as("created drug order is retrievable via GET /order")
-                .hasSize(drugOrderRequest.getOrders().size());
-        DrugOrderResponse savedOrder = drugOrders.get(0);
-        softly.assertThat(savedOrder.getUuid())
-                .as("created drug order uuid")
-                .isEqualTo(orderUUID);
-
-        ModelAssertions.assertThatModels(drugOrderRequest.getOrders(), List.of(savedOrder))
+        OrderAssertions.assertDrugOrderSaved(drugOrderRequest, encounter, drugOrders, "created drug order");
+        ModelAssertions.assertThatModels(drugOrderRequest.getOrders(), drugOrders)
                 .as("saved drug order")
                 .match();
     }
@@ -71,39 +52,14 @@ public class CreateOrderApiTests extends BaseTest {
         labOrderRequest.setOrders(List.of(labOrder));
         EncounterResponse labEncounter = AdminSteps.createEncounter(labOrderRequest);
         EncounterResponse savedLabEncounter = AdminSteps.getEncounter(labEncounter.getUuid());
-        softly.assertThat(savedLabEncounter.getOrders())
-                .extracting(Ref::getUuid)
-                .as("persisted lab order references")
-                .hasSize(labOrderRequest.getOrders().size())
-                .containsExactlyInAnyOrderElementsOf(
-                        labEncounter.getOrders().stream().map(Ref::getUuid).toList());
-
-        EncounterResponse expectedLabEncounter = new EncounterResponse();
-        expectedLabEncounter.setPatient(Ref.of(patientUUID));
-        expectedLabEncounter.setLocation(Ref.of(Location.INPATIENT_WARD.getUuid()));
-        expectedLabEncounter.setEncounterType(Ref.of(EncounterType.ORDER.getUuid()));
-
-        ModelAssertions.assertMatchesExpected(labEncounter, expectedLabEncounter, "lab order encounter");
-
-        softly.assertThat(labEncounter.getObs())
-                .as("lab encounter obs")
-                .isEmpty();
-        softly.assertThat(labEncounter.getVoided())
-                .as("lab encounter voided")
-                .isFalse();
-        softly.assertThat(labEncounter.getOrders())
-                .as("lab encounter orders")
-                .hasSize(labOrderRequest.getOrders().size());
-        // Verify the order was actually persisted and matches the generated request.
         String orderUUID = labEncounter.getOrders().get(0).getUuid();
         DrugOrderResponse savedOrder = AdminSteps.fetchTestOrders(patientUUID)
                 .requireOne(order -> order.getUuid().equals(orderUUID), "created lab order");
-        softly.assertThat(savedOrder.getPatient().getUuid())
-                .as("saved lab order patient")
-                .isEqualTo(patientUUID);
-        softly.assertThat(savedOrder.getConcept().getUuid())
-                .as("saved lab order concept")
-                .isEqualTo(labOrder.getConcept().getUuid());
+        OrderAssertions.assertLabOrderDetails(patientUUID, labOrder, labOrderRequest, labEncounter,
+                savedLabEncounter, savedOrder);
+        ModelAssertions.assertThatModels(labOrderRequest, labEncounter)
+                .as("lab order encounter")
+                .match();
     }
 
     @Test

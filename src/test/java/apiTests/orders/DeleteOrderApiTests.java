@@ -1,6 +1,7 @@
 package apiTests.orders;
 
 import apiParts.assertions.ModelAssertions;
+import apiParts.assertions.OrderAssertions;
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.Location;
 import apiParts.models.encounter.CreateEncounterRequest;
@@ -52,9 +53,8 @@ public class DeleteOrderApiTests extends BaseTest {
                         .build()
                         .toQueryParams());
 
-        softly.assertThat(AdminSteps.fetchTestOrders(patientUUID).results())
-                .as("deleted order is no longer returned")
-                .noneMatch(order -> order.getUuid().equals(orderUUID));
+        OrderAssertions.assertOrderAbsent(AdminSteps.fetchTestOrders(patientUUID).results(),
+                orderUUID, "deleted order is no longer returned");
     }
 
     // Purging an order that is referenced by an encounter is not supported and results in a server error
@@ -67,9 +67,8 @@ public class DeleteOrderApiTests extends BaseTest {
                 .delete(orderUUID, OrderDeleteParams.builder().purge(true).build().toQueryParams());
 
         SearchResult<DrugOrderResponse> ordersAfterFailedPurge = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterFailedPurge.results())
-                .as("order still present after failed purge attempt")
-                .anyMatch(order -> order.getUuid().equals(orderUUID));
+        OrderAssertions.assertOrderPresent(ordersAfterFailedPurge.results(),
+                orderUUID, "order still present after failed purge attempt");
     }
 
     @Test
@@ -97,8 +96,7 @@ public class DeleteOrderApiTests extends BaseTest {
                 .delete(orderUUID);
 
         SearchResult<DrugOrderResponse> ordersAfterUnauthorizedDelete = AdminSteps.fetchTestOrders(patientUUID);
-        softly.assertThat(ordersAfterUnauthorizedDelete.results())
-                .as("order still present after unauthorized delete attempt")
-                .anyMatch(order -> order.getUuid().equals(orderUUID));
+        OrderAssertions.assertOrderPresent(ordersAfterUnauthorizedDelete.results(),
+                orderUUID, "order still present after unauthorized delete attempt");
     }
 }
