@@ -73,11 +73,9 @@ public class ResponseSpecs {
                 .build();
     }
 
-    // Error code from enum; code = null (known issue) -> only field presence is checked
+    // Field and error code from enum
     public static ResponseSpecification requestReturnsInvalidSubmission(FieldError error) {
-        return error.getCode() == null
-                ? requestReturnsInvalidSubmission(error.getField())
-                : requestReturnsInvalidSubmission(error.getField(), error.getCode());
+        return requestReturnsInvalidSubmission(error.getField(), error.getCode());
     }
 
     // Same as above when error code is not known (e.g. server does not validate the field yet):
@@ -102,18 +100,9 @@ public class ResponseSpecs {
                 .build();
     }
 
-    // Error code from enum; code = null (known issue) -> only 400 invalid submission is checked
+    // Error code from enum
     public static ResponseSpecification requestReturnsInvalidSubmission(GlobalError error) {
-        return error.getCode() == null
-                ? requestReturnsInvalidSubmission()
-                : requestReturnsInvalidSubmissionWithGlobalError(error.getCode());
-    }
-
-    public static ResponseSpecification requestReturnsInvalidSubmission() {
-        return defaultResponseSpec()
-                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
-                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
-                .build();
+        return requestReturnsInvalidSubmissionWithGlobalError(error.getCode());
     }
 
     // Business rule violation without field errors: 400 + {"error": {"message": "...<part>..."}}

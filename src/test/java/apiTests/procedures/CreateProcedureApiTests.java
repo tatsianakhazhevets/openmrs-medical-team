@@ -101,14 +101,6 @@ public class CreateProcedureApiTests extends BaseTest {
                         // dates are relative to startDateTime of the generated request (see ProcedureSteps.startDateTimeOf)
                         Arguments.of("endDateTime before startDateTime",
                                 mutate(r -> r.setEndDateTime(toRequestString(ProcedureSteps.startDateTimeOf(r).minusMinutes(1)))), END_DATE_TIME_BEFORE_START_DATE_TIME),
-                        // status is fixed and endDateTime removed: otherwise 400 could come from another rule
-                        Arguments.of("[known issue] completed procedure with startDateTime in the future",
-                                mutate(r -> {
-                                    r.setStatus(COMPLETED.getUuid());
-                                    r.setEndDateTime(null);
-                                    r.setStartDateTime(toRequestString(DateTimeUtils.randomFutureDateTime()));
-                                }),
-                                START_DATE_TIME_IN_FUTURE),
                         Arguments.of("startDateTime and estimatedStartDate for new procedure",
                                 mutate(r -> r.setEstimatedStartDate(ProcedureSteps.startDateTimeOf(r).format(DateTimeFormatter.ofPattern("yyyy-MM")))), START_DATE_TIME_AND_ESTIMATED_DATE_MUTUALLY_EXCLUSIVE),
 

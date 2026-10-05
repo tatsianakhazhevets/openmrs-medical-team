@@ -48,7 +48,6 @@ public final class RandomModelGenerator {
     private static final int DEFAULT_COLLECTION_MAX_SIZE = 3;
     // Lower bound of random invalid (negative) values: any value below zero is handled by the same server logic
     private static final double DEFAULT_NEGATIVE_DOUBLE_MIN = -100;
-    private static final int DEFAULT_NEGATIVE_INT_MIN = -100;
     private static final int DATE_RANGE_MIN_MINUTES = 1;
     private static final int DATE_RANGE_MAX_MINUTES = 10 * 60;
     private static final String DATE_RANGE_START = "dateRangeStart";
@@ -440,20 +439,6 @@ public final class RandomModelGenerator {
      */
     public static double randomFraction(int scale) {
         return randomDouble(step(scale), 1 - step(scale), scale);
-    }
-
-    /**
-     * Random negative int, e.g. invalid numRefills.
-     */
-    public static int randomNegativeInt(int min) {
-        return randomInt(min, -1);
-    }
-
-    /**
-     * Random negative int with default lower bound.
-     */
-    public static int randomNegativeInt() {
-        return randomNegativeInt(DEFAULT_NEGATIVE_INT_MIN);
     }
 
     // smallest value at this precision: scale = 1 -> 0.1, scale = 0 -> 1

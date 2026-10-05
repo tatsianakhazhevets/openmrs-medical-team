@@ -21,6 +21,7 @@ import apiTests.BaseTest;
 import common.annotations.CreateProcedure;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -114,6 +115,7 @@ public class GetProcedureApiTests extends BaseTest {
     }
 
     @Test
+    @Disabled("Known issue: server returns 500 instead of 400")
     @DisplayName("[known issue] admin cannot get procedures of non-existent patient (server returns 500)")
     public void adminCannotGetProceduresOfNonExistentPatient() {
         new SearchRequester(

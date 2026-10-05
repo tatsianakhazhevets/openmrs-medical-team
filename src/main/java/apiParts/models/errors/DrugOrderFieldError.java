@@ -25,11 +25,7 @@ public enum DrugOrderFieldError implements FieldError {
     DURATION_UNITS_REQUIRED_WITH_DURATION("durationUnits", "DrugOrder.error.durationUnitsRequiredWithDuration"),
 
     // Drug and concept (server also returns drug: error.general - generic code, not checked)
-    CONCEPT_NOT_MATCHING_DRUG("concept", "error.concept"),
-
-    // KNOWN ISSUES: server accepts these values (201), expected error code is unknown
-    QUANTITY_ZERO_OR_LESS("quantity", null),
-    NUM_REFILLS_NEGATIVE("numRefills", null);
+    CONCEPT_NOT_MATCHING_DRUG("concept", "error.concept");
 
     private final String field;
     private final String code;

@@ -33,11 +33,6 @@ public class DateTimeUtils {
         return now().minusDays(randomDays()).minusMinutes(randomMinuteOfDay());
     }
 
-    // Random minute 1..30 days ahead, e.g. start of a procedure that has not happened yet
-    public static OffsetDateTime randomFutureDateTime() {
-        return now().plusDays(randomDays()).plusMinutes(randomMinuteOfDay());
-    }
-
     // OffsetDateTime -> request body format: 2026-09-17T22:00:00+03:00
     public static String toRequestString(OffsetDateTime dateTime) {
         return dateTime.format(OPENMRS_REQUEST_DATE_TIME);

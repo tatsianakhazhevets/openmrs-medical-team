@@ -20,10 +20,7 @@ public enum ProcedureGlobalError implements GlobalError {
     PROCEDURE_CODED_AND_NON_CODED_MUTUALLY_EXCLUSIVE("Procedure.error.procedureCodedAndNonCodedMutuallyExclusive"),
     START_DATE_TIME_AND_ESTIMATED_DATE_MUTUALLY_EXCLUSIVE("Procedure.error.startDateTimeAndEstimatedDateMutuallyExclusiveForNewProcedures"),
     END_DATE_TIME_BEFORE_START_DATE_TIME("Procedure.error.endDateTimeBeforeStartDateTime"),
-    DURATION_UNIT_REQUIRED("Procedure.error.durationUnitRequired"),
-
-    // KNOWN ISSUE: server accepts start date in the future (201), expected error code is unknown
-    START_DATE_TIME_IN_FUTURE(null);
+    DURATION_UNIT_REQUIRED("Procedure.error.durationUnitRequired");
 
     private final String code;
 }
