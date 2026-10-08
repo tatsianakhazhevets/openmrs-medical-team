@@ -6,7 +6,6 @@ import lombok.Getter;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$x;
 
-//login is two-step: username -> Continue -> password -> Log in
 @Getter
 public class LoginPage extends BasePage<LoginPage> {
 
@@ -26,6 +25,16 @@ public class LoginPage extends BasePage<LoginPage> {
         click(continueButton);
         setValue(passwordInput, password);
         click(loginButton);
+        return this;
+    }
+
+    public LoginPage enterUsername(String username) {
+        getUsernameInput().setValue(username);
+        return this;
+    }
+
+    public LoginPage clickContinue() {
+        getContinueButton().click();
         return this;
     }
 }
