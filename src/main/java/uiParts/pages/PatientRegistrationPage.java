@@ -2,7 +2,6 @@ package uiParts.pages;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.WebDriverRunner;
 import lombok.Getter;
 
 import java.time.Duration;
@@ -50,5 +49,15 @@ public class PatientRegistrationPage extends BasePage<PatientRegistrationPage> {
     public String getBirthDateValidationText() {
         birthSectionHeader.click(); // Снимаем фокус
         return birthDateError.shouldBe(Condition.visible, Duration.ofSeconds(8)).getText();
+    }
+
+    public PatientRegistrationPage verifyFamilyNameValidationErrorVisible() {
+        familyNameLabel.click();
+        familyNameError.shouldBe(Condition.visible, Duration.ofSeconds(8));
+        return this;
+    }
+
+    public void verifyRegisterButtonIsVisible() {
+        registerPatientButton.shouldBe(Condition.visible);
     }
 }
