@@ -3,6 +3,8 @@ package uiParts.pages;
 import com.codeborne.selenide.SelenideElement;
 import lombok.Getter;
 
+import java.time.Duration;
+
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$x;
 
@@ -19,6 +21,7 @@ public class LocationPickerPage extends BasePage<LocationPickerPage> {
 
     // Carbon radio input is visually hidden - click its label
     public LocationPickerPage selectLocation(String locationUuid) {
+        Duration.ofSeconds(20);
         return click($("label[for='" + locationUuid + "']"));
     }
 

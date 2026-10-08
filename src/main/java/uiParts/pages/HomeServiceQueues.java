@@ -11,11 +11,15 @@ import static com.codeborne.selenide.Selenide.*;
 
 @Getter
 public class HomeServiceQueues extends BasePage<HomeServiceQueues> {
+    public static final String EXPECTED_HEADER = "Service queues";
+
     private final SelenideElement queueHeader = $("div[data-testid='patient-queue-header']");
     private final SelenideElement searchActionButton = $x("//button[contains(@class, 'search')] | //svg[contains(@class, 'search')]");
     private final SelenideElement searchInput = $("input[placeholder='Search for a patient by name or identifier number']");
     private final SelenideElement firstSearchResultRow = $("a[class*='patientBanner']");
     private final ElementsCollection patientSearchLinks = $$("a[class*='patientBanner']");
+    private final SelenideElement userAvatarButton = $("button[data-tutorial-target='user-settings']");
+    private final SelenideElement logoutButton = $("button[class*='logout']");
 
     @Override
     public String url() {
@@ -41,5 +45,15 @@ public class HomeServiceQueues extends BasePage<HomeServiceQueues> {
                 .click();
 
         return this;
+    }
+
+    public HomeServiceQueues clickUserAvatarButton() {
+        userAvatarButton.shouldBe(Condition.visible).click();
+        return this;
+    }
+
+    public LoginPage clickLogoutButton() {
+        logoutButton.shouldBe(Condition.visible).click();
+        return new LoginPage();
     }
 }
