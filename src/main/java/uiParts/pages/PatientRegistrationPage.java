@@ -22,6 +22,8 @@ public class PatientRegistrationPage extends BasePage<PatientRegistrationPage> {
     private final SelenideElement birthSectionHeader = $x("//h4[normalize-space()='Birth']");
     private final SelenideElement birthDateError = $("span[slot='errorMessage']");
     private final SelenideElement birthDateWrapper = $(".cds--date-picker, [class*='dobField'], input[name='birthdate'], input[type='date']");
+    private final SelenideElement givenNameLabel = $x("//label[@for='givenName']");
+    private final SelenideElement givenNameError = $("#givenName-error-msg");
 
     @Override
     public String url() {
@@ -57,7 +59,24 @@ public class PatientRegistrationPage extends BasePage<PatientRegistrationPage> {
         return this;
     }
 
-    public void verifyRegisterButtonIsVisible() {
+    public PatientRegistrationPage verifyRegisterButtonIsVisible() {
         registerPatientButton.shouldBe(Condition.visible);
+        return this;
+    }
+
+    public PatientRegistrationPage verifyBirthDateValidationErrorVisible() {
+        birthSectionHeader.click();
+        birthDateError.shouldBe(Condition.visible, Duration.ofSeconds(8));
+        return this;
+    }
+
+    public PatientRegistrationPage verifyGivenNameValidationErrorVisible() {
+        givenNameLabel.click();
+        givenNameError.shouldBe(Condition.visible, Duration.ofSeconds(8));
+        return this;
+    }
+
+    public String getGivenNameValidationText() {
+        return givenNameError.getText();
     }
 }

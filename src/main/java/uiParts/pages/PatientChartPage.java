@@ -9,6 +9,8 @@ import java.time.Duration;
 import static com.codeborne.selenide.Selenide.$x;
 
 public class PatientChartPage extends BasePage<PatientChartPage> {
+    public static final String PATIENT_URL = "/patient/";
+
     private final SelenideElement patientChartValidationElement =
             $x("//button[normalize-space()='Actions'] | //button[contains(text(), 'visit')]");
 
