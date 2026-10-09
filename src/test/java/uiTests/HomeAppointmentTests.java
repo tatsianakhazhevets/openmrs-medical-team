@@ -102,4 +102,16 @@ public class HomeAppointmentTests extends BaseUiTest {
                         - Long.parseLong(appointment.getStartDateTime())) / 60_000;
         assertThat(actualDurationMinutes).isEqualTo(appointmentDuration);
     }
+    @Test
+    void shouldShowNoResultsForUnknownPatient() {
+        String unknownPatientName = RandomModelGenerator.randomWord()
+                + RandomModelGenerator.randomUnknownUuid();
+        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
+
+        new HomeAppointmentsPage()
+                .open()
+                .clickCreateAppointment()
+                .searchPatient(unknownPatientName)
+                .shouldShowNoSearchResults();
+    }
 }

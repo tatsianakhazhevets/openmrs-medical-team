@@ -8,9 +8,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+import static com.codeborne.selenide.Condition.exactText;
 import static com.codeborne.selenide.Condition.visible;
-import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$x;
+import static com.codeborne.selenide.Selectors.byText;
+import static com.codeborne.selenide.Selenide.*;
 
 public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
     private final SelenideElement createAppointmentButton = $x("//button[normalize-space()='Create new appointment']");
@@ -29,6 +30,11 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
     private final SelenideElement saveButton = $x("//button[normalize-space()='Save and close']");
     private final SelenideElement discardButton = $x("//button[normalize-space()='Discard']");
     private final SelenideElement scheduleDatePicker = $("#appointment-date-picker");
+    private final SelenideElement searchResultsHeader =
+            $$("h2").findBy(exactText("0 search results"));
+
+    private final SelenideElement emptySearchResultsMessage =
+            $(byText("Sorry, no patient charts were found"));
 
 
     @Override
@@ -141,16 +147,6 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
         note.setValue(text);
         return this;
     }
-
-    //    private SelenideElement appointmentRow(String patientName) {
-//        return $x("//tr[@data-parent-row='true' and .//a[normalize-space()='"
-//                + patientName + "']]");
-//    }
-//
-//    public HomeAppointmentsPage shouldHaveAppointment(String patientName) {
-//        appointmentRow(patientName).shouldBe(Condition.visible);
-//        return this;
-//    }
     private SelenideElement appointmentRow(String patientName) {
         return $x("//tr[@data-parent-row='true' and .//a[normalize-space()='"
                 + patientName + "']]");
@@ -168,12 +164,17 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
 
         ElementsCollection cells = row.$$("td");
 
-        cells.get(2).shouldHave(Condition.exactText(patientName));
-        cells.get(3).shouldHave(Condition.exactText(identifier));
-        cells.get(4).shouldHave(Condition.exactText(location));
-        cells.get(5).shouldHave(Condition.exactText(service));
-        cells.get(8).shouldHave(Condition.exactText(status));
+        cells.get(2).shouldHave(exactText(patientName));
+        cells.get(3).shouldHave(exactText(identifier));
+        cells.get(4).shouldHave(exactText(location));
+        cells.get(5).shouldHave(exactText(service));
+        cells.get(8).shouldHave(exactText(status));
 
+        return this;
+    }
+    public HomeAppointmentsPage shouldShowNoSearchResults() {
+        searchResultsHeader.shouldHave(exactText("0 search results"));
+        emptySearchResultsMessage.shouldHave(exactText("Sorry, no patient charts were found"));
         return this;
     }
 }
