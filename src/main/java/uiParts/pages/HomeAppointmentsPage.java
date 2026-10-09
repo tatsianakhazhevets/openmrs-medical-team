@@ -32,9 +32,11 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
     private final SelenideElement scheduleDatePicker = $("#appointment-date-picker");
     private final SelenideElement searchResultsHeader =
             $$("h2").findBy(exactText("0 search results"));
-
     private final SelenideElement emptySearchResultsMessage =
             $(byText("Sorry, no patient charts were found"));
+    private final SelenideElement serviceError = $("#service-error-msg");
+    private final SelenideElement durationError = $("#duration-error-msg");
+
 
 
     @Override
@@ -177,4 +179,13 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
         emptySearchResultsMessage.shouldHave(exactText("Sorry, no patient charts were found"));
         return this;
     }
+    public HomeAppointmentsPage shouldShowServiceErrorMessage() {
+        serviceError.shouldHave(exactText("Service is required"));
+        return this;
+    }
+    public HomeAppointmentsPage shouldShowDurationErrorMessage() {
+        durationError.shouldHave(exactText("Duration should be greater than zero"));
+        return this;
+    }
+
 }

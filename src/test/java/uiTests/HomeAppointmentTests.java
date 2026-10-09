@@ -22,6 +22,7 @@ import uiParts.pages.HomeAppointmentsPage;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -102,6 +103,7 @@ public class HomeAppointmentTests extends BaseUiTest {
                         - Long.parseLong(appointment.getStartDateTime())) / 60_000;
         assertThat(actualDurationMinutes).isEqualTo(appointmentDuration);
     }
+
     @Test
     void shouldShowNoResultsForUnknownPatient() {
         String unknownPatientName = RandomModelGenerator.randomWord()
@@ -113,5 +115,32 @@ public class HomeAppointmentTests extends BaseUiTest {
                 .clickCreateAppointment()
                 .searchPatient(unknownPatientName)
                 .shouldShowNoSearchResults();
+    }
+
+    @Test
+    public void shouldNotCreateWithoutRequiredFields() {
+        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
+
+        CreatePatientResponse patient = SessionStorage.getPatient();
+        String patientName = patient.getPerson().getDisplay();
+
+        List<CreateAppointmentResponse> appointmentsBefore =
+                AppointmentSteps.searchAppointments(patientUUID);
+
+        new HomeAppointmentsPage()
+                .open()
+                .clickCreateAppointment()
+                .searchPatient(patientName)
+                .clickPatientCard(patientName)
+                .shouldHavePatientName(patientName)
+                .saveAppointment()
+                .shouldShowServiceErrorMessage()
+                .shouldShowDurationErrorMessage();
+
+        List<CreateAppointmentResponse> appointmentsAfter =
+                AppointmentSteps.searchAppointments(patientUUID);
+
+        assertThat(appointmentsAfter)
+                .containsExactlyInAnyOrderElementsOf(appointmentsBefore);
     }
 }
