@@ -6,7 +6,6 @@ import apiParts.models.patient.GetPatientResponse;
 import apiParts.models.search.SearchResult;
 import apiParts.specs.RequestSpecs;
 import apiParts.steps.PatientSteps;
-import com.codeborne.selenide.Condition;
 import org.junit.jupiter.api.Test;
 import uiParts.pages.BasePage;
 import uiParts.pages.HomeServiceQueues;
@@ -15,6 +14,7 @@ import uiParts.pages.PatientRegistrationPage;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static uiParts.errorMessages.PatientUiErrorMessages.*;
+import static uiParts.pages.PatientChartPage.PATIENT_URL;
 
 public class PatientManagementUiTests extends BaseUiTest {
 
@@ -57,7 +57,8 @@ public class PatientManagementUiTests extends BaseUiTest {
                 .open()
                 .fillRequiredPatientFields(patientGivenName, emptyFamilyName, dateOfBirth)
                 .submitRegistration()
-                .verifyFamilyNameValidationErrorVisible();
+                .verifyFamilyNameValidationErrorVisible()
+                .verifyRegisterButtonIsVisible();
 
         //3. Test result
         String actualErrorText = createdPatient.getFamilyNameValidationText();
@@ -68,45 +69,108 @@ public class PatientManagementUiTests extends BaseUiTest {
     }
 
     @Test
+    public void userCannotCreatePatientWithoutGivenNameTest() {
+        //1. Test data
+        String emptyGivenName = "";
+        String patientFamilyName = RandomNameGenerator.generateNonExistingName();
+        String dateOfBirth = RandomDataGenerator.generateBirthDate();
+        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
+
+        //2. Test steps
+        PatientRegistrationPage createdPatient = new PatientRegistrationPage()
+                .open()
+                .fillRequiredPatientFields(emptyGivenName, patientFamilyName, dateOfBirth)
+                .submitRegistration()
+                .verifyGivenNameValidationErrorVisible()
+                .verifyRegisterButtonIsVisible();
+
+        //3. Test result
+        String actualErrorText = createdPatient.getGivenNameValidationText();
+        assertThat(actualErrorText).contains(GIVEN_NAME_IS_REQUIRED.getMessage());
+
+        SearchResult<GetPatientResponse> searchResult = PatientSteps.getPatients(patientFamilyName);
+        assertThat(searchResult.isEmpty()).isTrue();
+    }
+
+    @Test
     public void userCannotCreatePatientWithoutBirthDateTest() {
+        //1. Test data
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
         String emptyBirthDate = "";
-
         BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
-        String actualErrorText = new PatientRegistrationPage()
+        //2. Test steps
+        PatientRegistrationPage createdPatient = new PatientRegistrationPage()
                 .open()
                 .fillRequiredPatientFields(patientGivenName, patientFamilyName, emptyBirthDate)
                 .submitRegistration()
-                .getBirthDateValidationText();
+                .verifyBirthDateValidationErrorVisible()
+                .verifyRegisterButtonIsVisible();
 
-        assertThat(actualErrorText).isEqualTo("Birthday is required");
-        new PatientRegistrationPage().getRegisterPatientButton().shouldBe(Condition.visible);
+        //3. Test result
+        String actualErrorText = createdPatient.getBirthDateValidationText();
+        assertThat(actualErrorText).isEqualTo(BIRTHDAY_IS_REQUIRED.getMessage());
+
+        SearchResult<GetPatientResponse> searchResult = PatientSteps.getPatients(patientGivenName);
+        assertThat(searchResult.isEmpty()).isTrue();
     }
 
     @Test
     public void userCanFindCreatedPatientByNameTest() {
+        //1. Test data
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
-        String dateOfBirth = "12/12/1995";
-
+        String dateOfBirth = RandomDataGenerator.generateBirthDate();
         BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
-        new PatientRegistrationPage()
+        //2. Test steps
+        PatientChartPage foundPatientPage = new PatientRegistrationPage()
                 .open()
                 .fillRequiredPatientFields(patientGivenName, patientFamilyName, dateOfBirth)
                 .submitRegistration()
                 .getPage(PatientChartPage.class)
-                .getCreatedPatientUuid();
-
-        String finalUrl = new HomeServiceQueues()
+                .getPage(HomeServiceQueues.class)
                 .open()
                 .searchPatient(patientGivenName)
                 .clickCreatedPatient(patientGivenName, patientFamilyName)
-                .getPage(PatientChartPage.class)
-                .getPageUrlAfterSubmit();
+                .getPage(PatientChartPage.class);
 
-        assertThat(finalUrl).contains("/patient/");
+        //3. Test result
+        String finalUrl = foundPatientPage.getPageUrlAfterSubmit();
+
+        assertThat(finalUrl).contains(PATIENT_URL);
+        String patientUuid = foundPatientPage.getCreatedPatientUuid();
+        assertThat(patientUuid).isNotBlank().hasSize(36);
+
+        GetPatientResponse apiPatient = PatientSteps.getPatientPositive(patientUuid);
+        assertThat(apiPatient.getPerson().getDisplay()).contains(patientGivenName);
+        assertThat(apiPatient.getPerson().getDisplay()).contains(patientFamilyName);
+    }
+
+    @Test
+    public void userCannotFindNotCreatedPatientByNameTest() {
+        //1. Test data
+        String patientGivenName = RandomNameGenerator.generateNonExistingName();
+        String patientFamilyName = RandomNameGenerator.generateNonExistingName();
+        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
+
+        //2. Test steps
+        PatientChartPage foundPatientPage = new HomeServiceQueues()
+                .open()
+                .searchPatient(patientGivenName)
+                .clickCreatedPatient(patientGivenName, patientFamilyName)
+                .getPage(PatientChartPage.class);
+
+        //3. Test result
+        String finalUrl = foundPatientPage.getPageUrlAfterSubmit();
+
+        assertThat(finalUrl).doesNotContain(PATIENT_URL);
+        String patientUuid = foundPatientPage.getCreatedPatientUuid();
+        assertThat(patientUuid).isBlank();
+
+        GetPatientResponse apiPatient = PatientSteps.getPatientPositive(patientUuid);
+        assertThat(apiPatient.getPerson().getDisplay()).doesNotContain(patientGivenName);
+        assertThat(apiPatient.getPerson().getDisplay()).doesNotContain(patientFamilyName);
     }
 }
