@@ -1,6 +1,9 @@
 package apiParts.specs;
 
 import apiParts.config.Config;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.auth.AuthRequester;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -59,6 +62,18 @@ public class RequestSpecs {
                 .build();
     }
 
+    // UI auth is made by JSESSIONID cookie.
+    // New session on every call: no stale cookies, and parallel tests don't share session state (e.g. sessionLocation)
+    public static String createUserSession(String username, String password) {
+        return new AuthRequester(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk()
+        )
+                .login(LoginAdminRequest.builder().username(username).password(password).build())
+                .extract()
+                .cookie("JSESSIONID");
+    }
 
     /*
     public static RequestSpecification authUserSpec(String username, String password) {

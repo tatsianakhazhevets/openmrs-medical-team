@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Random;
+
 @Getter
 @RequiredArgsConstructor
 public enum Location {
@@ -210,4 +212,9 @@ public enum Location {
     @JsonValue
     private final String uuid;
     private final String display;
+
+    public static Location getRandomLocation() {
+        Location[] locations = Location.values();
+        return locations[new Random().nextInt(locations.length)];
+    }
 }
