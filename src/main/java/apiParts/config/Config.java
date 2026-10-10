@@ -20,6 +20,19 @@ public class Config {
     }
 
     public static String getProperty(String key) {
+        String systemValue = System.getProperty(key);
+        if (systemValue != null) {
+            return systemValue;
+        }
+
+        String environmentValue = System.getenv(key);
+        if (environmentValue == null) {
+            environmentValue = System.getenv(key.toUpperCase());
+        }
+        if (environmentValue != null) {
+            return environmentValue;
+        }
+
         return INSTANCE.properties.getProperty(key);
     }
 }

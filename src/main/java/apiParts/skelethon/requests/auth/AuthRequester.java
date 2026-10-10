@@ -8,6 +8,8 @@ import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 
+import java.util.Map;
+
 import static io.restassured.RestAssured.given;
 
 public class AuthRequester extends HttpRequest implements AuthEndpoint {
@@ -24,6 +26,38 @@ public class AuthRequester extends HttpRequest implements AuthEndpoint {
                 .basic(loginAdminRequest.getUsername(),
                         loginAdminRequest.getPassword())
                 .get(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
+    @Override
+    public ValidatableResponse logout() {
+        return given()
+                .spec(requestSpecification)
+                .delete(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
+    @Override
+    public ValidatableResponse getSession() {
+        return given()
+                .spec(requestSpecification)
+                .get(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
+    // POST /session {"sessionLocation": uuid} - sets login location for current session
+    @Override
+    public ValidatableResponse setSessionLocation(String locationUuid) {
+        return given()
+                .spec(requestSpecification)
+                .body(Map.of("sessionLocation", locationUuid))
+                .post(endpoint.getUrl())
                 .then()
                 .assertThat()
                 .spec(responseSpecification);

@@ -1,11 +1,17 @@
 package apiParts.specs;
 
+import apiParts.models.errors.FieldError;
+import apiParts.models.errors.GlobalError;
+import apiParts.models.errors.OrderErrorMessage;
+import apiParts.models.errors.ProcedureErrorMessage;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.specification.ResponseSpecification;
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matchers;
 
 public class ResponseSpecs {
+
+    public static final String SESSION_FIELD = "JSESSIONID";
 
     private ResponseSpecs() {
     }
@@ -26,10 +32,139 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsNoContent() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_NO_CONTENT)
+                .build();
+    }
+
+    public static ResponseSpecification requestReturnsServerError() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+                .build();
+    }
+
+    // OpenMRS: ObjectNotFoundException -> 404
+    public static ResponseSpecification requestReturnsNotFound() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_NOT_FOUND)
+                .build();
+    }
+
+    // OpenMRS: ObjectNotFoundException -> 404 with message
+    public static ResponseSpecification requestReturnsNotFound(String errorMessage) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_NOT_FOUND)
+                .expectBody("error.message", Matchers.containsString(errorMessage))
+                .build();
+    }
+
+    // OpenMRS: APIAuthenticationException for not logged in user -> 401 (logged in without privilege -> 403)
+    public static ResponseSpecification requestReturnsUnauthorized() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_UNAUTHORIZED)
+                .build();
+    }
+
+    // OpenMRS validation error: 400 + {"error": {"code": "webservices.rest.error.invalid.submission", "fieldErrors": {field: [{code}]}}}
+    public static ResponseSpecification requestReturnsInvalidSubmission(String field, String errorCode) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
+                .expectBody("error.fieldErrors." + field + ".code", Matchers.hasItem(errorCode))
+                .build();
+    }
+
+    // Field and error code from enum
+    public static ResponseSpecification requestReturnsInvalidSubmission(FieldError error) {
+        return requestReturnsInvalidSubmission(error.getField(), error.getCode());
+    }
+
+    // Same as above when error code is not known (e.g. server does not validate the field yet):
+    // only 400 and presence of the field in fieldErrors are checked
+    public static ResponseSpecification requestReturnsInvalidSubmission(String field) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
+                .expectBody("error.fieldErrors." + field, Matchers.notNullValue())
+                .build();
+    }
+    public static ResponseSpecification requestReturnsInvalidSubmissionPatient() {
+        return requestReturnsInvalidSubmission("patient");
+    }
+
+    // Validation error not bound to a field: 400 + {"error": {"code": "webservices.rest.error.invalid.submission", "globalErrors": [{code}]}}
+    public static ResponseSpecification requestReturnsInvalidSubmissionWithGlobalError(String errorCode) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.code", Matchers.equalTo("webservices.rest.error.invalid.submission"))
+                .expectBody("error.globalErrors.code", Matchers.hasItem(errorCode))
+                .build();
+    }
+
+    // Error code from enum
+    public static ResponseSpecification requestReturnsInvalidSubmission(GlobalError error) {
+        return requestReturnsInvalidSubmissionWithGlobalError(error.getCode());
+    }
+
+    // Business rule violation without field errors: 400 + {"error": {"message": "...<part>..."}}
+    public static ResponseSpecification requestReturnsBadRequestWithMessage(String messagePart) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.message", Matchers.containsString(messagePart))
+                .build();
+    }
+    // Business rule violation without field errors: 400 + {"error": {"message": "...<part>..."}}
+    public static ResponseSpecification requestReturnsBadRequestWithMessagePrivilegesRequiredGetPatients() {
+        return requestReturnsBadRequestWithMessage("Privileges required: Get Patients");
+    }
+    public static ResponseSpecification requestReturnsBadRequestWithMessageSomeRequiredPropertiesAreMissingPatient() {
+        return requestReturnsBadRequestWithMessage("Some required properties are missing: patient");
+    }
+
+    public static ResponseSpecification requestReturnsBadRequestWithTwoMessages(String messagePart, String fieldMessagePart) {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
+                .expectBody("error.message", Matchers.containsString(messagePart))
+                .expectBody("error.fieldErrors.values()*.message.flatten()",
+                        Matchers.hasItem(Matchers.containsString(fieldMessagePart)))
+                .build();
+    }
+
+    public static ResponseSpecification requestReturnsBadRequestWithMessage(OrderErrorMessage error) {
+        return requestReturnsBadRequestWithMessage(error.getMessage());
+    }
+
+    //public static ResponseSpecification requestReturnsBadRequest(String errorMessage) {
+    //    return defaultResponseSpec()
+    //            .expectStatusCode(HttpStatus.SC_UNAUTHORIZED)
+    //            .expectBody(Matchers.equalTo(errorMessage))
+    //            .build();
+    //}
+    public static ResponseSpecification requestReturnsBadRequestWithMessage(ProcedureErrorMessage error) {
+        return requestReturnsBadRequestWithMessage(error.getMessage());
+    }
+    public static ResponseSpecification requestReturnsAppointmentCannotBeCreatedWithoutPatient() {
+        return requestReturnsBadRequestWithMessage(
+                "Appointment cannot be created without Patient"
+        );
+    }
+    public static ResponseSpecification requestReturnsAppointmentCannotBeCreatedWithoutService() {
+        return requestReturnsBadRequestWithMessage(
+                "Appointment cannot be created without Service"
+        );
+    }
+
     public static ResponseSpecification requestReturnsBadRequest(String errorMessage) {
         return defaultResponseSpec()
                 .expectStatusCode(HttpStatus.SC_UNAUTHORIZED)
                 .expectBody(Matchers.equalTo(errorMessage))
+                .build();
+    }
+
+    public static ResponseSpecification requestReturnsBadRequest() {
+        return defaultResponseSpec()
+                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
                 .build();
     }
 

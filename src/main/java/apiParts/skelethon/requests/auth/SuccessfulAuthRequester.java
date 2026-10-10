@@ -22,4 +22,19 @@ public class SuccessfulAuthRequester<T extends BaseModel> extends HttpRequest im
     public T login(LoginAdminRequest loginAdminRequest) {
         return (T) authRequester.login(loginAdminRequest).extract().as(LoginAdminResponse.class);
     }
+
+    @Override
+    public Object logout() {
+        return authRequester.logout();
+    }
+
+    @Override
+    public T getSession() {
+        return (T) authRequester.getSession().extract().as(LoginAdminResponse.class);
+    }
+
+    @Override
+    public T setSessionLocation(String locationUuid) {
+        return (T) authRequester.setSessionLocation(locationUuid).extract().as(LoginAdminResponse.class);
+    }
 }
