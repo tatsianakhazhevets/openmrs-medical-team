@@ -211,7 +211,7 @@ public class AdminSteps {
     // ======== HELPERS ========
 
     // Credentials of the admin user, same source as RequestSpecs.adminSpec()
-    public static LoginAdminRequest adminCredentials() {
+    private static LoginAdminRequest adminCredentials() {
         return RandomModelGenerator.generate(LoginAdminRequest.class);
     }
 

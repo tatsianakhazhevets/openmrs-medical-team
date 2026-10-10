@@ -21,6 +21,6 @@ public class LoginAdminResponse extends BaseModel {
     private User user;
     private String person;
     private List<String> allowedLocales;
-    private SessionLocation sessionLocation;
-    private Ref currentProvider;
+    private Object sessionLocation;
+    private Ref currentProvider;        // provider of logged in user, used as order.orderer
 }
