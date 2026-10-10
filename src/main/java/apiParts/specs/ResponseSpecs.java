@@ -11,8 +11,6 @@ import org.hamcrest.Matchers;
 
 public class ResponseSpecs {
 
-    public static final String SESSION_FIELD = "JSESSIONID";
-
     private ResponseSpecs() {
     }
 

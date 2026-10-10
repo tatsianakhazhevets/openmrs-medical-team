@@ -6,5 +6,4 @@ public interface AuthEndpoint {
     Object login(LoginAdminRequest loginAdminRequest);
     Object logout();
     Object getSession();
-    Object setSessionLocation(String locationUuid);
 }
