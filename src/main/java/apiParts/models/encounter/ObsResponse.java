@@ -23,6 +23,7 @@ public class ObsResponse implements HasUuid {
     private ObsStatus status;   // testorder results only, null for vitals
     private Object value;       // Double for NUMERIC, String for TEXT
     private Boolean voided;
+    private String interpretation;  // NORMAL / HIGH / LOW / CRITICALLY_HIGH / CRITICALLY_LOW, null when concept has no limits
 
     // Server writes numeric value inconsistently: 100.0 but 0 -> Jackson reads Double or Integer.
     // Normalize any number to Double on deserialization, so 0 and 0.0 are equal in comparison.
