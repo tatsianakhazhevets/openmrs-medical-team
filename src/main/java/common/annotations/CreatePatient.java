@@ -22,4 +22,11 @@ import java.lang.annotation.Target;
 public @interface CreatePatient {
     // how many patients to create
     int value() default 1;
+
+    // "M" / "F" / "UNKNOWN", empty - random. Needed where the server logic depends on gender
+    // (e.g. BMI reference ranges exist only for M and F)
+    String gender() default "";
+
+    // true - patient is 20..80 years old. Reference ranges of vitals depend on age, adult limits start at 19-20 years
+    boolean adult() default false;
 }

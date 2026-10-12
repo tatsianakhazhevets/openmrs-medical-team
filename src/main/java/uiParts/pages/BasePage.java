@@ -6,10 +6,15 @@ import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.AuthRequester;
 import apiParts.specs.RequestSpecs;
 import apiParts.specs.ResponseSpecs;
+import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import org.openqa.selenium.Cookie;
+import uiParts.elements.BaseElement;
+
+import java.util.List;
+import java.util.function.Function;
 
 public abstract class BasePage<T extends BasePage<T>> {
 
@@ -59,6 +64,11 @@ public abstract class BasePage<T extends BasePage<T>> {
     public T setValue(SelenideElement element, String value) {
         element.setValue(value);
         return (T) this;
+    }
+
+    // ElementCollection -> List<BaseElement>
+    protected <T extends BaseElement> List<T> generatePageElements(ElementsCollection elementsCollection, Function<SelenideElement, T> constructor) {
+        return elementsCollection.stream().map(constructor).toList();
     }
 
 }
