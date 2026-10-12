@@ -6,17 +6,23 @@ import apiParts.models.patient.GetPatientResponse;
 import apiParts.models.search.SearchResult;
 import apiParts.specs.RequestSpecs;
 import apiParts.steps.PatientSteps;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uiParts.pages.BasePage;
 import uiParts.pages.HomeServiceQueues;
 import uiParts.pages.PatientChartPage;
 import uiParts.pages.PatientRegistrationPage;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static uiParts.errorMessages.PatientUiErrorMessages.*;
 import static uiParts.pages.PatientChartPage.PATIENT_URL;
 
 public class PatientManagementUiTests extends BaseUiTest {
+
+    @BeforeEach
+    public void setUp() {
+        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
+    }
 
     @Test
     public void userCanCreatePatientWithRequiredFieldsTest() {
@@ -24,7 +30,6 @@ public class PatientManagementUiTests extends BaseUiTest {
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
         String dateOfBirth = RandomDataGenerator.generateBirthDate();
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
         PatientChartPage createdPatient = new PatientRegistrationPage()
@@ -32,7 +37,8 @@ public class PatientManagementUiTests extends BaseUiTest {
                 .fillRequiredPatientFields(patientGivenName, patientFamilyName, dateOfBirth)
                 .submitRegistration()
                 .getPage(PatientChartPage.class)
-                .getPatientChartValidationElement();
+                .shouldBeLoaded()
+                .shouldShowPatientName(patientGivenName);
 
         //3. Test result
         String patientUuid = createdPatient.getCreatedPatientUuid();
@@ -50,7 +56,6 @@ public class PatientManagementUiTests extends BaseUiTest {
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String emptyFamilyName = "";
         String dateOfBirth = RandomDataGenerator.generateBirthDate();
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
         PatientRegistrationPage createdPatient = new PatientRegistrationPage()
@@ -74,7 +79,6 @@ public class PatientManagementUiTests extends BaseUiTest {
         String emptyGivenName = "";
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
         String dateOfBirth = RandomDataGenerator.generateBirthDate();
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
         PatientRegistrationPage createdPatient = new PatientRegistrationPage()
@@ -98,7 +102,6 @@ public class PatientManagementUiTests extends BaseUiTest {
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
         String emptyBirthDate = "";
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
         PatientRegistrationPage createdPatient = new PatientRegistrationPage()
@@ -122,7 +125,6 @@ public class PatientManagementUiTests extends BaseUiTest {
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
         String dateOfBirth = RandomDataGenerator.generateBirthDate();
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
         PatientChartPage foundPatientPage = new PatientRegistrationPage()
@@ -153,24 +155,23 @@ public class PatientManagementUiTests extends BaseUiTest {
         //1. Test data
         String patientGivenName = RandomNameGenerator.generateNonExistingName();
         String patientFamilyName = RandomNameGenerator.generateNonExistingName();
-        BasePage.authAsUser(RequestSpecs.ADMIN_USERNAME, RequestSpecs.ADMIN_PASSWORD);
 
         //2. Test steps
-        PatientChartPage foundPatientPage = new HomeServiceQueues()
+        HomeServiceQueues foundPatientPage = new HomeServiceQueues()
                 .open()
                 .searchPatient(patientGivenName)
-                .clickCreatedPatient(patientGivenName, patientFamilyName)
-                .getPage(PatientChartPage.class);
+                .shouldNotFindPatient();
 
         //3. Test result
-        String finalUrl = foundPatientPage.getPageUrlAfterSubmit();
+        String finalUrl = foundPatientPage.getCurrentUrl();
 
         assertThat(finalUrl).doesNotContain(PATIENT_URL);
-        String patientUuid = foundPatientPage.getCreatedPatientUuid();
+        String patientUuid = foundPatientPage.getPatientUuidFromUrl();
         assertThat(patientUuid).isBlank();
 
-        GetPatientResponse apiPatient = PatientSteps.getPatientPositive(patientUuid);
-        assertThat(apiPatient.getPerson().getDisplay()).doesNotContain(patientGivenName);
-        assertThat(apiPatient.getPerson().getDisplay()).doesNotContain(patientFamilyName);
+        SearchResult<GetPatientResponse> patientsByGivenName = PatientSteps.getPatients(patientGivenName);
+        assertThat(patientsByGivenName.results()).isEmpty();
+        SearchResult<GetPatientResponse> patientsByFamilyName = PatientSteps.getPatients(patientFamilyName);
+        assertThat(patientsByFamilyName.results()).isEmpty();
     }
 }
