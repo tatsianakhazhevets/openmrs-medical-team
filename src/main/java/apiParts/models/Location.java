@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Random;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Getter
 @RequiredArgsConstructor
@@ -214,7 +215,14 @@ public enum Location {
     private final String display;
 
     public static Location getRandomLocation() {
-        Location[] locations = Location.values();
-        return locations[new Random().nextInt(locations.length)];
+        List<Location> uiLocations = List.of(
+                OUTPATIENT_CLINIC,
+                INPATIENT_WARD,
+                MOBILE_CLINIC,
+                COMMUNITY_OUTREACH
+        );
+
+        return uiLocations.get(
+                ThreadLocalRandom.current().nextInt(uiLocations.size()));
     }
 }
