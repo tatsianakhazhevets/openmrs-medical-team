@@ -32,7 +32,7 @@ public class CreatePatientExtension implements BeforeEachCallback, AfterEachCall
 
         List<CreatePatientResponse> patients = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            patients.add(AdminSteps.createPatient());
+            patients.add(AdminSteps.createPatient(annotation.get().gender(), annotation.get().adult()));
         }
         SessionStorage.addPatients(patients);
     }

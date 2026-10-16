@@ -10,6 +10,7 @@ public class RandomNameGenerator {
 
     public static String generateNonExistingName() {
         String name = RandomModelGenerator.randomWord(NAME_REGEX);
-         return name;
+        String uniqueSuffix = RandomUuidGenerator.generateUuid().replace("-", "");
+        return name+uniqueSuffix;
     }
 }
