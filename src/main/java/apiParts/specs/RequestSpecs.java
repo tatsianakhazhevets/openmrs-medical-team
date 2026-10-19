@@ -4,6 +4,8 @@ import apiParts.config.Config;
 import apiParts.models.auth.LoginAdminRequest;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.AuthRequester;
+import com.github.viclovsky.swagger.coverage.FileSystemOutputWriter;
+import com.github.viclovsky.swagger.coverage.SwaggerCoverageRestAssured;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -12,6 +14,7 @@ import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,8 @@ public class RequestSpecs {
                 .setAccept(ContentType.JSON)
                 .addFilters(List.of(new RequestLoggingFilter(),
                         new ResponseLoggingFilter(),
+                        new SwaggerCoverageRestAssured(
+                                new FileSystemOutputWriter(Paths.get("target", "swagger-coverage-output"))),
                         // every request / response is attached to the test that sent it
                         // (Allure tracks the current test per thread, so parallel runs are not mixed)
                         new AllureRestAssured()))

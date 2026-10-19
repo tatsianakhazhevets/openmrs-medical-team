@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    This Source Code Form is subject to the terms of the Mozilla Public License,
+    v. 2.0. If a copy of the MPL was not distributed with this file, You can
+    obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+    the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+
+    Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+    graphic logo is a trademark of OpenMRS Inc.
+
+-->
+
+<!-- Beans to add to the current Application context definition -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+  		    http://www.springframework.org/schema/beans/spring-beans.xsd
+  		    http://www.springframework.org/schema/tx
+  		    http://www.springframework.org/schema/tx/spring-tx.xsd
+  		    http://www.springframework.org/schema/aop
+  		    http://www.springframework.org/schema/aop/spring-aop.xsd
+  		    http://www.springframework.org/schema/util
+  		    http://www.springframework.org/schema/util/spring-util.xsd
+  		    http://www.springframework.org/schema/context
+  		    http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="org.openmrs.module.tasks.api.fhir"/>
+
+    <!-- DAO bean -->
+    <bean id="tasks.TasksDao" class="org.openmrs.module.tasks.api.dao.TasksDao" autowire="byType" />
+
+    <!-- Config bean -->
+    <bean id="tasks.TasksConfig" class="org.openmrs.module.tasks.TasksConfig" />
+
+    <!-- Wraps TasksService methods in DB transactions and OpenMRS interceptors,
+    which set audit info like dateCreated, changedBy, etc.-->
+    <bean id="tasks.TasksService"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager" />
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.tasks.api.impl.TasksServiceImpl">
+                <property name="dao" ref="tasks.TasksDao" />
+            </bean>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors" />
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource" />
+        </property>
+    </bean>
+
+    <!-- Adds TasksService to OpenMRS context so it can be accessed
+    calling Context.getService(TasksService.class) -->
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.tasks.api.TasksService</value>
+                <ref bean="tasks.TasksService" />
+            </list>
+        </property>
+    </bean>
+
+    <!-- FHIR Resource Provider for CarePlan - integrates with fhir2 module -->
+    <bean id="tasks.CarePlanFhirResourceProvider" class="org.openmrs.module.tasks.api.fhir.CarePlanFhirResourceProvider">
+        <property name="tasksService" ref="tasks.TasksService" />
+        <property name="patientService" ref="patientService" />
+        <property name="providerService" ref="providerService" />
+        <property name="carePlanMapper" ref="tasks.CarePlanMapper" />
+    </bean>
+
+    <!-- FHIR Resource Provider for PlanDefinition (read-only) - exposes system tasks as task templates -->
+    <bean id="tasks.PlanDefinitionFhirResourceProvider" class="org.openmrs.module.tasks.api.fhir.PlanDefinitionFhirResourceProvider">
+        <property name="tasksService" ref="tasks.TasksService" />
+        <property name="planDefinitionMapper" ref="tasks.PlanDefinitionMapper" />
+    </bean>
+
+    <!-- Cache interceptor for FHIR2 module compatibility -->
+    <!-- FHIR2 module requires this bean to be available. Using a no-op implementation. -->
+    <bean id="cacheInterceptor" class="org.springframework.aop.interceptor.SimpleTraceInterceptor">
+        <property name="loggerName" value="org.openmrs.module.fhir2"/>
+    </bean>
+</beans>

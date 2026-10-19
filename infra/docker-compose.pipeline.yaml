@@ -1,0 +1,39 @@
+services:
+  test-runner:
+    build:
+      context: ..
+      dockerfile: infra/runner/Dockerfile
+    working_dir: /workspace
+    command: ["bash", "infra/runner/run_pipeline.sh"]
+    environment:
+      apiBaseUrl: ${API_BASE_URL:-http://host.docker.internal}
+      apiVersion: ${API_VERSION:-/openmrs/ws/rest/v1}
+      adminUsername: ${ADMIN_USERNAME:-admin}
+      adminPassword: ${ADMIN_PASSWORD:-Admin123}
+      uiBaseUrl: ${UI_BASE_URL:-http://gateway/openmrs/spa}
+      uiRemote: ${UI_REMOTE:-http://host.docker.internal:4444/wd/hub}
+      SELENOID_STATUS_URL: ${SELENOID_STATUS_URL:-http://host.docker.internal:4444/status}
+      uiVideo: ${UI_VIDEO:-false}
+      OPENMRS_URL: ${OPENMRS_URL:-http://host.docker.internal/openmrs/ws/rest/v1/session}
+      OPENMRS_STARTUP_TIMEOUT_SECONDS: ${OPENMRS_STARTUP_TIMEOUT_SECONDS:-1200}
+      GITHUB_RUN_URL: ${GITHUB_RUN_URL:-}
+      GITHUB_RUN_ID: ${GITHUB_RUN_ID:-}
+      GITHUB_RUN_ATTEMPT: ${GITHUB_RUN_ATTEMPT:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
+      GITHUB_REF_NAME: ${GITHUB_REF_NAME:-}
+      GITHUB_ACTOR: ${GITHUB_ACTOR:-}
+      GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-}
+      BUILD_ENVIRONMENT: ${BUILD_ENVIRONMENT:-local}
+      MAVEN_ARGS: ${MAVEN_ARGS:-}
+      MAVEN_REPOSITORY: ${MAVEN_REPOSITORY:-}
+      TZ: UTC
+    volumes:
+      - ..:/workspace
+      - ${MAVEN_REPOSITORY:-maven-cache}:/root/.m2/repository
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    init: true
+    restart: "no"
+
+volumes:
+  maven-cache:

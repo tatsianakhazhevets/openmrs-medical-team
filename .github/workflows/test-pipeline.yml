@@ -1,0 +1,108 @@
+name: Test pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: OpenMRS API and UI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: Test
+    env:
+      SELENOID_VIDEO_OUTPUT_DIR: ${{ github.workspace }}/infra/video
+      MAVEN_REPOSITORY: ${{ github.workspace }}/.maven-cache
+      BUILD_ENVIRONMENT: ci
+      GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      APP_COMPOSE_PROJECT: openmrs-app-${{ github.run_id }}-${{ github.run_attempt }}
+      TEST_COMPOSE_PROJECT: openmrs-tests-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Restore Maven dependency cache
+        uses: actions/cache@v4
+        with:
+          path: .maven-cache
+          key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml', 'infra/runner/Dockerfile') }}
+
+      - name: Create CI environment file
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE || vars.ENV_FILE }}
+        run: |
+          if [ -z "$ENV_FILE_CONTENT" ]; then
+            echo "Set ENV_FILE as an environment secret (recommended) or repository/environment variable."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$ENV_FILE_CONTENT" > .env
+          unset ENV_FILE_CONTENT
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env -f infra/docker-compose.yaml -f infra/docker-compose.pipeline.yaml config --quiet
+
+      - name: Run test pipeline
+        run: bash infra/run-tests.sh
+
+      - name: Collect service diagnostics
+        if: always()
+        run: |
+          mkdir -p target/pipeline
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml \
+            ps --all > target/pipeline/compose-services.txt 2>&1 || {
+              echo "Compose service status could not be collected." >> target/pipeline/compose-services.txt
+            }
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml \
+            logs --no-color --timestamps > target/pipeline/compose.log 2>&1 || {
+              echo "Compose logs could not be collected." >> target/pipeline/compose.log
+            }
+
+      - name: Upload test, coverage, and diagnostic artifacts
+        id: upload-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/allure-results/
+            target/pipeline/
+            target/swagger-coverage-output/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Add summary to workflow
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-artifacts.outputs.artifact-url }}
+        run: |
+          if [ -s target/pipeline/summary.md ]; then
+            cat target/pipeline/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Pipeline summary was not generated. See the uploaded Compose and runner logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$ARTIFACT_URL" ]; then
+            printf '\n[Download test artifacts](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Stop the test environment
+        if: always()
+        run: |
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml \
+            down --volumes --remove-orphans
