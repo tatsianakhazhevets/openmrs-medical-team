@@ -1,0 +1,7 @@
+services:
+  backend:
+    volumes: !override
+      - ci-openmrs-data:/openmrs/data
+
+volumes:
+  ci-openmrs-data:

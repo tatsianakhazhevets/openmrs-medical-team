@@ -75,6 +75,8 @@ Compose settings are loaded from the root `.env` file and can also be provided b
 
 For GitHub Actions, store the complete `.env` file contents as an `ENV_FILE` secret in the `Test` environment. The workflow also accepts an `ENV_FILE` Actions variable as a fallback, but variables are not masked and should only contain non-sensitive configuration; use a secret whenever the file contains credentials. The workflow writes this value to a permission-restricted `.env` file, uses it for Compose interpolation, and does not print its contents. Do not use production credentials or real patient data. Protect access to workflow artifacts and logs; they may contain synthetic request/response details. Artifact retention is seven days by default.
 
+CI uses `infra/docker-compose.ci.yaml` to pair a fresh OpenMRS data volume with the fresh database volume. It does not reuse the checked-in local runtime properties or initialization checksums, and skips the redundant container restart so initial database setup is not interrupted. Both volumes are removed during CI cleanup; local data is unchanged. The runner waits for a successful JSON REST session response, not a redirect to the installation wizard, before starting Maven. CI restores ownership of container-created `target` files before collecting service diagnostics.
+
 To run against an externally managed OpenMRS environment, set `API_BASE_URL`, `API_VERSION`, and `OPENMRS_URL` to URLs reachable from the runner container, set `UI_BASE_URL`, `UI_REMOTE`, and `SELENOID_STATUS_URL` if UI tests are also needed, then use `docker compose --env-file .env --project-name openmrs-tests -f infra/docker-compose.yaml -f infra/docker-compose.pipeline.yaml run --build --rm --no-deps test-runner`. The command does not start local services; the selected external target and remote WebDriver must already be reachable. Use a dedicated non-production environment.
 
 ## Reports and metrics
@@ -88,6 +90,10 @@ The runner writes these files under `target/pipeline/`:
 - `maven.log` and `swagger-coverage.log`: command output with Basic Authorization values redacted.
 
 Raw Surefire XML, Allure result files/attachments, per-request Swagger captures, and Compose service logs are retained separately for investigation. In CI, the same files are uploaded as the `test-artifacts-<run>-<attempt>` artifact, linked from the run summary, and retained for seven days.
+
+Report aggregation reads JSON and large failure diagnostics from files rather than command-line arguments. Report size therefore does not depend on the operating system's argument-size limit.
+
+GitHub Pages and the `gh-pages` branch are not required: the workflow currently uploads Allure results as artifacts and does not publish an Allure site or history. Until Pages publication is configured, missing Pages permissions or history cannot fail this workflow. Any future publication/history steps must remain optional and must not mask the Maven test exit code.
 
 The checked-in Swagger 2.0 contract is a baseline snapshot (version 2.8.7); update it deliberately when the target OpenMRS API contract changes. Operation coverage is distinct from condition coverage: the former measures observed method/path pairs, while the latter measures declared request, response, and parameter conditions. Neither is currently a release threshold. `metrics.json` has a stable schema and commit/run identifiers to support later trend aggregation; no mutable history branch or external metrics service is required for each run.
 

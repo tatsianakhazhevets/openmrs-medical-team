@@ -36,7 +36,14 @@ fi
 
 cd "$ROOT"
 BASE_COMPOSE=(docker compose --env-file "$ENV_FILE" --project-name "$APP_PROJECT" -f infra/docker-compose.yaml)
-RUNNER_COMPOSE=(docker compose --env-file "$ENV_FILE" --project-name "$TEST_PROJECT" -f infra/docker-compose.yaml -f infra/docker-compose.pipeline.yaml)
+if [[ "${BUILD_ENVIRONMENT:-local}" == ci ]]; then
+  BASE_COMPOSE+=(-f infra/docker-compose.ci.yaml)
+fi
+RUNNER_COMPOSE=(docker compose --env-file "$ENV_FILE" --project-name "$TEST_PROJECT" -f infra/docker-compose.yaml)
+if [[ "${BUILD_ENVIRONMENT:-local}" == ci ]]; then
+  RUNNER_COMPOSE+=(-f infra/docker-compose.ci.yaml)
+fi
+RUNNER_COMPOSE+=(-f infra/docker-compose.pipeline.yaml)
 
 docker info >/dev/null
 "${BASE_COMPOSE[@]}" -f infra/docker-compose.pipeline.yaml config --quiet

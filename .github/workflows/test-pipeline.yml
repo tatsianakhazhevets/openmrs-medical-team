@@ -51,22 +51,25 @@ jobs:
           unset ENV_FILE_CONTENT
 
       - name: Validate Compose configuration
-        run: docker compose --env-file .env -f infra/docker-compose.yaml -f infra/docker-compose.pipeline.yaml config --quiet
+        run: docker compose --env-file .env -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml -f infra/docker-compose.pipeline.yaml config --quiet
 
       - name: Run test pipeline
-        run: bash infra/run-tests.sh
+        run: bash infra/run-tests.sh --skip-restart
 
       - name: Collect service diagnostics
         if: always()
         run: |
+          if [ -d target ]; then
+            sudo chown -R "$(id -u):$(id -g)" target
+          fi
           mkdir -p target/pipeline
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
-            -f infra/docker-compose.yaml \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             ps --all > target/pipeline/compose-services.txt 2>&1 || {
               echo "Compose service status could not be collected." >> target/pipeline/compose-services.txt
             }
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
-            -f infra/docker-compose.yaml \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             logs --no-color --timestamps > target/pipeline/compose.log 2>&1 || {
               echo "Compose logs could not be collected." >> target/pipeline/compose.log
             }
@@ -104,5 +107,5 @@ jobs:
         if: always()
         run: |
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
-            -f infra/docker-compose.yaml \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             down --volumes --remove-orphans

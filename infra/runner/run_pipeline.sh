@@ -35,18 +35,24 @@ wait_for_url() {
   local label=$1
   local url=$2
   local timeout=$3
+  local response_filter=${4:-}
   local deadline=$((SECONDS + timeout))
-  local status
+  local status response_file
+  response_file=$(mktemp)
 
   while (( SECONDS < deadline )); do
-    status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 5 "$url" 2>/dev/null || true)
-    if [[ "$status" =~ ^[234][0-9][0-9]$ ]]; then
-      log "$label is responding (HTTP $status)"
-      return 0
+    status=$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' --max-time 5 "$url" 2>/dev/null || true)
+    if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
+      if [[ -z "$response_filter" ]] || jq -e "$response_filter" "$response_file" >/dev/null 2>&1; then
+        rm -f "$response_file"
+        log "$label is ready (HTTP $status)"
+        return 0
+      fi
     fi
     sleep 5
   done
 
+  rm -f "$response_file"
   log "$label did not become ready within ${timeout}s: $url"
   return 1
 }
@@ -65,7 +71,8 @@ xml_sum() {
 
 write_junit_summary() {
   local failures_file=$1
-  local total=0 failed=0 skipped=0 file failure_count index name suite message trace
+  local total=0 failed=0 skipped=0 file failure_count index name suite details_dir
+  details_dir=$(mktemp -d)
   local -a report_files=()
   shopt -s nullglob
   report_files=("$REPORTS"/TEST-*.xml)
@@ -81,12 +88,14 @@ write_junit_summary() {
     for ((index = 1; index <= failure_count; index++)); do
       name=$(xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/@name)" "$file" 2>/dev/null || true)
       suite=$(xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/@classname)" "$file" 2>/dev/null || true)
-      message=$(xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/*[local-name()=\"failure\" or local-name()=\"error\"]/@message)" "$file" 2>/dev/null || true)
-      trace=$(xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/*[local-name()=\"failure\" or local-name()=\"error\"]/text())" "$file" 2>/dev/null || true)
-      jq -n --arg suite "$suite" --arg test "$name" --arg message "$message" --arg trace "$trace" \
-        '{suite:$suite,test:$test,message:$message,trace:$trace}' >> "$failures_file"
+      xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/*[local-name()=\"failure\" or local-name()=\"error\"]/@message)" "$file" > "$details_dir/message" || return 1
+      xmllint --nonet --xpath "string((//*[local-name()=\"testcase\"][*[local-name()=\"failure\" or local-name()=\"error\"]])[$index]/*[local-name()=\"failure\" or local-name()=\"error\"]/text())" "$file" > "$details_dir/trace" || return 1
+      jq -n --arg suite "$suite" --arg test "$name" --rawfile message "$details_dir/message" --rawfile trace "$details_dir/trace" \
+        '{suite:$suite,test:$test,message:($message | rtrimstr("\n")),trace:($trace | rtrimstr("\n"))}' >> "$failures_file" || return 1
     done
   done
+  rm -f "$details_dir/message" "$details_dir/trace"
+  rmdir "$details_dir"
 
   local passed=$((total - failed - skipped))
   (( passed < 0 )) && passed=0
@@ -117,10 +126,10 @@ write_openapi_coverage() {
   for capture in "${capture_files[@]}"; do
     jq -c '[.paths // {} | to_entries[] as $path | $path.value | to_entries[]
       | select(.key | IN("get","put","post","delete","options","head","patch"))
-      | {path:$path.key,method:(.key|ascii_downcase)}]' "$capture" >> "$observed_file"
+      | {path:$path.key,method:(.key|ascii_downcase)}]' "$capture" >> "$observed_file" || return 1
   done
-  jq -s 'add // [] | unique_by([.path,.method])' "$observed_file" > "$observed_file.tmp"
-  mv "$observed_file.tmp" "$observed_file"
+  jq -s 'add // [] | unique_by([.path,.method])' "$observed_file" > "$observed_file.tmp" || return 1
+  mv "$observed_file.tmp" "$observed_file" || return 1
 
   jq -n --slurpfile spec "$SPEC" --slurpfile observed "$observed_file" '
     def methods: ["get","put","post","delete","options","head","patch"];
@@ -165,7 +174,7 @@ main() {
   rm -f "$PIPELINE"/maven.log "$PIPELINE"/swagger-coverage.log "$PIPELINE"/swagger-coverage-results.json "$PIPELINE"/swagger-coverage-report.html
 
   local test_exit=0 coverage_exit=0 test_started=$SECONDS test_duration=0 pipeline_duration
-  if ! wait_for_url "OpenMRS" "${OPENMRS_URL:-http://host.docker.internal/openmrs/ws/rest/v1/session}" "${OPENMRS_STARTUP_TIMEOUT_SECONDS:-1200}"; then
+  if ! wait_for_url "OpenMRS" "${OPENMRS_URL:-http://host.docker.internal/openmrs/ws/rest/v1/session}" "${OPENMRS_STARTUP_TIMEOUT_SECONDS:-1200}" 'type == "object" and (.authenticated | type == "boolean")'; then
     test_exit=1
   elif ! wait_for_url "Selenoid" "${SELENOID_STATUS_URL:-http://host.docker.internal:4444/status}" 300; then
     test_exit=1
@@ -197,9 +206,17 @@ main() {
 
   local failures_file="$PIPELINE/junit-failures.jsonl"
   : > "$failures_file"
-  local tests_json api_json condition_json started_at completed_at test_duration
-  tests_json=$(write_junit_summary "$failures_file")
-  api_json=$(write_openapi_coverage "$PIPELINE/observed-operations.jsonl")
+  local tests_file="$PIPELINE/junit-summary.json"
+  local api_file="$PIPELINE/openapi-operations.json"
+  local condition_json completed_at
+  if ! write_junit_summary "$failures_file" > "$tests_file"; then
+    log "Failed to generate JUnit summary" >&2
+    return 1
+  fi
+  if ! write_openapi_coverage "$PIPELINE/observed-operations.jsonl" > "$api_file"; then
+    log "Failed to generate OpenAPI coverage" >&2
+    return 1
+  fi
   rm -f "$failures_file" "$PIPELINE/observed-operations.jsonl"
 
   condition_json=null
@@ -220,8 +237,9 @@ main() {
     --arg branch "${GITHUB_REF_NAME:-}" --arg actor "${GITHUB_ACTOR:-}" \
     --arg repository "${GITHUB_REPOSITORY:-}" --arg status "$status" \
     --argjson testExit "$test_exit" --argjson coverageExit "$coverage_exit" \
-    --argjson duration "$pipeline_duration" --argjson testDuration "$test_duration" --argjson tests "$tests_json" \
-    --argjson openApi "$api_json" --argjson conditions "$condition_json" '
+    --argjson duration "$pipeline_duration" --argjson testDuration "$test_duration" --slurpfile tests "$tests_file" \
+    --slurpfile openApi "$api_file" --argjson conditions "$condition_json" '
+      $tests[0] as $tests | $openApi[0] as $openApi |
       {
         schemaVersion:1,
         execution:{
@@ -250,7 +268,11 @@ main() {
           "target/surefire-reports/","target/allure-results/",
           "target/pipeline/maven.log","target/pipeline/swagger-coverage.log"
         ]
-      }' > "$PIPELINE/metrics.json"
+      }' > "$PIPELINE/metrics.json" || {
+        log "Failed to generate pipeline metrics" >&2
+        return 1
+      }
+  rm -f "$tests_file"
 
   local total passed failed skipped success_rate covered operations coverage_percent
   total=$(jq -r '.tests.total' "$PIPELINE/metrics.json")
@@ -298,7 +320,6 @@ EOF
     ([.openApi.operations[] | "<tr><td>\(.method)</td><td>\(.path | @html)</td><td>\(if .covered then "Covered" else "Not covered" end)</td></tr>"] | join("")) +
     "</table></body></html>"
   ' "$PIPELINE/metrics.json" > "$PIPELINE/openapi-coverage.html"
-  jq '.openApi' "$PIPELINE/metrics.json" > "$PIPELINE/openapi-operations.json"
 
   log "Tests: $passed passed, $failed failed, $skipped skipped"
   log "OpenAPI: $covered/$operations operations covered ($coverage_percent%)"
