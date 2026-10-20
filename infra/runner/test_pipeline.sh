@@ -106,4 +106,32 @@ main
 jq -e '.execution.status == "passed" and .execution.testExitCode == 0
   and .tests.passed == 1 and .tests.failed == 0' "$PIPELINE/metrics.json" >/dev/null
 
+rm "$CAPTURES/capture-coverage.json"
+mvn() {
+  if [[ "$*" != *"clean verify"* ]]; then
+    printf 'Swagger CLI must not be invoked without captures.\n' > "$WORK_DIR/unexpected-coverage-invocation"
+  fi
+  return 0
+}
+if main; then
+  printf 'Missing Swagger captures must not produce a successful pipeline.\n' >&2
+  exit 1
+fi
+[[ ! -f "$WORK_DIR/unexpected-coverage-invocation" ]]
+grep -q 'no request captures' "$PIPELINE/swagger-coverage.log"
+jq -e '.execution.status == "failed" and .execution.testExitCode == 0
+  and .execution.coverageExitCode == 1 and .swaggerConditions == null
+  and .openApi.coveredOperations == 0' "$PIPELINE/metrics.json" >/dev/null
+
+MOCK_STATUS=302
+OPENMRS_STARTUP_TIMEOUT_SECONDS=1
+mvn() { touch "$WORK_DIR/unexpected-maven-invocation"; return 0; }
+if main; then
+  printf 'A readiness timeout must fail the pipeline.\n' >&2
+  exit 1
+fi
+[[ ! -f "$WORK_DIR/unexpected-maven-invocation" ]]
+jq -e '.execution.testExitCode == 1 and .execution.coverageExitCode == 1
+  and .execution.status == "failed"' "$PIPELINE/metrics.json" >/dev/null
+
 printf 'Pipeline shell checks passed.\n'

@@ -27,6 +27,7 @@ jobs:
       SELENOID_VIDEO_OUTPUT_DIR: ${{ github.workspace }}/infra/video
       MAVEN_REPOSITORY: ${{ github.workspace }}/.maven-cache
       BUILD_ENVIRONMENT: ci
+      OPENMRS_STARTUP_TIMEOUT_SECONDS: 600
       GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       APP_COMPOSE_PROJECT: openmrs-app-${{ github.run_id }}-${{ github.run_attempt }}
       TEST_COMPOSE_PROJECT: openmrs-tests-${{ github.run_id }}-${{ github.run_attempt }}
@@ -73,7 +74,12 @@ jobs:
             }
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
             -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
-            logs --no-color --timestamps > target/pipeline/compose.log 2>&1 || {
+            logs --no-color --timestamps 2>&1 |
+            sed -E \
+              -e 's/((password|passwd|token|secret|api[_-]?key)[^=:]{0,20}[=:][[:space:]]*)[^[:space:],;]+/\1[REDACTED]/Ig' \
+              -e 's/(Authorization[[:space:]]*:[[:space:]]*(Basic|Bearer)[[:space:]]+)[^[:space:]]+/\1[REDACTED]/Ig' \
+              -e 's|://[^:/[:space:]]+:[^@/[:space:]]+@|://[REDACTED]@|g' \
+            > target/pipeline/compose.log || {
               echo "Compose logs could not be collected." >> target/pipeline/compose.log
             }
 

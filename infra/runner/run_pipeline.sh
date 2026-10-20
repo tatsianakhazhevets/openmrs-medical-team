@@ -36,8 +36,8 @@ wait_for_url() {
   local url=$2
   local timeout=$3
   local response_filter=${4:-}
-  local deadline=$((SECONDS + timeout))
-  local status response_file
+  local started=$SECONDS deadline=$((SECONDS + timeout)) next_log=$SECONDS
+  local status=000 response_file
   response_file=$(mktemp)
 
   while (( SECONDS < deadline )); do
@@ -49,11 +49,15 @@ wait_for_url() {
         return 0
       fi
     fi
+    if (( SECONDS >= next_log )); then
+      log "Waiting for $label ($((SECONDS - started))s elapsed, last HTTP $status)"
+      next_log=$((SECONDS + 60))
+    fi
     sleep 5
   done
 
   rm -f "$response_file"
-  log "$label did not become ready within ${timeout}s: $url"
+  log "$label did not become ready within ${timeout}s (last HTTP $status): $url"
   return 1
 }
 
@@ -194,15 +198,20 @@ main() {
   fi
 
   mkdir -p "$PIPELINE"
-  (
-    cd "$PIPELINE"
-    run_maven "$PIPELINE/swagger-coverage.log" mvn --batch-mode --no-transfer-progress \
-      --file "$ROOT/infra/coverage-pom.xml" \
-      org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
-      -Dexec.classpathScope=test \
-      -Dexec.mainClass=com.github.viclovsky.swagger.coverage.CommandLine \
-      "-Dexec.args=-s $SPEC -i $CAPTURES"
-  ) || coverage_exit=$?
+  if [[ -n "$(find "$CAPTURES" -maxdepth 1 -name '*-coverage.json' -type f -print -quit)" ]]; then
+    (
+      cd "$PIPELINE"
+      run_maven "$PIPELINE/swagger-coverage.log" mvn --batch-mode --no-transfer-progress \
+        --file "$ROOT/infra/coverage-pom.xml" \
+        org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
+        -Dexec.classpathScope=test \
+        -Dexec.mainClass=com.github.viclovsky.swagger.coverage.CommandLine \
+        "-Dexec.args=-s $SPEC -i $CAPTURES"
+    ) || coverage_exit=$?
+  else
+    coverage_exit=1
+    log "Swagger coverage was not generated: no request captures were produced." | tee "$PIPELINE/swagger-coverage.log"
+  fi
 
   local failures_file="$PIPELINE/junit-failures.jsonl"
   : > "$failures_file"

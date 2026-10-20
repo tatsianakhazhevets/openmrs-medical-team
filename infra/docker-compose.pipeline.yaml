@@ -15,7 +15,7 @@ services:
       SELENOID_STATUS_URL: ${SELENOID_STATUS_URL:-http://host.docker.internal:4444/status}
       uiVideo: ${UI_VIDEO:-false}
       OPENMRS_URL: ${OPENMRS_URL:-http://host.docker.internal/openmrs/ws/rest/v1/session}
-      OPENMRS_STARTUP_TIMEOUT_SECONDS: ${OPENMRS_STARTUP_TIMEOUT_SECONDS:-1200}
+      OPENMRS_STARTUP_TIMEOUT_SECONDS: ${OPENMRS_STARTUP_TIMEOUT_SECONDS:-600}
       GITHUB_RUN_URL: ${GITHUB_RUN_URL:-}
       GITHUB_RUN_ID: ${GITHUB_RUN_ID:-}
       GITHUB_RUN_ATTEMPT: ${GITHUB_RUN_ATTEMPT:-}

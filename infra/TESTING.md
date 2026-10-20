@@ -20,13 +20,13 @@ From the repository root, create `.env` from `.env.example` if it does not alrea
 bash infra/run-tests.sh
 ```
 
-The script creates `.env` from `.env.example` if needed, pulls the browser images in `infra/config/browsers.json`, starts OpenMRS and Selenoid, explicitly restarts their Compose containers, waits for them to become healthy, then runs the full API and UI test suite. To keep already-running application containers up without restarting them:
+The script creates `.env` from `.env.example` if needed, starts MariaDB while pulling the browser images in `infra/config/browsers.json`, restores the bundled reference database snapshot only when the database has no OpenMRS schema, then starts OpenMRS and Selenoid. Already-running database/application/browser containers are restarted by default; a newly created stack starts once. Compose considers MariaDB ready only after a TCP query succeeds, and the backend health check requires a JSON REST session response; the gateway waits for healthy backend and frontend services. Before Maven runs, the runner also validates the REST session JSON and Selenoid endpoint. To keep already-running containers up without restarting them:
 
 ```bash
 bash infra/run-tests.sh --skip-restart
 ```
 
-This restarts the Docker Compose application containers, not the Docker Desktop/Engine daemon. Container restart preserves named volumes and the bind-mounted `infra/openmrs-data`; it does not reset the database. A fresh OpenMRS installation may take 10–20 minutes on first startup.
+This skips restarts of already-running database/application/browser containers; it does not change database state. A fresh database is restored from `infra/db/openmrs-test.sql` before the backend starts, avoiding the reference project's initial schema, metadata, and demo-data setup. The restored Lucene version is cleared so OpenMRS rebuilds its search index for the current runtime data.
 
 ## Common executions
 
@@ -70,12 +70,14 @@ Compose settings are loaded from the root `.env` file and can also be provided b
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | `admin` / `Admin123` | Test application account |
 | `API_BASE_URL`, `API_VERSION`, `OPENMRS_URL` | Local Compose gateway | API target and readiness URL |
 | `UI_BASE_URL`, `UI_REMOTE`, `SELENOID_STATUS_URL` | Local gateway and Selenoid | UI target and Selenium endpoint |
-| `OPENMRS_STARTUP_TIMEOUT_SECONDS` | `1200` | Readiness wait for the OpenMRS REST service |
+| `OPENMRS_STARTUP_TIMEOUT_SECONDS` | `600` | Maximum readiness wait for the OpenMRS REST service |
 | `UI_VIDEO` | `false` | Enable Selenoid video recording when configured |
 
-For GitHub Actions, store the complete `.env` file contents as an `ENV_FILE` secret in the `Test` environment. The workflow also accepts an `ENV_FILE` Actions variable as a fallback, but variables are not masked and should only contain non-sensitive configuration; use a secret whenever the file contains credentials. The workflow writes this value to a permission-restricted `.env` file, uses it for Compose interpolation, and does not print its contents. Do not use production credentials or real patient data. Protect access to workflow artifacts and logs; they may contain synthetic request/response details. Artifact retention is seven days by default.
+For GitHub Actions, store the complete `.env` file contents as an `ENV_FILE` secret in the `Test` environment. The workflow also accepts an `ENV_FILE` Actions variable as a fallback, but variables are not masked and should only contain non-sensitive configuration; use a secret whenever the file contains credentials. The workflow writes this value to a permission-restricted `.env` file, uses it for Compose interpolation, and does not print its contents. Do not use production credentials or real patient data. Compose service logs redact common password, token, authorization, and URL-credential patterns; still protect artifacts and logs, which may contain synthetic request/response details. Artifact retention is seven days by default.
 
-CI uses `infra/docker-compose.ci.yaml` to pair a fresh OpenMRS data volume with the fresh database volume. It does not reuse the checked-in local runtime properties or initialization checksums, and skips the redundant container restart so initial database setup is not interrupted. Both volumes are removed during CI cleanup; local data is unchanged. The runner waits for a successful JSON REST session response, not a redirect to the installation wizard, before starting Maven. CI restores ownership of container-created `target` files before collecting service diagnostics.
+CI uses `infra/docker-compose.ci.yaml` to pair a fresh OpenMRS data volume with the fresh database volume. The runner waits until MariaDB accepts queries, restores `infra/db/openmrs-test.sql` into the empty CI database, and only then starts the backend. It mounts only the matching, read-only reference configuration checksums into the fresh data volume; local runtime properties, mutable application data, and Lucene files are not reused. Both named volumes are unique to the workflow run and removed during CI cleanup; local data is unchanged. The snapshot's `admin` password hash is regenerated with a fresh salt to match the target's test-only `Admin123` default; passwords and salts for other copied users are cleared, so the suite should authenticate using the configured admin account. The runner waits for a successful JSON REST session response, not a redirect to the installation wizard, before starting Maven. CI restores ownership of container-created `target` files before collecting service diagnostics.
+
+The workflow, Compose runner default, and `.env.example` set the backend REST readiness limit to 600 seconds; an explicit environment or `.env` value overrides the default. Backend and frontend health retries also fail within that default startup budget, rather than leaving `docker compose up --wait` unbounded. The runner polls every five seconds, logs progress and the last HTTP status once per minute, and fails with service status and recent database/backend logs if startup or test execution fails. It does not treat a redirect or an HTML setup page as a ready API.
 
 To run against an externally managed OpenMRS environment, set `API_BASE_URL`, `API_VERSION`, and `OPENMRS_URL` to URLs reachable from the runner container, set `UI_BASE_URL`, `UI_REMOTE`, and `SELENOID_STATUS_URL` if UI tests are also needed, then use `docker compose --env-file .env --project-name openmrs-tests -f infra/docker-compose.yaml -f infra/docker-compose.pipeline.yaml run --build --rm --no-deps test-runner`. The command does not start local services; the selected external target and remote WebDriver must already be reachable. Use a dedicated non-production environment.
 
@@ -89,17 +91,19 @@ The runner writes these files under `target/pipeline/`:
 - `swagger-coverage-report.html` and `swagger-coverage-results.json`: parameter/status-condition coverage from Swagger Coverage.
 - `maven.log` and `swagger-coverage.log`: command output with Basic Authorization values redacted.
 
+Swagger Coverage is invoked only when request capture files exist. If startup or test execution produces no captures, the pipeline records an explicit coverage error instead of invoking the CLI on an empty directory (which causes a `minResultTime` exception). The summary is still generated and the pipeline remains failed.
+
 Raw Surefire XML, Allure result files/attachments, per-request Swagger captures, and Compose service logs are retained separately for investigation. In CI, the same files are uploaded as the `test-artifacts-<run>-<attempt>` artifact, linked from the run summary, and retained for seven days.
 
 Report aggregation reads JSON and large failure diagnostics from files rather than command-line arguments. Report size therefore does not depend on the operating system's argument-size limit.
 
-GitHub Pages and the `gh-pages` branch are not required: the workflow currently uploads Allure results as artifacts and does not publish an Allure site or history. Until Pages publication is configured, missing Pages permissions or history cannot fail this workflow. Any future publication/history steps must remain optional and must not mask the Maven test exit code.
+On pushes to `main`, the workflow publishes an Allure report with history to the `gh-pages` branch when Allure results are available. When generated, the Swagger condition-coverage HTML is included in that run's Allure report with a direct link, and is also retained in the workflow artifacts. Pull requests and runs on other branches do not publish. Enable GitHub Pages for the repository with `gh-pages` as its source to serve the published reports. Publication runs separately after tests and does not mask the Maven test result; if no Allure results are generated, the publish job is skipped.
 
-The checked-in Swagger 2.0 contract is a baseline snapshot (version 2.8.7); update it deliberately when the target OpenMRS API contract changes. Operation coverage is distinct from condition coverage: the former measures observed method/path pairs, while the latter measures declared request, response, and parameter conditions. Neither is currently a release threshold. `metrics.json` has a stable schema and commit/run identifiers to support later trend aggregation; no mutable history branch or external metrics service is required for each run.
+The checked-in Swagger 2.0 contract is a baseline snapshot (version 2.8.7); update it deliberately when the target OpenMRS API contract changes. Operation coverage is distinct from condition coverage: the former measures observed method/path pairs, while the latter measures declared request, response, and parameter conditions. Neither is currently a release threshold. `metrics.json` has a stable schema and commit/run identifiers; historical trend aggregation for these metrics is separate from Allure report history and is not configured.
 
 ## Troubleshooting
 
-- **OpenMRS does not become ready:** inspect `target/pipeline/compose.log` in CI or run `docker compose ... logs backend db`. Increase `OPENMRS_STARTUP_TIMEOUT_SECONDS` only when the environment is expected to initialize slowly.
+- **OpenMRS does not become ready:** inspect `target/pipeline/compose.log` in CI or run `docker compose ... logs backend db`. A partial schema is not overwritten automatically; reset the isolated database volume only after confirming its data can be discarded.
 - **Database connection fails:** verify `OMRS_DB_HOST=db` and that the database credentials match the values used to initialize its volume. If credentials changed after initialization, reset the local volume.
 - **UI tests cannot connect to a browser:** check Selenoid startup and `infra/config/browsers.json`; verify Docker can pull the configured Chrome image and the Docker daemon socket is available to Selenoid.
 - **Port 80, 3306, or 4444 is busy:** stop the conflicting local service before starting the stack.
@@ -112,5 +116,5 @@ The checked-in Swagger 2.0 contract is a baseline snapshot (version 2.8.7); upda
 - **Compose override instead of editing the application stack:** isolates test-runner concerns from the existing OpenMRS service definition and preserves local changes to that file.
 - **One containerized test runner instead of host Maven or a second test image:** keeps Java and Maven versions consistent and makes the same command work locally and in CI. A named `.m2` volume avoids repeated downloads.
 - **Shared request-filter instrumentation:** collects Swagger data at the existing Rest Assured request specification boundary without changing individual tests or assertions.
-- **Built-in HTML/JSON reports plus JUnit and Allure raw data:** keeps the primary summary dependency-free while preserving detailed test and HTTP diagnostics. Trend publishing is deferred until a durable retention destination is selected.
+- **Built-in HTML/JSON reports plus JUnit and Allure raw data:** keeps the primary summary dependency-free while preserving detailed test and HTTP diagnostics. Allure history and published reports are retained on `gh-pages`.
 - **No coverage threshold yet:** the checked-in API contract is broader than current tested resources and may differ from the runtime API. Reports make the gap visible without changing existing pass/fail behavior.

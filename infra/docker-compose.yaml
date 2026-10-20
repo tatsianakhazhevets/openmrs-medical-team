@@ -3,8 +3,10 @@ services:
     image: openmrs/openmrs-reference-application-3-gateway:3.7.1
     restart: "unless-stopped"
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     ports:
       - "80:80"
     networks:
@@ -22,10 +24,11 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 10s
       timeout: 5s
-      retries: 60
+      retries: 50
       start_period: 60s
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - o3-network
 
@@ -33,7 +36,8 @@ services:
     image: openmrs/openmrs-reference-application-3-backend:3.7.1
     restart: "unless-stopped"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
       OMRS_CONFIG_AUTO_UPDATE_DATABASE: "true"
@@ -43,13 +47,19 @@ services:
       OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER}
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
+      test:
+        - CMD-SHELL
+        - >-
+          curl --silent --show-error --fail --max-time 5
+          http://localhost:8080/openmrs/ws/rest/v1/session
+          | grep -Eq '"authenticated"[[:space:]]*:[[:space:]]*(true|false)'
       interval: 10s
       timeout: 5s
-      retries: 60
+      retries: 50
       start_period: 60s
     volumes:
       - ./openmrs-data:/openmrs/data
+      - ./openmrs-snapshot-data/configuration_checksums:/openmrs/data/configuration_checksums:ro
       # Keep Lucene I/O on Docker's Linux filesystem, not the Windows bind mount.
       - openmrs-lucene:/openmrs/data/lucene
     networks:
@@ -70,10 +80,16 @@ services:
       - --max-allowed-packet=256M
 
     healthcheck:
-      test: "mysql --user=${OMRS_DB_USER} --password=${OMRS_DB_PASSWORD} --execute \"SHOW DATABASES;\""
+      test:
+        - CMD-SHELL
+        - >-
+          mariadb --protocol=TCP --host=127.0.0.1
+          --user="$$MYSQL_USER" --password="$$MYSQL_PASSWORD"
+          "$$MYSQL_DATABASE" --execute='SELECT 1'
       interval: 3s
-      timeout: 1s
-      retries: 5
+      timeout: 2s
+      retries: 30
+      start_period: 10s
 
     environment:
       MYSQL_DATABASE: ${OMRS_DB_NAME}
