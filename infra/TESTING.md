@@ -36,6 +36,8 @@ Run all current API and UI tests and restart the application services:
 bash infra/run-tests.sh
 ```
 
+The Maven `verify` lifecycle also runs Checkstyle against production and test Java sources. Checkstyle violations fail the runner and are included in `target/pipeline/maven.log`.
+
 Run only `LaboratoryApiTests` without changing any test source:
 
 ```bash
