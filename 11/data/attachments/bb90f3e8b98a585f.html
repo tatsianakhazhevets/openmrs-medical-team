@@ -1,0 +1,46 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/procedure</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;0fda1f44-47ce-470c-ac34-654c6ff57f4f&quot;,
+    &quot;procedureCoded&quot;: &quot;162897AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;procedureType&quot;: &quot;ba8369fa-49db-4cc0-a730-9ab96eca75e1&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-03T01:08:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-03T04:29:00+03:00&quot;,
+    &quot;estimatedStartDate&quot;: &quot;2026-10&quot;,
+    &quot;status&quot;: &quot;163723AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;ygulkmdUvz&quot;,
+    &quot;duration&quot;: 4,
+    &quot;durationUnit&quot;: &quot;1734AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/procedure&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;0fda1f44-47ce-470c-ac34-654c6ff57f4f&quot;,
+    &quot;procedureCoded&quot;: &quot;162897AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;procedureType&quot;: &quot;ba8369fa-49db-4cc0-a730-9ab96eca75e1&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-03T01:08:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-03T04:29:00+03:00&quot;,
+    &quot;estimatedStartDate&quot;: &quot;2026-10&quot;,
+    &quot;status&quot;: &quot;163723AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;ygulkmdUvz&quot;,
+    &quot;duration&quot;: 4,
+    &quot;durationUnit&quot;: &quot;1734AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}&#39;
+    </div>
+

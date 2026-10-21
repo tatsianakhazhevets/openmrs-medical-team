@@ -1,0 +1,44 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/procedure</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;9490ac09-bbcb-421c-8526-4eb3be9bba3e&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;&quot;,
+    &quot;bodySite&quot;: &quot;1808AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-08T11:54:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-08T12:29:00+03:00&quot;,
+    &quot;status&quot;: &quot;1267AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;Mjibt&quot;,
+    &quot;duration&quot;: 1,
+    &quot;durationUnit&quot;: &quot;1733AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/procedure&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;9490ac09-bbcb-421c-8526-4eb3be9bba3e&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;&quot;,
+    &quot;bodySite&quot;: &quot;1808AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-08T11:54:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-08T12:29:00+03:00&quot;,
+    &quot;status&quot;: &quot;1267AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;Mjibt&quot;,
+    &quot;duration&quot;: 1,
+    &quot;durationUnit&quot;: &quot;1733AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}&#39;
+    </div>
+
