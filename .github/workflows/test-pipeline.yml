@@ -166,17 +166,53 @@ jobs:
             -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             down --volumes --remove-orphans
 
+      - name: Load Telegram configuration
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || vars.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE || vars.ENV_FILE }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import shlex
+
+          keys = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+          values = {key: os.environ.get(key, "").strip() for key in keys}
+          file_values = {}
+          for line in os.environ.get("ENV_FILE_CONTENT", "").splitlines():
+              match = re.fullmatch(r"\s*(?:export\s+)?(TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID)\s*=(.*)", line)
+              if not match or values[match[1]]:
+                  continue
+              key, raw_value = match.groups()
+              try:
+                  parts = shlex.split(raw_value, comments=True)
+              except ValueError:
+                  raise SystemExit(f"Invalid quoting for {key} in ENV_FILE.") from None
+              if len(parts) > 1:
+                  raise SystemExit(f"Expected a single value for {key} in ENV_FILE.")
+              file_values[key] = parts[0] if parts else ""
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              for key in keys:
+                  value = values[key] or file_values.get(key, "")
+                  if "\n" in value or "\r" in value:
+                      raise SystemExit(f"{key} must be a single-line value.")
+                  if value:
+                      print(f"::add-mask::{value}")
+                  output.write(f"{key}={value}\n")
+          PY
+
       - name: Notify Telegram channel
         if: always()
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PIPELINE_STATUS: ${{ job.status }}
           ARTIFACT_URL: ${{ steps.upload-artifacts.outputs.artifact-url }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Test environment."
-            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Test environment." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE."
+            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
@@ -215,4 +251,5 @@ jobs:
             --request POST \
             --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
             --data-urlencode "text=$message" \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --output /dev/null
