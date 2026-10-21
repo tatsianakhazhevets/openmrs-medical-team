@@ -1,0 +1,32 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/encounter</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;0ffb54a4-5b9e-4d72-b7ba-0ea4ed7e6ad3&quot;,
+    &quot;encounterType&quot;: &quot;e22e39fd-7db2-45e7-80f1-60fa0d5a4378&quot;,
+    &quot;encounterDatetime&quot;: &quot;1932-08-08T00:00:00.000+0000&quot;,
+    &quot;location&quot;: &quot;3ad56ffe-05bc-4ccf-aa87-f517f65e10fd&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/encounter&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;0ffb54a4-5b9e-4d72-b7ba-0ea4ed7e6ad3&quot;,
+    &quot;encounterType&quot;: &quot;e22e39fd-7db2-45e7-80f1-60fa0d5a4378&quot;,
+    &quot;encounterDatetime&quot;: &quot;1932-08-08T00:00:00.000+0000&quot;,
+    &quot;location&quot;: &quot;3ad56ffe-05bc-4ccf-aa87-f517f65e10fd&quot;
+}&#39;
+    </div>
+

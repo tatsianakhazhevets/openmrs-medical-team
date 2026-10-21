@@ -1,0 +1,58 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient/30b0d747-b9dd-4586-8b58-020c5be075f6/allergy</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;allergen&quot;: {
+        &quot;allergenType&quot;: &quot;ENVIRONMENT&quot;,
+        &quot;codedAllergen&quot;: {
+            &quot;uuid&quot;: &quot;a3d98c48-87d6-42b3-aa8a-a39032e1efb6&quot;
+        }
+    },
+    &quot;severity&quot;: {
+        &quot;uuid&quot;: &quot;1498AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+    },
+    &quot;comment&quot;: &quot;uyCeWLo&quot;,
+    &quot;reactions&quot;: [
+        {
+            &quot;reaction&quot;: {
+                &quot;uuid&quot;: &quot;1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+            }
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient/30b0d747-b9dd-4586-8b58-020c5be075f6/allergy&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;allergen&quot;: {
+        &quot;allergenType&quot;: &quot;ENVIRONMENT&quot;,
+        &quot;codedAllergen&quot;: {
+            &quot;uuid&quot;: &quot;a3d98c48-87d6-42b3-aa8a-a39032e1efb6&quot;
+        }
+    },
+    &quot;severity&quot;: {
+        &quot;uuid&quot;: &quot;1498AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+    },
+    &quot;comment&quot;: &quot;uyCeWLo&quot;,
+    &quot;reactions&quot;: [
+        {
+            &quot;reaction&quot;: {
+                &quot;uuid&quot;: &quot;1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+            }
+        }
+    ]
+}&#39;
+    </div>
+
