@@ -165,3 +165,54 @@ jobs:
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
             -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             down --volumes --remove-orphans
+
+      - name: Notify Telegram channel
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PIPELINE_STATUS: ${{ job.status }}
+          ARTIFACT_URL: ${{ steps.upload-artifacts.outputs.artifact-url }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Test environment."
+            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Test environment." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          message="OpenMRS test pipeline: ${PIPELINE_STATUS^^}
+          Repository: $GITHUB_REPOSITORY
+          Branch: $GITHUB_REF_NAME
+          Commit: ${GITHUB_SHA::7}
+          Triggered by: $GITHUB_ACTOR
+          Run: $GITHUB_RUN_URL"
+
+          if [ -s target/pipeline/metrics.json ] && command -v jq >/dev/null 2>&1; then
+            test_summary=$(jq -r '"Tests: \(.tests.passed) passed, \(.tests.failed) failed, \(.tests.skipped) skipped / \(.tests.total) total
+          Success rate: \(.tests.successRatePercent)%
+          OpenAPI coverage: \(.openApi.coveredOperations)/\(.openApi.totalOperations) operations (\(.openApi.coveragePercent)%)"' \
+              target/pipeline/metrics.json)
+            message="$message
+          $test_summary"
+
+            failed_tests=$(jq -r '.tests.failures[:5][] | "- \(.suite).\(.test)"' target/pipeline/metrics.json)
+            if [ -n "$failed_tests" ]; then
+              message="$message
+          Failed tests:
+          $failed_tests"
+            fi
+          else
+            message="$message
+          Test metrics are unavailable; see the workflow run for details."
+          fi
+
+          if [ -n "$ARTIFACT_URL" ]; then
+            message="$message
+          Artifacts: $ARTIFACT_URL"
+          fi
+
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 --max-time 20 \
+            --request POST \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "text=$message" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
