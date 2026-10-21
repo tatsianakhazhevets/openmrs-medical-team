@@ -1,0 +1,46 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/queue-entry/636ca2d9-6ee2-4072-b8c5-9d5ad318153c</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;status&quot;: {
+        &quot;uuid&quot;: &quot;b559fb77-4e1e-4285-b9b7-1d03e0ba983f&quot;,
+        &quot;display&quot;: &quot;Finished Service&quot;,
+        &quot;links&quot;: null
+    },
+    &quot;priority&quot;: {
+        &quot;uuid&quot;: &quot;dc3492ef-24a5-4fd9-b58d-4fd2acf7071f&quot;,
+        &quot;display&quot;: &quot;Urgent&quot;,
+        &quot;links&quot;: null
+    },
+    &quot;priorityComment&quot;: &quot;zFFCTnW &quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/queue-entry/636ca2d9-6ee2-4072-b8c5-9d5ad318153c&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;status&quot;: {
+        &quot;uuid&quot;: &quot;b559fb77-4e1e-4285-b9b7-1d03e0ba983f&quot;,
+        &quot;display&quot;: &quot;Finished Service&quot;,
+        &quot;links&quot;: null
+    },
+    &quot;priority&quot;: {
+        &quot;uuid&quot;: &quot;dc3492ef-24a5-4fd9-b58d-4fd2acf7071f&quot;,
+        &quot;display&quot;: &quot;Urgent&quot;,
+        &quot;links&quot;: null
+    },
+    &quot;priorityComment&quot;: &quot;zFFCTnW &quot;
+}&#39;
+    </div>
+

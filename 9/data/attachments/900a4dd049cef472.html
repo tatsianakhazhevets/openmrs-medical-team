@@ -1,0 +1,42 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/procedure</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;c143dc03-a9a4-40b0-832a-8a5e12d29578&quot;,
+    &quot;procedureType&quot;: &quot;11f3a801-f6e2-4fca-bd5b-96ca9a56ea32&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-02T22:54:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-03T08:49:00+03:00&quot;,
+    &quot;status&quot;: &quot;167153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;hGvKs&quot;,
+    &quot;duration&quot;: 10,
+    &quot;durationUnit&quot;: &quot;162583AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/procedure&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;c143dc03-a9a4-40b0-832a-8a5e12d29578&quot;,
+    &quot;procedureType&quot;: &quot;11f3a801-f6e2-4fca-bd5b-96ca9a56ea32&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-02T22:54:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-03T08:49:00+03:00&quot;,
+    &quot;status&quot;: &quot;167153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;hGvKs&quot;,
+    &quot;duration&quot;: 10,
+    &quot;durationUnit&quot;: &quot;162583AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}&#39;
+    </div>
+
