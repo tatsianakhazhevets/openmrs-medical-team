@@ -36,7 +36,7 @@ Run all current API and UI tests and restart the application services:
 bash infra/run-tests.sh
 ```
 
-The Maven `verify` lifecycle also runs Checkstyle against production and test Java sources. Checkstyle violations fail the runner and are included in `target/pipeline/maven.log`.
+GitHub Actions runs Checkstyle as a separate step before creating the CI environment or starting Docker services. It checks production and test Java sources and fails the job on violations. To run the same check locally, use `mvn --batch-mode checkstyle:check`.
 
 Run only `LaboratoryApiTests` without changing any test source:
 
