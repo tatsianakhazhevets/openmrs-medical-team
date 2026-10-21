@@ -2,9 +2,9 @@ name: Test pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, master, develop]
   workflow_dispatch:
 
 concurrency:
@@ -155,13 +155,18 @@ jobs:
   publish-report:
     name: Publish Allure report
     needs: integration
-    if: ${{ always() && needs.integration.outputs.has_allure_results == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    if: ${{ always() && needs.integration.outputs.has_allure_results == 'true' && github.event_name != 'pull_request' && contains(fromJSON('["refs/heads/main", "refs/heads/master", "refs/heads/develop"]'), github.ref) }}
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-pages.outputs.page_url }}
     concurrency:
       group: gh-pages-publishing
       cancel-in-progress: false
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Check out gh-pages history
@@ -216,3 +221,18 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
           keep_files: true
+
+      - name: Upload GitHub Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-history
+
+      - name: Deploy GitHub Pages site
+        id: deploy-pages
+        uses: actions/deploy-pages@v4
+
+      - name: Add published report link to workflow
+        env:
+          PAGE_URL: ${{ steps.deploy-pages.outputs.page_url }}
+        run: |
+          printf '[Allure report for this run](%s%s/)\n' "$PAGE_URL" "$GITHUB_RUN_NUMBER" >> "$GITHUB_STEP_SUMMARY"

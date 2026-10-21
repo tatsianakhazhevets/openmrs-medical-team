@@ -3,8 +3,10 @@ package uiParts.pages;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
+import uiParts.helpers.UiTimeouts;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -24,6 +26,8 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
     private final SelenideElement serviceDropdown = $("#service");
     private final SelenideElement appointmentTypeDropdown = $("#appointmentType");
     private final SelenideElement duration = $("#duration");
+    private final SelenideElement appointmentTime = $("#time-picker");
+    private final SelenideElement appointmentPeriod = $("#time-picker-select-1");
     private final SelenideElement note = $("#appointmentNote");
     private final SelenideElement appointmentDatePicker = $("#datePickerInput");
     private final SelenideElement issuedDatePicker = $("#dateAppointmentScheduledPickerInput");
@@ -85,6 +89,12 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
         return this;
     }
 
+    public HomeAppointmentsPage setAppointmentTime(LocalTime time) {
+        appointmentTime.setValue(time.format(DateTimeFormatter.ofPattern("hh:mm", Locale.ENGLISH)));
+        appointmentPeriod.selectOption(time.format(DateTimeFormatter.ofPattern("a", Locale.ENGLISH)));
+        return this;
+    }
+
     private void selectDate(SelenideElement datePicker, LocalDate date) {
         SelenideElement calendarButton =
                 datePicker.$("button[aria-label='Calendar']");
@@ -137,6 +147,11 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
 
     public HomeAppointmentsPage saveAppointment() {
         saveButton.shouldBe(visible).click();
+        return this;
+    }
+
+    public HomeAppointmentsPage shouldCloseAppointmentForm() {
+        saveButton.shouldNotBe(visible, UiTimeouts.LONG);
         return this;
     }
 

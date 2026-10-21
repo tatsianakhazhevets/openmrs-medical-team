@@ -21,6 +21,7 @@ import uiParts.pages.HomeAppointmentsPage;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -73,10 +74,12 @@ public class HomeAppointmentTests extends BaseUiTest {
                 .setDuration(appointmentDuration)
                 .selectAppointmentDate(randomAppointmentDate)
                 .shouldHaveAppointmentDate(randomAppointmentDate)
+                .setAppointmentTime(LocalTime.of(10, 0))
                 .selectIssuedDate(randomIssuedDate)
                 .shouldHaveIssuedDate(randomIssuedDate)
                 .setNote(appointmentNote)
                 .saveAppointment()
+                .shouldCloseAppointmentForm()
                 .selectScheduleDate(randomAppointmentDate)
                 .shouldHaveAppointment(patientName, patientIdentifier, Location.OUTPATIENT_CLINIC.getDisplay(), AppointmentService.GENERAL_MEDICINE.getDisplay(), AppointmentKind.SCHEDULED.getValue());
         CreateAppointmentResponse appointment =

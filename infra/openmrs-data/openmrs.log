@@ -165,3 +165,5 @@ WARN - CommonsLoggingOutput.warn(59) |2026-10-20T21:45:51,029| AnnotationsConfig
 WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:45:52,532| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
 WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:45:52,612| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
 WARN - TimerSchedulerTask.saveLastExecutionTime(74) |2026-10-20T21:49:59,012| Unable to save the last execution time for task. Task.taskDefinition is null in class org.openmrs.scheduler.tasks.TaskThreadedInitializationWrapper
+INFO - SerializationServiceImpl.getDefaultSerializer(73) |2026-10-21T00:56:42,132| No default serializer specified - using builtin SimpleXStreamSerializer.
+WARN - DefaultTCAppointmentPatientEmailNotifier.isApplicable(56) |2026-10-21T00:56:46,688| Email notification for tele-consultation not configured to be sent to patient.
