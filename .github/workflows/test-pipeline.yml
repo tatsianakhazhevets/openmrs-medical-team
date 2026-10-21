@@ -2,9 +2,7 @@ name: Test pipeline
 
 on:
   push:
-    branches: [main, master, develop]
-  pull_request:
-    branches: [main, master, develop]
+    branches: [develop, master]
   workflow_dispatch:
 
 concurrency:
@@ -153,20 +151,15 @@ jobs:
             down --volumes --remove-orphans
 
   publish-report:
-    name: Publish Allure report
+    name: Publish reports to gh-pages
     needs: integration
-    if: ${{ always() && needs.integration.outputs.has_allure_results == 'true' && github.event_name != 'pull_request' && contains(fromJSON('["refs/heads/main", "refs/heads/master", "refs/heads/develop"]'), github.ref) }}
+    if: ${{ always() && needs.integration.outputs.has_allure_results == 'true' && github.ref != 'refs/heads/gh-pages' }}
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy-pages.outputs.page_url }}
     concurrency:
       group: gh-pages-publishing
       cancel-in-progress: false
     permissions:
       contents: write
-      pages: write
-      id-token: write
 
     steps:
       - name: Check out gh-pages history
@@ -222,17 +215,10 @@ jobs:
           publish_dir: allure-history
           keep_files: true
 
-      - name: Upload GitHub Pages site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: allure-history
-
-      - name: Deploy GitHub Pages site
-        id: deploy-pages
-        uses: actions/deploy-pages@v4
-
       - name: Add published report link to workflow
         env:
-          PAGE_URL: ${{ steps.deploy-pages.outputs.page_url }}
+          PAGES_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
         run: |
-          printf '[Allure report for this run](%s%s/)\n' "$PAGE_URL" "$GITHUB_RUN_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Reports pushed to `gh-pages`. A push using `GITHUB_TOKEN` does not trigger an automatic branch-based Pages build; the site must be deployed separately.\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf '[Allure report for this run](https://%s.github.io/%s/%s/) (available after Pages deployment completes).\n' "$PAGES_OWNER" "$REPOSITORY_NAME" "$GITHUB_RUN_NUMBER" >> "$GITHUB_STEP_SUMMARY"
