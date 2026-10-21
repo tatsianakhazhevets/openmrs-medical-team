@@ -38,6 +38,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml', 'infra/runner/Dockerfile') }}
 
       - name: Create CI environment file
+        id: create-env
         env:
           ENV_FILE_CONTENT: ${{ secrets.ENV_FILE || vars.ENV_FILE }}
         run: |
@@ -101,20 +102,34 @@ jobs:
           path: gh-pages
 
       - name: Build test report
-        uses: simple-elf/allure-report-action@master
-        if: always()
-        with:
-          gh_pages: gh-pages
-          allure_results: target/allure-results
-          allure_history: allure-history
+        id: allure-report
+        if: always() && hashFiles('target/allure-results/*-result.json') != ''
+        env:
+          ALLURE_VERSION: 2.29.0
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          curl --fail --show-error --location --retry 3 \
+            "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.tgz" \
+            --output "$RUNNER_TEMP/allure.tgz"
+          tar -xzf "$RUNNER_TEMP/allure.tgz" -C "$RUNNER_TEMP"
+          mkdir -p allure-history
+          rsync -a --exclude='.git' gh-pages/ allure-history/
+          if [ -d gh-pages/last-history ]; then
+            cp -r gh-pages/last-history target/allure-results/history
+          fi
+          "$RUNNER_TEMP/allure-$ALLURE_VERSION/bin/allure" generate target/allure-results \
+            --clean --output "allure-history/$GITHUB_RUN_NUMBER"
+          rsync -a --delete "allure-history/$GITHUB_RUN_NUMBER/history/" allure-history/last-history/
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=%s/">\n' \
+            "$GITHUB_RUN_NUMBER" > allure-history/index.html
 
       - name: Build Swagger coverage report
-        if: always()
+        if: always() && steps.allure-report.outcome == 'success' && hashFiles('target/pipeline/swagger-coverage-report.html') != ''
         run: sudo cp target/pipeline/swagger-coverage-report.html "allure-history/$GITHUB_RUN_NUMBER/"
 
       - name: Publish test report
         uses: peaceiris/actions-gh-pages@v4
-        if: always()
+        if: always() && steps.allure-report.outcome == 'success'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
@@ -135,7 +150,7 @@ jobs:
           fi
 
       - name: Stop the test environment
-        if: always()
+        if: always() && steps.create-env.outcome == 'success'
         run: |
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
             -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
