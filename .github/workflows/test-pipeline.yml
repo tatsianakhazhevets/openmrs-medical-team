@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   integration:
@@ -18,9 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: Test
-    outputs:
-      has_allure_results: ${{ steps.check-reports.outputs.has_allure_results }}
-      has_swagger_report: ${{ steps.check-reports.outputs.has_swagger_report }}
     env:
       SELENOID_VIDEO_OUTPUT_DIR: ${{ github.workspace }}/infra/video
       MAVEN_REPOSITORY: ${{ github.workspace }}/.maven-cache
@@ -81,21 +78,6 @@ jobs:
               echo "Compose logs could not be collected." >> target/pipeline/compose.log
             }
 
-      - name: Check report availability
-        id: check-reports
-        if: always()
-        run: |
-          if [ -d target/allure-results ] && find target/allure-results -type f -print -quit | grep -q .; then
-            echo "has_allure_results=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_allure_results=false" >> "$GITHUB_OUTPUT"
-          fi
-          if [ -s target/pipeline/swagger-coverage-report.html ]; then
-            echo "has_swagger_report=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_swagger_report=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Upload test, coverage, and diagnostic artifacts
         id: upload-artifacts
         if: always()
@@ -111,23 +93,32 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload Allure results for publication
-        if: always() && steps.check-reports.outputs.has_allure_results == 'true'
-        uses: actions/upload-artifact@v4
+      - name: Load test report history
+        uses: actions/checkout@v4
+        if: always()
         with:
-          name: allure-results-${{ github.run_id }}-${{ github.run_attempt }}
-          path: target/allure-results/
-          if-no-files-found: error
-          retention-days: 7
+          ref: gh-pages
+          path: gh-pages
 
-      - name: Upload Swagger coverage report for publication
-        if: always() && steps.check-reports.outputs.has_swagger_report == 'true'
-        uses: actions/upload-artifact@v4
+      - name: Build test report
+        uses: simple-elf/allure-report-action@master
+        if: always()
         with:
-          name: swagger-coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: target/pipeline/swagger-coverage-report.html
-          if-no-files-found: error
-          retention-days: 7
+          gh_pages: gh-pages
+          allure_results: target/allure-results
+          allure_history: allure-history
+
+      - name: Build Swagger coverage report
+        if: always()
+        run: sudo cp target/pipeline/swagger-coverage-report.html "allure-history/$GITHUB_RUN_NUMBER/"
+
+      - name: Publish test report
+        uses: peaceiris/actions-gh-pages@v4
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
 
       - name: Add summary to workflow
         if: always()
@@ -149,76 +140,3 @@ jobs:
           docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
             -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
             down --volumes --remove-orphans
-
-  publish-report:
-    name: Publish reports to gh-pages
-    needs: integration
-    if: ${{ always() && needs.integration.outputs.has_allure_results == 'true' && github.ref != 'refs/heads/gh-pages' }}
-    runs-on: ubuntu-latest
-    concurrency:
-      group: gh-pages-publishing
-      cancel-in-progress: false
-    permissions:
-      contents: write
-
-    steps:
-      - name: Check out gh-pages history
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Download Allure results
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-results-${{ github.run_id }}-${{ github.run_attempt }}
-          path: target/allure-results
-
-      - name: Download Swagger coverage report
-        if: needs.integration.outputs.has_swagger_report == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: swagger-coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: swagger-report
-
-      - name: Build Allure report
-        uses: simple-elf/allure-report-action@master
-        with:
-          gh_pages: gh-pages
-          allure_results: target/allure-results
-          allure_history: allure-history
-
-      - name: Add Swagger coverage report to Allure
-        if: needs.integration.outputs.has_swagger_report == 'true'
-        run: |
-          report_dir="allure-history/$GITHUB_RUN_NUMBER"
-          cp swagger-report/swagger-coverage-report.html "$report_dir/swagger-coverage-report.html"
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          import re
-
-          index = Path("allure-history") / os.environ["GITHUB_RUN_NUMBER"] / "index.html"
-          html = index.read_text(encoding="utf-8")
-          link = '<p style="margin:1rem"><a href="swagger-coverage-report.html">Swagger coverage report</a></p>'
-          html, count = re.subn(r"(<body\b[^>]*>)", r"\1" + link, html, count=1, flags=re.IGNORECASE)
-          if count != 1:
-              raise SystemExit(f"Could not add Swagger coverage link to {index}")
-          index.write_text(html, encoding="utf-8")
-          PY
-
-      - name: Publish reports to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: allure-history
-          keep_files: true
-
-      - name: Add published report link to workflow
-        env:
-          PAGES_OWNER: ${{ github.repository_owner }}
-          REPOSITORY_NAME: ${{ github.event.repository.name }}
-        run: |
-          printf 'Reports pushed to `gh-pages`. A push using `GITHUB_TOKEN` does not trigger an automatic branch-based Pages build; the site must be deployed separately.\n\n' >> "$GITHUB_STEP_SUMMARY"
-          printf '[Allure report for this run](https://%s.github.io/%s/%s/) (available after Pages deployment completes).\n' "$PAGES_OWNER" "$REPOSITORY_NAME" "$GITHUB_RUN_NUMBER" >> "$GITHUB_STEP_SUMMARY"
