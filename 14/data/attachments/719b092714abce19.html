@@ -1,0 +1,32 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient/a1fc2070-2d68-4e1a-a8cd-346d368b216b/identifier/c6fc551f-a687-41f0-8f47-5ae68530e8cd</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;identifier&quot;: &quot;10009XR&quot;,
+    &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+    &quot;location&quot;: &quot;d114a8ac-aa7e-4350-a8bf-de2caf0ea440&quot;,
+    &quot;preferred&quot;: true
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient/a1fc2070-2d68-4e1a-a8cd-346d368b216b/identifier/c6fc551f-a687-41f0-8f47-5ae68530e8cd&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;identifier&quot;: &quot;10009XR&quot;,
+    &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+    &quot;location&quot;: &quot;d114a8ac-aa7e-4350-a8bf-de2caf0ea440&quot;,
+    &quot;preferred&quot;: true
+}&#39;
+    </div>
+
