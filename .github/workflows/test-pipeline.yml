@@ -247,9 +247,23 @@ jobs:
           Artifacts: $ARTIFACT_URL"
           fi
 
-          curl --fail --silent --show-error --retry 2 --retry-delay 2 --max-time 20 \
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          if curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --max-time 20 \
             --request POST \
             --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
             --data-urlencode "text=$message" \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --output /dev/null
+            --output "$response_file"; then
+            exit 0
+          else
+            result=$?
+            error=$(jq -er 'select(.error_code != null and (.description | type) == "string") |
+              "Telegram \(.error_code): \(.description)" | gsub("[\r\n]"; " ")' \
+              "$response_file" 2>/dev/null) || error="Telegram request failed without a JSON error response (curl exit $result)."
+            error=${error//"$TELEGRAM_BOT_TOKEN"/[REDACTED]}
+            error=${error//"$TELEGRAM_CHAT_ID"/[REDACTED]}
+            printf '%s\n' "$error" >&2
+            printf '\nTelegram notification failed: %s\n' "$error" >> "$GITHUB_STEP_SUMMARY"
+            exit "$result"
+          fi

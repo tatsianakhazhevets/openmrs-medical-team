@@ -20,11 +20,13 @@ import common.annotations.CreatePatient;
 import common.storages.SessionStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.util.List;
 import java.util.UUID;
 
 @CreatePatient
+@Isolated("Concurrent order purge and void requests can corrupt the backend Hibernate persistence context")
 public class DeleteOrderApiTests extends BaseTest {
     private String patientUUID;
     private String orderUUID;
