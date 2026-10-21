@@ -1,0 +1,30 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/appointments/9e0ca608-f525-4ee2-bf3e-182cfe88fff6/status-change</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;toStatus&quot;: &quot;Cancelled&quot;,
+    &quot;onDate&quot;: &quot;2026-10-21T11:17:27.000+0000&quot;,
+    &quot;timeZone&quot;: &quot;+03:00&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/appointments/9e0ca608-f525-4ee2-bf3e-182cfe88fff6/status-change&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;toStatus&quot;: &quot;Cancelled&quot;,
+    &quot;onDate&quot;: &quot;2026-10-21T11:17:27.000+0000&quot;,
+    &quot;timeZone&quot;: &quot;+03:00&quot;
+}&#39;
+    </div>
+

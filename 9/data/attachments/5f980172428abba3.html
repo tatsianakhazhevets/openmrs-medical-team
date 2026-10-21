@@ -1,0 +1,80 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient/ef6e7efc-1987-41d0-bbb5-69096b82b4d5</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;F&quot;,
+        &quot;birthdate&quot;: &quot;1980-12-28T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;VbYIdh&quot;,
+                &quot;familyName&quot;: &quot;HIT&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            {
+                &quot;address1&quot;: &quot;-?: zC&quot;,
+                &quot;cityVillage&quot;: &quot;1&quot;,
+                &quot;country&quot;: &quot;h8&#39;-.Nb&quot;,
+                &quot;postalCode&quot;: &quot; tZ-&quot;
+            }
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;10009WU&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;ffd78808-5b88-4a56-9c94-54754725ad90&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient/ef6e7efc-1987-41d0-bbb5-69096b82b4d5&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;F&quot;,
+        &quot;birthdate&quot;: &quot;1980-12-28T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;VbYIdh&quot;,
+                &quot;familyName&quot;: &quot;HIT&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            {
+                &quot;address1&quot;: &quot;-?: zC&quot;,
+                &quot;cityVillage&quot;: &quot;1&quot;,
+                &quot;country&quot;: &quot;h8&#39;-.Nb&quot;,
+                &quot;postalCode&quot;: &quot; tZ-&quot;
+            }
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;10009WU&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;ffd78808-5b88-4a56-9c94-54754725ad90&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}&#39;
+    </div>
+
