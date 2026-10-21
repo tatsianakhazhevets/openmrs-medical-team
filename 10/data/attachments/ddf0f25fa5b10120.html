@@ -1,0 +1,64 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/encounter</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;561b287a-2321-4946-b50e-d005c16327a4&quot;,
+    &quot;encounterType&quot;: &quot;39da3525-afe4-45ff-8977-c53b7b359158&quot;,
+    &quot;location&quot;: &quot;d493f3eb-ba7c-4e6c-988d-62491e496045&quot;,
+    &quot;orders&quot;: [
+        {
+            &quot;type&quot;: &quot;drugorder&quot;,
+            &quot;action&quot;: &quot;NEW&quot;,
+            &quot;dosingType&quot;: &quot;org.openmrs.FreeTextDosingInstructions&quot;,
+            &quot;patient&quot;: &quot;561b287a-2321-4946-b50e-d005c16327a4&quot;,
+            &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+            &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+            &quot;drug&quot;: &quot;38087db3-7395-431f-88d5-bb25e06e33f1&quot;,
+            &quot;concept&quot;: &quot;71617AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;asNeeded&quot;: false,
+            &quot;numRefills&quot;: 5,
+            &quot;quantity&quot;: 14.0,
+            &quot;quantityUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;dosingInstructions&quot;: &quot;Nam facilis quaerat consectetur voluptatem.&quot;
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/encounter&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;561b287a-2321-4946-b50e-d005c16327a4&quot;,
+    &quot;encounterType&quot;: &quot;39da3525-afe4-45ff-8977-c53b7b359158&quot;,
+    &quot;location&quot;: &quot;d493f3eb-ba7c-4e6c-988d-62491e496045&quot;,
+    &quot;orders&quot;: [
+        {
+            &quot;type&quot;: &quot;drugorder&quot;,
+            &quot;action&quot;: &quot;NEW&quot;,
+            &quot;dosingType&quot;: &quot;org.openmrs.FreeTextDosingInstructions&quot;,
+            &quot;patient&quot;: &quot;561b287a-2321-4946-b50e-d005c16327a4&quot;,
+            &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+            &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+            &quot;drug&quot;: &quot;38087db3-7395-431f-88d5-bb25e06e33f1&quot;,
+            &quot;concept&quot;: &quot;71617AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;asNeeded&quot;: false,
+            &quot;numRefills&quot;: 5,
+            &quot;quantity&quot;: 14.0,
+            &quot;quantityUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;dosingInstructions&quot;: &quot;Nam facilis quaerat consectetur voluptatem.&quot;
+        }
+    ]
+}&#39;
+    </div>
+
