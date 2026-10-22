@@ -2,6 +2,7 @@ package uiParts.pages;
 
 import com.codeborne.selenide.*;
 import lombok.Getter;
+import uiParts.helpers.UiTimeouts;
 
 import java.time.Duration;
 
@@ -39,7 +40,7 @@ public class HomeServiceQueues extends BasePage<HomeServiceQueues> {
 
     public HomeServiceQueues clickCreatedPatient(String expectedGivenName, String expectedFamilyName) {
         String fullName = expectedGivenName + " " + expectedFamilyName;
-        patientSearchResults.findBy(text(fullName)).shouldBe(visible).click();
+        patientSearchResults.findBy(text(fullName)).shouldBe(visible, UiTimeouts.LONG).click();
         return this;
     }
 
