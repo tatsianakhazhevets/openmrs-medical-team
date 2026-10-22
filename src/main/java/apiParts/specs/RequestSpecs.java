@@ -1,20 +1,32 @@
 package apiParts.specs;
 
 import apiParts.config.Config;
+import apiParts.models.auth.LoginAdminRequest;
+import apiParts.skelethon.endpoints.Endpoint;
+import apiParts.skelethon.requests.auth.AuthRequester;
+import com.github.viclovsky.swagger.coverage.FileSystemOutputWriter;
+import com.github.viclovsky.swagger.coverage.SwaggerCoverageRestAssured;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.LogConfig;
+import io.restassured.config.RestAssuredConfig;
+import io.restassured.filter.log.LogDetail;
 import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class RequestSpecs {
+
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(
+            "Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie");
 
     public static final String ADMIN_USERNAME = Config.getProperty("adminUsername");
     public static final String ADMIN_PASSWORD = Config.getProperty("adminPassword");
@@ -34,8 +46,12 @@ public class RequestSpecs {
         return new RequestSpecBuilder()
                 .setContentType(ContentType.JSON)
                 .setAccept(ContentType.JSON)
-                .addFilters(List.of(new RequestLoggingFilter(),
-                        new ResponseLoggingFilter(),
+                .setConfig(RestAssuredConfig.config()
+                        .logConfig(LogConfig.logConfig().blacklistHeaders(SENSITIVE_HEADERS)))
+                .addFilters(List.of(new RequestLoggingFilter(
+                                LogDetail.ALL, true, System.out, true, SENSITIVE_HEADERS),
+                        new SwaggerCoverageRestAssured(
+                                new FileSystemOutputWriter(Paths.get("target", "swagger-coverage-output"))),
                         // every request / response is attached to the test that sent it
                         // (Allure tracks the current test per thread, so parallel runs are not mixed)
                         new AllureRestAssured()))
@@ -59,6 +75,18 @@ public class RequestSpecs {
                 .build();
     }
 
+    // UI auth is made by JSESSIONID cookie.
+    // New session on every call: no stale cookies, and parallel tests don't share session state (e.g. sessionLocation)
+    public static String createUserSession(String username, String password) {
+        return new AuthRequester(
+                RequestSpecs.unAuthSpec(),
+                Endpoint.LOGIN_GET,
+                ResponseSpecs.requestReturnsOk()
+        )
+                .login(LoginAdminRequest.builder().username(username).password(password).build())
+                .extract()
+                .cookie("JSESSIONID");
+    }
 
     /*
     public static RequestSpecification authUserSpec(String username, String password) {

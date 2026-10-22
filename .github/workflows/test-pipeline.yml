@@ -1,0 +1,398 @@
+name: Test pipeline
+
+on:
+  push:
+    branches: [develop, master]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  integration:
+    name: OpenMRS API and UI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: Test
+    env:
+      SELENOID_VIDEO_OUTPUT_DIR: ${{ github.workspace }}/infra/video
+      MAVEN_REPOSITORY: ${{ github.workspace }}/.maven-cache
+      BUILD_ENVIRONMENT: ci
+      OPENMRS_STARTUP_TIMEOUT_SECONDS: 600
+      GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      APP_COMPOSE_PROJECT: openmrs-app-${{ github.run_id }}-${{ github.run_attempt }}
+      TEST_COMPOSE_PROJECT: openmrs-tests-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Record run start time
+        id: run-start
+        run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Restore Maven dependency cache
+        uses: actions/cache@v4
+        with:
+          path: .maven-cache
+          key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml', 'infra/runner/Dockerfile') }}
+
+      - name: Run Checkstyle
+        run: mvn --batch-mode checkstyle:check
+
+      - name: Create CI environment file
+        id: create-env
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE || vars.ENV_FILE }}
+        run: |
+          if [ -z "$ENV_FILE_CONTENT" ]; then
+            echo "Set ENV_FILE as an environment secret (recommended) or repository/environment variable."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$ENV_FILE_CONTENT" > .env
+          unset ENV_FILE_CONTENT
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml -f infra/docker-compose.pipeline.yaml config --quiet
+
+      - name: Run test pipeline
+        run: bash infra/run-tests.sh --skip-restart
+
+      - name: Collect service diagnostics
+        if: always()
+        run: |
+          if [ -d target ]; then
+            sudo chown -R "$(id -u):$(id -g)" target
+          fi
+          mkdir -p target/pipeline
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
+            ps --all > target/pipeline/compose-services.txt 2>&1 || {
+              echo "Compose service status could not be collected." >> target/pipeline/compose-services.txt
+            }
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
+            logs --no-color --timestamps 2>&1 |
+            sed -E \
+              -e 's/((password|passwd|token|secret|api[_-]?key)[^=:]{0,20}[=:][[:space:]]*)[^[:space:],;]+/\1[REDACTED]/Ig' \
+              -e 's/(Authorization[[:space:]]*:[[:space:]]*(Basic|Bearer)[[:space:]]+)[^[:space:]]+/\1[REDACTED]/Ig' \
+              -e 's|://[^:/[:space:]]+:[^@/[:space:]]+@|://[REDACTED]@|g' \
+            > target/pipeline/compose.log || {
+              echo "Compose logs could not be collected." >> target/pipeline/compose.log
+            }
+
+      - name: Upload test, coverage, and diagnostic artifacts
+        id: upload-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/allure-results/
+            target/pipeline/
+            target/swagger-coverage-output/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Load test report history
+        uses: actions/checkout@v4
+        if: always()
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Build test report
+        id: allure-report
+        if: always() && hashFiles('target/allure-results/*-result.json') != ''
+        env:
+          ALLURE_VERSION: 2.29.0
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          curl --fail --show-error --location --retry 3 \
+            "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.tgz" \
+            --output "$RUNNER_TEMP/allure.tgz"
+          tar -xzf "$RUNNER_TEMP/allure.tgz" -C "$RUNNER_TEMP"
+          mkdir -p allure-history
+          rsync -a --exclude='.git' gh-pages/ allure-history/
+          if [ -d gh-pages/last-history ]; then
+            cp -r gh-pages/last-history target/allure-results/history
+          fi
+          "$RUNNER_TEMP/allure-$ALLURE_VERSION/bin/allure" generate target/allure-results \
+            --clean --output "allure-history/$GITHUB_RUN_NUMBER"
+          rsync -a --delete "allure-history/$GITHUB_RUN_NUMBER/history/" allure-history/last-history/
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=%s/">\n' \
+            "$GITHUB_RUN_NUMBER" > allure-history/index.html
+
+      - name: Build Swagger coverage report
+        id: swagger-report
+        if: always() && steps.allure-report.outcome == 'success' && hashFiles('target/pipeline/swagger-coverage-report.html') != ''
+        run: sudo cp target/pipeline/swagger-coverage-report.html "allure-history/$GITHUB_RUN_NUMBER/"
+
+      - name: Publish test report
+        id: publish-report
+        uses: peaceiris/actions-gh-pages@v4
+        if: always() && steps.allure-report.outcome == 'success'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+      - name: Evaluate Swagger Coverage Quality Gate
+        id: quality-gate
+        if: always()
+        run: |
+          GATE_THRESHOLD=2.0
+          METRICS_FILE=target/pipeline/metrics.json
+
+          if [ ! -s "$METRICS_FILE" ]; then
+            echo "::error::Swagger quality gate could not read $METRICS_FILE."
+            echo "Swagger quality gate failed: coverage metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if ! coverage_data=$(jq -er '
+            .swaggerConditions as $coverage
+            | select(($coverage | type) == "object")
+            | select(($coverage.coveredConditions | type) == "number")
+            | select(($coverage.totalConditions | type) == "number")
+            | select($coverage.totalConditions > 0)
+            | select($coverage.coveredConditions >= 0 and
+                     $coverage.coveredConditions <= $coverage.totalConditions)
+            | {
+                covered: $coverage.coveredConditions,
+                total: $coverage.totalConditions,
+                percent: ($coverage.coveredConditions / $coverage.totalConditions * 100)
+              }' "$METRICS_FILE"); then
+            echo "::error::Swagger quality gate could not find valid condition-coverage metrics."
+            echo "Swagger quality gate failed: valid condition-coverage metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          COVERED_CONDITIONS=$(jq -r '.covered' <<< "$coverage_data")
+          ALL_CONDITIONS=$(jq -r '.total' <<< "$coverage_data")
+          ACTUAL_COVERAGE=$(jq -r '.percent' <<< "$coverage_data")
+          DISPLAY_COVERAGE=$(printf '%.2f' "$ACTUAL_COVERAGE")
+
+          {
+            echo "### Swagger Coverage Quality Gate"
+            echo
+            echo "| Metric | Result |"
+            echo "|---|---:|"
+            echo "| Required condition coverage | ${GATE_THRESHOLD}% |"
+            echo "| Actual condition coverage | ${DISPLAY_COVERAGE}% |"
+            echo "| Covered conditions | ${COVERED_CONDITIONS} / ${ALL_CONDITIONS} |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Required Swagger condition coverage: ${GATE_THRESHOLD}%"
+          echo "Actual Swagger condition coverage:   ${DISPLAY_COVERAGE}%"
+          echo "Covered conditions: ${COVERED_CONDITIONS} / ${ALL_CONDITIONS}"
+
+          if jq -e --argjson threshold "$GATE_THRESHOLD" \
+            '.percent >= $threshold' <<< "$coverage_data" >/dev/null; then
+            echo "Swagger Coverage Quality Gate passed."
+          else
+            echo "::error::Swagger condition coverage ${DISPLAY_COVERAGE}% is below the ${GATE_THRESHOLD}% threshold."
+            exit 1
+          fi
+
+      - name: Add summary to workflow
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-artifacts.outputs.artifact-url }}
+        run: |
+          if [ -s target/pipeline/summary.md ]; then
+            cat target/pipeline/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Pipeline summary was not generated. See the uploaded Compose and runner logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$ARTIFACT_URL" ]; then
+            printf '\n[Download test artifacts](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Stop the test environment
+        if: always() && steps.create-env.outcome == 'success'
+        run: |
+          docker compose --env-file .env --project-name "$APP_COMPOSE_PROJECT" \
+            -f infra/docker-compose.yaml -f infra/docker-compose.ci.yaml \
+            down --volumes --remove-orphans
+
+      - name: Load Telegram configuration
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || vars.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE || vars.ENV_FILE }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import shlex
+
+          keys = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+          values = {key: os.environ.get(key, "").strip() for key in keys}
+          file_values = {}
+          for line in os.environ.get("ENV_FILE_CONTENT", "").splitlines():
+              match = re.fullmatch(r"\s*(?:export\s+)?(TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID)\s*=(.*)", line)
+              if not match or values[match[1]]:
+                  continue
+              key, raw_value = match.groups()
+              try:
+                  parts = shlex.split(raw_value, comments=True)
+              except ValueError:
+                  raise SystemExit(f"Invalid quoting for {key} in ENV_FILE.") from None
+              if len(parts) > 1:
+                  raise SystemExit(f"Expected a single value for {key} in ENV_FILE.")
+              file_values[key] = parts[0] if parts else ""
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              for key in keys:
+                  value = values[key] or file_values.get(key, "")
+                  if "\n" in value or "\r" in value:
+                      raise SystemExit(f"{key} must be a single-line value.")
+                  if value:
+                      print(f"::add-mask::{value}")
+                  output.write(f"{key}={value}\n")
+          PY
+
+      - name: Notify Telegram channel
+        if: always()
+        env:
+          PIPELINE_STATUS: ${{ job.status }}
+          ALLURE_REPORT_READY: ${{ steps.allure-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
+          SWAGGER_REPORT_READY: ${{ steps.swagger-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
+          RUN_STARTED_AT: ${{ steps.run-start.outputs.timestamp }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::warning::Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE."
+            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          message=$(python3 - <<'PY'
+          import html
+          import json
+          import os
+          import time
+
+          def escape(value):
+              return html.escape(str(value), quote=True)
+
+          duration_seconds = max(0, int(time.time()) - int(os.environ["RUN_STARTED_AT"]))
+          hours, remainder = divmod(duration_seconds, 3600)
+          minutes, seconds = divmod(remainder, 60)
+          duration = (
+              f"{hours}h {minutes}m {seconds}s"
+              if hours
+              else f"{minutes}m {seconds}s"
+          )
+
+          status = os.environ.get("PIPELINE_STATUS", "unknown")
+          status_labels = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "⚠️ Cancelled",
+          }
+          repository = os.environ.get("GITHUB_REPOSITORY", "")
+          owner, _, name = repository.partition("/")
+          pages_root = f"https://{owner}.github.io/{name}"
+          run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
+          report_root = f"{pages_root}/{run_number}/"
+          lines = [
+              "<b>🧪 OpenMRS | CI Results</b>",
+              f"<b>Status:</b> {status_labels.get(status, escape(status))}",
+              f"<b>Repository:</b> <code>{escape(repository)}</code>",
+              f"<b>Branch:</b> <code>{escape(os.environ.get('GITHUB_REF_NAME', ''))}</code>",
+              f"<b>Commit:</b> <code>{escape(os.environ.get('GITHUB_SHA', '')[:7])}</code>",
+              f"<b>Duration:</b> {escape(duration)}",
+              f"<b>Triggered by:</b> {escape(os.environ.get('GITHUB_ACTOR', ''))}",
+          ]
+
+          try:
+              with open("target/pipeline/metrics.json", encoding="utf-8") as metrics_file:
+                  metrics = json.load(metrics_file)
+          except (OSError, ValueError):
+              metrics = None
+
+          if metrics:
+              tests = metrics.get("tests", {})
+              lines.extend([
+                  "",
+                  f"<b>Tests:</b> ✅ {escape(tests.get('passed', 0))} passed · "
+                  f"❌ {escape(tests.get('failed', 0))} failed · "
+                  f"⏭ {escape(tests.get('skipped', 0))} skipped / "
+                  f"{escape(tests.get('total', 0))} total",
+                  f"<b>Success rate:</b> {escape(tests.get('successRatePercent', 0))}%",
+              ])
+              openapi = metrics.get("openApi", {})
+              if openapi:
+                  lines.append(
+                      f"<b>OpenAPI coverage:</b> {escape(openapi.get('coveredOperations', 0))}/"
+                      f"{escape(openapi.get('totalOperations', 0))} operations "
+                      f"({escape(openapi.get('coveragePercent', 0))}%)"
+                  )
+              failures = tests.get("failures", [])[:5]
+              if failures:
+                  lines.extend(["", "<b>Failed tests:</b>"])
+                  lines.extend(
+                      f"• {escape(failure.get('suite', ''))}.{escape(failure.get('test', ''))}"
+                      for failure in failures
+                  )
+          else:
+              lines.extend(["", "Test metrics are unavailable."])
+
+          report_links = []
+          if os.environ.get("ALLURE_REPORT_READY") == "true":
+              report_links.append(f'<a href="{escape(report_root)}">📊 Allure</a>')
+          else:
+              report_links.append("📊 Allure: not published")
+          if os.environ.get("SWAGGER_REPORT_READY") == "true":
+              swagger_url = f"{report_root}swagger-coverage-report.html"
+              report_links.append(f'<a href="{escape(swagger_url)}">📈 Swagger</a>')
+          else:
+              report_links.append("📈 Swagger: not published")
+          lines.extend([
+              "",
+              " · ".join(report_links),
+              f'<a href="{escape(os.environ.get("GITHUB_RUN_URL", ""))}">View workflow run</a>',
+          ])
+          print("\n".join(lines))
+          PY
+          )
+
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          if curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --max-time 20 \
+            --request POST \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "parse_mode=HTML" \
+            --data-urlencode "text=$message" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --output "$response_file"; then
+            exit 0
+          else
+            result=$?
+            error=$(jq -er 'select(.error_code != null and (.description | type) == "string") |
+              "Telegram \(.error_code): \(.description)" | gsub("[\r\n]"; " ")' \
+              "$response_file" 2>/dev/null) || error="Telegram request failed without a JSON error response (curl exit $result)."
+            error=${error//"$TELEGRAM_BOT_TOKEN"/[REDACTED]}
+            error=${error//"$TELEGRAM_CHAT_ID"/[REDACTED]}
+            printf '%s\n' "$error" >&2
+            printf '\nTelegram notification failed: %s\n' "$error" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Telegram notification failed; this does not change the test pipeline result."
+            exit 0
+          fi

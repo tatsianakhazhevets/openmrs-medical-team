@@ -7,8 +7,12 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum AppointmentService {
-    GENERAL_MEDICINE("7ba3aa21-cc56-47ca-bb4d-a60549f666c0");
+    GENERAL_MEDICINE(
+            "7ba3aa21-cc56-47ca-bb4d-a60549f666c0",
+            "General Medicine service"
+    );
 
     @JsonValue
     private final String uuid;
+    private final String display;
 }

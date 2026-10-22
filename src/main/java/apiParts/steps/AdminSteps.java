@@ -15,6 +15,8 @@ import apiParts.models.order.Order;
 import apiParts.models.patient.*;
 import apiParts.skelethon.endpoints.Endpoint;
 import apiParts.skelethon.requests.auth.SuccessfulAuthRequester;
+import apiParts.skelethon.requests.action.ActionRequester;
+import apiParts.skelethon.requests.crud.CrudRequester;
 import apiParts.skelethon.requests.crud.SuccessfulCrudRequester;
 import apiParts.models.order.OrderSearchParams;
 import apiParts.models.order.DrugOrderResponse;
@@ -34,6 +36,19 @@ public class AdminSteps {
 
     // adminSpec() is authenticated by itself (Basic auth header), no login call is needed
     public static CreatePatientResponse createPatient() {
+        return createPatient("", false);
+    }
+
+    // gender: "M" / "F" / "UNKNOWN", empty - random; adult: 20..80 years old, false - random birthdate
+    public static CreatePatientResponse createPatient(String gender, boolean adult) {
+        return createPatient(gender, adult, false);
+    }
+
+    public static CreatePatientResponse createPatientWithAddress() {
+        return createPatient("", false, true);
+    }
+
+    private static CreatePatientResponse createPatient(String gender, boolean adult, boolean includeAddress) {
         LoginAdminRequest loginAdminRequest =
                 RandomModelGenerator.generate(LoginAdminRequest.class);
 
@@ -47,7 +62,7 @@ public class AdminSteps {
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
-                .create(PatientTestData.createPatientRequest(getId()));
+                .create(PatientTestData.createPatientRequest(getId(), gender, adult, includeAddress));
     }
 
     public static CreatePatientResponse createPatientWithoutInvokedIdentifier() {
@@ -204,6 +219,51 @@ public class AdminSteps {
                 .create(discontinueOrderRequest(orderUUID, patientUUID, encounterUUID));
     }
 
+    // Single order by uuid (GET /order/{uuid}?v=full). Unlike fetchTestOrders (t=testorder returns only
+    // active orders), it also returns stopped/discontinued orders
+    public static Order getOrder(String orderUUID) {
+        return new CrudRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_GET,
+                ResponseSpecs.requestReturnsOk())
+                .get(orderUUID, GetParams.builder().v(GetParams.FULL).build().toQueryParams())
+                .extract()
+                .as(Order.class);
+    }
+
+    // Laboratory updates the order processing status (POST /order/{uuid}/fulfillerdetails)
+    public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status) {
+        markOrderFulfillerStatus(orderUUID, status, null);
+    }
+
+    public static void markOrderFulfillerStatus(String orderUUID, FulfillerStatus status, String comment) {
+        new ActionRequester(
+                RequestSpecs.adminSpec(),
+                Endpoint.ORDER_FULFILLER_DETAILS,
+                ResponseSpecs.requestReturnsCreated())
+                .perform(orderUUID, fulfillerDetailsRequest(status, comment));
+    }
+
+    // Laboratory enters results into the existing order encounter (POST /encounter/{uuid})
+    public static EncounterResponse addResultsToEncounter(String encounterUUID, CreateEncounterRequest request) {
+        return new SuccessfulCrudRequester<EncounterResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.ENCOUNTER_POST,
+                ResponseSpecs.requestReturnsOk())
+                .update(encounterUUID, request);
+    }
+
+    // Observation of a patient by uuid, as returned by GET /obs?patient={uuid}&v=full
+    public static ObsResponse getObs(String patientUUID, String obsUUID) {
+        SearchParams params = () -> Map.of("patient", patientUUID, "v", GetParams.FULL);
+        return new SuccessfulSearchRequester<ObsResponse>(
+                RequestSpecs.adminSpec(),
+                Endpoint.OBS_GET,
+                ResponseSpecs.requestReturnsOk())
+                .search(params)
+                .requireOne(obs -> obsUUID.equals(obs.getUuid()), "observation " + obsUUID);
+    }
+
     public static FulfillerDetailsRequest fulfillerDetailsRequest(FulfillerStatus status, String comment) {
         return OrderTestData.fulfillerDetailsRequest(status, comment);
     }
@@ -211,7 +271,7 @@ public class AdminSteps {
     // ======== HELPERS ========
 
     // Credentials of the admin user, same source as RequestSpecs.adminSpec()
-    private static LoginAdminRequest adminCredentials() {
+    public static LoginAdminRequest adminCredentials() {
         return RandomModelGenerator.generate(LoginAdminRequest.class);
     }
 

@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    This Source Code Form is subject to the terms of the Mozilla Public License,
+    v. 2.0. If a copy of the MPL was not distributed with this file, You can
+    obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+    the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+
+    Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+    graphic logo is a trademark of OpenMRS Inc.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9
+                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+
+    <!--
+    	See http://wiki.openmrs.org/display/docs/Module+liquibase+File for
+    	documentation on this file.
+
+        See http://www.liquibase.org/manual/home#available_database_refactorings
+        for a list of supported elements and attributes
+    -->
+
+	<!-- Create tasks_systemtask table (must come before tasks_task) -->
+	<changeSet id="tasks-create-systemtask-table" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<not><tableExists tableName="tasks_systemtask"/></not>
+		</preConditions>
+		<comment>
+			Creating the tasks_systemtask table for system task templates
+		</comment>
+		<createTable tableName="tasks_systemtask">
+			<column name="tasks_systemtask_id" type="int" autoIncrement="true">
+				<constraints primaryKey="true" nullable="false"/>
+			</column>
+			<column name="uuid" type="char(38)">
+				<constraints nullable="false" unique="true"/>
+			</column>
+			<column name="name" type="varchar(255)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="title" type="varchar(255)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="description" type="text"/>
+			<column name="priority" type="varchar(50)"/>
+			<column name="default_assignee_provider_role_id" type="int"/>
+			<column name="rationale" type="text"/>
+			<column name="creator" type="int">
+				<constraints nullable="false"/>
+			</column>
+			<column name="date_created" type="datetime">
+				<constraints nullable="false"/>
+			</column>
+			<column name="changed_by" type="int"/>
+			<column name="date_changed" type="datetime"/>
+			<column name="retired" type="boolean" defaultValueBoolean="false">
+				<constraints nullable="false"/>
+			</column>
+			<column name="retired_by" type="int"/>
+			<column name="date_retired" type="datetime"/>
+			<column name="retire_reason" type="varchar(255)"/>
+		</createTable>
+		<addForeignKeyConstraint constraintName="tasks_systemtask_creator_fk" baseTableName="tasks_systemtask" baseColumnNames="creator" referencedTableName="users" referencedColumnNames="user_id"/>
+		<addForeignKeyConstraint constraintName="tasks_systemtask_changed_by_fk" baseTableName="tasks_systemtask" baseColumnNames="changed_by" referencedTableName="users" referencedColumnNames="user_id"/>
+		<addForeignKeyConstraint constraintName="tasks_systemtask_retired_by_fk" baseTableName="tasks_systemtask" baseColumnNames="retired_by" referencedTableName="users" referencedColumnNames="user_id"/>
+	</changeSet>
+
+	<!-- Conditional FK for systemtask → provider_role (only if providermanagement module is loaded OR OpenMRS version >= 2.8.0) -->
+	<changeSet id="tasks-systemtask-provider-role-fk" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<tableExists tableName="provider_role"/>
+		</preConditions>
+		<comment>
+			Add FK from tasks_systemtask.default_assignee_provider_role_id to provider_role (requires providermanagement module)
+		</comment>
+		<addForeignKeyConstraint constraintName="tasks_systemtask_default_assignee_role_fk" baseTableName="tasks_systemtask" baseColumnNames="default_assignee_provider_role_id" referencedTableName="provider_role" referencedColumnNames="provider_role_id"/>
+	</changeSet>
+
+	<!-- Create tasks_task table -->
+	<changeSet id="tasks-create-task-table" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<not><tableExists tableName="tasks_task"/></not>
+		</preConditions>
+		<comment>
+			Creating the tasks_task table
+		</comment>
+		<createTable tableName="tasks_task">
+			<column name="tasks_task_id" type="int" autoIncrement="true">
+				<constraints primaryKey="true" nullable="false"/>
+			</column>
+			<column name="uuid" type="char(38)">
+				<constraints nullable="false" unique="true"/>
+			</column>
+			<column name="patient_id" type="int">
+				<constraints nullable="false"/>
+			</column>
+			<column name="system_task_id" type="int"/>
+			<column name="description" type="text"/>
+			<column name="assignee_provider_id" type="int"/>
+			<column name="assignee_provider_role_id" type="int"/>
+			<column name="due_date" type="datetime"/>
+			<column name="due_date_type" type="varchar(50)"/>
+			<column name="due_date_reference_visit_id" type="int"/>
+			<column name="rationale" type="text"/>
+			<column name="status" type="varchar(50)"/>
+			<column name="kind" type="varchar(50)"/>
+			<column name="priority" type="varchar(50)"/>
+			<column name="creator" type="int">
+				<constraints nullable="false"/>
+			</column>
+			<column name="date_created" type="datetime">
+				<constraints nullable="false"/>
+			</column>
+			<column name="changed_by" type="int"/>
+			<column name="date_changed" type="datetime"/>
+			<column name="voided" type="boolean" defaultValueBoolean="false">
+				<constraints nullable="false"/>
+			</column>
+			<column name="voided_by" type="int"/>
+			<column name="date_voided" type="datetime"/>
+			<column name="void_reason" type="varchar(255)"/>
+		</createTable>
+		<addForeignKeyConstraint constraintName="tasks_task_patient_fk" baseTableName="tasks_task" baseColumnNames="patient_id" referencedTableName="patient" referencedColumnNames="patient_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_assignee_provider_fk" baseTableName="tasks_task" baseColumnNames="assignee_provider_id" referencedTableName="provider" referencedColumnNames="provider_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_creator_fk" baseTableName="tasks_task" baseColumnNames="creator" referencedTableName="users" referencedColumnNames="user_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_changed_by_fk" baseTableName="tasks_task" baseColumnNames="changed_by" referencedTableName="users" referencedColumnNames="user_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_voided_by_fk" baseTableName="tasks_task" baseColumnNames="voided_by" referencedTableName="users" referencedColumnNames="user_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_due_date_reference_visit_fk" baseTableName="tasks_task" baseColumnNames="due_date_reference_visit_id" referencedTableName="visit" referencedColumnNames="visit_id"/>
+		<addForeignKeyConstraint constraintName="tasks_task_system_task_fk" baseTableName="tasks_task" baseColumnNames="system_task_id" referencedTableName="tasks_systemtask" referencedColumnNames="tasks_systemtask_id"/>
+	</changeSet>
+
+	<!-- Conditional FK for task → provider_role (only if providermanagement module is loaded or OpenMRS version >= 2.8.0) -->
+	<changeSet id="tasks-task-provider-role-fk" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<tableExists tableName="provider_role"/>
+		</preConditions>
+		<comment>
+			Add FK from tasks_task.assignee_provider_role_id to provider_role (requires providermanagement module)
+		</comment>
+		<addForeignKeyConstraint constraintName="tasks_task_assignee_provider_role_fk" baseTableName="tasks_task" baseColumnNames="assignee_provider_role_id" referencedTableName="provider_role" referencedColumnNames="provider_role_id"/>
+	</changeSet>
+
+	<!-- View Tasks privilege -->
+	<changeSet id="tasks-privilege-view" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<sqlCheck expectedResult="0">
+				SELECT COUNT(*) FROM privilege WHERE privilege = 'View Tasks'
+			</sqlCheck>
+		</preConditions>
+		<insert tableName="privilege">
+			<column name="privilege" value="View Tasks"/>
+			<column name="description" value="Allows viewing tasks and task-related FHIR CarePlans"/>
+			<column name="uuid" value="c1eb1b87-9b1e-47c7-8d1b-ccf5165e5b3b"/>
+		</insert>
+	</changeSet>
+
+	<!-- Manage Tasks privilege -->
+	<changeSet id="tasks-privilege-manage" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<sqlCheck expectedResult="0">
+				SELECT COUNT(*) FROM privilege WHERE privilege = 'Manage Tasks'
+			</sqlCheck>
+		</preConditions>
+		<insert tableName="privilege">
+			<column name="privilege" value="Manage Tasks"/>
+			<column name="description" value="Allows creating and updating tasks"/>
+			<column name="uuid" value="f0cfe0d8-2a5f-4fd0-a6f7-6c8f37e12c2e"/>
+		</insert>
+	</changeSet>
+
+	<!-- Delete Tasks privilege -->
+	<changeSet id="tasks-privilege-delete" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<sqlCheck expectedResult="0">
+				SELECT COUNT(*) FROM privilege WHERE privilege = 'Delete Tasks'
+			</sqlCheck>
+		</preConditions>
+		<insert tableName="privilege">
+			<column name="privilege" value="Delete Tasks"/>
+			<column name="description" value="Allows voiding and purging tasks"/>
+			<column name="uuid" value="61b7d36f-7486-4c9f-b5ed-47be89f45e9a"/>
+		</insert>
+	</changeSet>
+
+	<!--
+	    Indexes to support the common "tasks for a patient" lookup.
+	    The composite (patient_id, voided) covers both the patient-only scan and the patient-plus-
+	    voided filter via the leftmost-prefix rule; a solo voided index is too low-cardinality to
+	    be useful. system_task_id gets its own index because PlanDefinition-driven lookups filter
+	    on it independently.
+	-->
+	<changeSet id="tasks-task-patient-voided-index" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<not><indexExists indexName="tasks_task_patient_voided_idx"/></not>
+		</preConditions>
+		<comment>Add index on (patient_id, voided) to tasks_task</comment>
+		<createIndex indexName="tasks_task_patient_voided_idx" tableName="tasks_task">
+			<column name="patient_id"/>
+			<column name="voided"/>
+		</createIndex>
+	</changeSet>
+
+	<changeSet id="tasks-task-system-task-index" author="developer">
+		<preConditions onFail="MARK_RAN">
+			<not><indexExists indexName="tasks_task_system_task_idx"/></not>
+		</preConditions>
+		<comment>Add index on (system_task_id) to tasks_task</comment>
+		<createIndex indexName="tasks_task_system_task_idx" tableName="tasks_task">
+			<column name="system_task_id"/>
+		</createIndex>
+	</changeSet>
+
+</databaseChangeLog>

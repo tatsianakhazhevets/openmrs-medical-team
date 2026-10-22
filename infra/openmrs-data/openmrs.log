@@ -1,0 +1,169 @@
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:40:14,418| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:40:14,426| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+WARN - Listener.contextInitialized(231) |2026-10-20T21:40:14,429| Using runtime properties file: /openmrs/data/openmrs-runtime.properties
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:40:14,431| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:40:14,439| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+INFO - ChangeLogDetective.getInitialLiquibaseSnapshotVersion(96) |2026-10-20T21:40:14,672| identifying the Liquibase snapshot version that had been used to initialize the OpenMRS database...
+INFO - ChangeLogDetective.getInitialLiquibaseSnapshotVersion(109) |2026-10-20T21:40:14,673| looking for un-run change sets in snapshot version '2.7.x'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,299| Parsed changelog file 'org/openmrs/liquibase/snapshots/schema-only/liquibase-schema-only-2.7.x.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,305| Reading from openmrs.liquibasechangelog
+INFO - ChangeLogDetective.getInitialLiquibaseSnapshotVersion(118) |2026-10-20T21:40:15,428| file 'org/openmrs/liquibase/snapshots/schema-only/liquibase-schema-only-2.7.x.xml' contains 0 un-run change sets
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,513| Parsed changelog file 'org/openmrs/liquibase/snapshots/core-data/liquibase-core-data-2.7.x.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,515| Reading from openmrs.liquibasechangelog
+INFO - ChangeLogDetective.getInitialLiquibaseSnapshotVersion(118) |2026-10-20T21:40:15,583| file 'org/openmrs/liquibase/snapshots/core-data/liquibase-core-data-2.7.x.xml' contains 0 un-run change sets
+INFO - ChangeLogDetective.getInitialLiquibaseSnapshotVersion(125) |2026-10-20T21:40:15,584| the Liquibase snapshot version that had been used to initialize the OpenMRS database is '2.7.x'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,635| Parsed changelog file 'org/openmrs/liquibase/updates/liquibase-update-to-latest-2.8.x.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:40:15,636| Reading from openmrs.liquibasechangelog
+INFO - ChangeLogDetective.getUnrunLiquibaseUpdateFileNames(165) |2026-10-20T21:40:15,677| file 'org/openmrs/liquibase/updates/liquibase-update-to-latest-2.8.x.xml' contains 0 un-run change sets
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:40:15,956| Selected storage type: local
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:40:16,258| Selected storage type: local
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:40:16,270| Selected storage type: local
+WARN - Listener.loadBundledModules(588) |2026-10-20T21:40:22,188| Bundled module folder doesn't exist: /usr/local/tomcat/webapps/openmrs/WEB-INF/bundledModules
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:40:22,189| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+INFO - Slf4JLogger.log(43) |2026-10-20T21:42:58,668| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:42:58,669| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:42:58,773| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:42:58,777| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:42:58,894| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,373| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,374| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,417| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,418| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,492| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,858| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,859| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,907| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,908| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:00,976| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,155| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,155| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,196| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,198| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,274| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,419| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,421| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,462| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,463| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,529| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,647| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,647| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,689| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,691| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:01,767| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,002| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,003| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,091| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,092| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,155| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,374| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,375| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,421| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,423| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,498| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,605| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,606| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,648| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,649| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,717| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,916| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,917| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,956| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:02,958| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,016| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,248| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,249| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,297| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,299| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,392| Continuing past: liquibase.xml::stockmanagement-1758855877841-226::dev despite precondition failure due to onFail='CONTINUE': 
+          liquibase.xml : DBMS Precondition failed: expected postgresql, got mariadb
+
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,398| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,549| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,550| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,596| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,598| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,662| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,925| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,925| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,963| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:03,965| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,041| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,178| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,179| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,246| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,248| Reading from openmrs.liquibasechangelog
+WARN - Slf4JLogger.log(41) |2026-10-20T21:43:04,290| Due to mariadb SQL limitations, setNullable will lose primary key/autoincrement/not null/comment settings explicitly redefined in the change. Use <sql> or <modifySql> to re-specify all configuration if this is the case
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,320| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,462| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,463| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,505| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,509| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,562| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,783| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,784| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,825| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,827| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:04,880| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,387| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,388| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,437| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,439| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,500| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,787| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,787| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,826| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,828| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,887| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,989| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:07,990| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,030| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,031| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,086| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,390| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,391| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,427| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,429| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:08,492| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:09,553| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:09,554| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:09,594| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:09,596| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:09,662| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,100| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,102| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,208| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,209| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,325| Successfully released change log lock
+WARN - AppointmentProperties.load(22) |2026-10-20T21:43:10,373| Property file not found: /openmrs/data/appointment.properties
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,980| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:10,982| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,022| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,023| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,079| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,482| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,483| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,520| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,522| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:11,578| Successfully released change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:13,663| Parsed changelog file 'liquibase.xml'
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:13,664| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:13,706| Successfully acquired change log lock
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:13,707| Reading from openmrs.liquibasechangelog
+INFO - Slf4JLogger.log(43) |2026-10-20T21:43:13,762| Successfully released change log lock
+INFO - ServiceContext.startRefreshingContext(841) |2026-10-20T21:43:14,532| Refreshing Context
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:44:27,594| Selected storage type: local
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:45:05,568| Selected storage type: local
+INFO - StorageServiceCondition.matches(38) |2026-10-20T21:45:11,768| Selected storage type: local
+INFO - Context.setAuthenticationScheme(198) |2026-10-20T21:45:27,453| An authentication scheme override was provided. Using this one in place of the OpenMRS default authentication scheme.
+WARN - IdgenTask.run(32) |2026-10-20T21:45:30,187| Not running scheduled task. DaemonToken = null; enabled = false
+INFO - ServiceContext.doneRefreshingContext(852) |2026-10-20T21:45:31,026| Done refreshing Context
+ERROR - AddressConfigurationLoader.loadAddressConfiguration(67) |2026-10-20T21:45:34,383| Address hierarchy configuration file appears invalid, skipping the loading process: /openmrs/data/configuration/addresshierarchy/addressConfiguration.xml
+ERROR - AddressConfigurationLoader.loadAddressConfiguration(67) |2026-10-20T21:45:48,350| Address hierarchy configuration file appears invalid, skipping the loading process: /openmrs/data/configuration/addresshierarchy/addressConfiguration.xml
+ERROR - CommonsLoggingOutput.error(75) |2026-10-20T21:45:51,008| Line=4 Attribute "moduleId" must be declared for element type "allow".
+ERROR - CommonsLoggingOutput.error(75) |2026-10-20T21:45:51,012| Line=384 Attribute "moduleId" must be declared for element type "signatures".
+WARN - CommonsLoggingOutput.warn(59) |2026-10-20T21:45:51,029| AnnotationsConfigurator is missing. Are you running from within an IDE?
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:45:52,532| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+WARN - OpenmrsUtil.getRuntimePropertiesFilePathName(2034) |2026-10-20T21:45:52,612| Unable to find a runtime properties file at /openmrs/openmrs-runtime.properties
+WARN - TimerSchedulerTask.saveLastExecutionTime(74) |2026-10-20T21:49:59,012| Unable to save the last execution time for task. Task.taskDefinition is null in class org.openmrs.scheduler.tasks.TaskThreadedInitializationWrapper
+INFO - SerializationServiceImpl.getDefaultSerializer(73) |2026-10-21T00:56:42,132| No default serializer specified - using builtin SimpleXStreamSerializer.
+WARN - DefaultTCAppointmentPatientEmailNotifier.isApplicable(56) |2026-10-21T00:56:46,688| Email notification for tele-consultation not configured to be sent to patient.

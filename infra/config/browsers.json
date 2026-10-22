@@ -1,0 +1,17 @@
+{
+  "chrome": {
+    "default": "148.0",
+    "versions": {
+      "148.0": {
+        "image": "twilio/selenoid:chrome_stable_148",
+        "port": "4444",
+        "path": "/",
+        "privileged": true,
+        "count":3,
+        "cpu": "1.0",
+        "mem": "1024m",
+        "shmSize": 268435456
+      }
+    }
+  }
+}
