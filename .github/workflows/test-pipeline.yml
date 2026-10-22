@@ -134,10 +134,12 @@ jobs:
             "$GITHUB_RUN_NUMBER" > allure-history/index.html
 
       - name: Build Swagger coverage report
+        id: swagger-report
         if: always() && steps.allure-report.outcome == 'success' && hashFiles('target/pipeline/swagger-coverage-report.html') != ''
         run: sudo cp target/pipeline/swagger-coverage-report.html "allure-history/$GITHUB_RUN_NUMBER/"
 
       - name: Publish test report
+        id: publish-report
         uses: peaceiris/actions-gh-pages@v4
         if: always() && steps.allure-report.outcome == 'success'
         with:
@@ -208,7 +210,8 @@ jobs:
         if: always()
         env:
           PIPELINE_STATUS: ${{ job.status }}
-          ARTIFACT_URL: ${{ steps.upload-artifacts.outputs.artifact-url }}
+          ALLURE_REPORT_READY: ${{ steps.allure-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
+          SWAGGER_REPORT_READY: ${{ steps.swagger-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "::warning::Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE."
@@ -216,42 +219,92 @@ jobs:
             exit 0
           fi
 
-          message="OpenMRS test pipeline: ${PIPELINE_STATUS^^}
-          Repository: $GITHUB_REPOSITORY
-          Branch: $GITHUB_REF_NAME
-          Commit: ${GITHUB_SHA::7}
-          Triggered by: $GITHUB_ACTOR
-          Run: $GITHUB_RUN_URL"
+          message=$(python3 - <<'PY'
+          import html
+          import json
+          import os
 
-          if [ -s target/pipeline/metrics.json ] && command -v jq >/dev/null 2>&1; then
-            test_summary=$(jq -r '"Tests: \(.tests.passed) passed, \(.tests.failed) failed, \(.tests.skipped) skipped / \(.tests.total) total
-          Success rate: \(.tests.successRatePercent)%
-          OpenAPI coverage: \(.openApi.coveredOperations)/\(.openApi.totalOperations) operations (\(.openApi.coveragePercent)%)"' \
-              target/pipeline/metrics.json)
-            message="$message
-          $test_summary"
+          def escape(value):
+              return html.escape(str(value), quote=True)
 
-            failed_tests=$(jq -r '.tests.failures[:5][] | "- \(.suite).\(.test)"' target/pipeline/metrics.json)
-            if [ -n "$failed_tests" ]; then
-              message="$message
-          Failed tests:
-          $failed_tests"
-            fi
-          else
-            message="$message
-          Test metrics are unavailable; see the workflow run for details."
-          fi
+          status = os.environ.get("PIPELINE_STATUS", "unknown")
+          status_labels = {
+              "success": "✅ Успешно",
+              "failure": "❌ Ошибка",
+              "cancelled": "⚠️ Отменено",
+          }
+          repository = os.environ.get("GITHUB_REPOSITORY", "")
+          owner, _, name = repository.partition("/")
+          pages_root = f"https://{owner}.github.io/{name}"
+          run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
+          report_root = f"{pages_root}/{run_number}/"
+          lines = [
+              "<b>🧪 OpenMRS · CI</b>",
+              f"<b>Результат:</b> {status_labels.get(status, escape(status))}",
+              f"<b>Репозиторий:</b> <code>{escape(repository)}</code>",
+              f"<b>Ветка:</b> <code>{escape(os.environ.get('GITHUB_REF_NAME', ''))}</code>",
+              f"<b>Коммит:</b> <code>{escape(os.environ.get('GITHUB_SHA', '')[:7])}</code>",
+              f"<b>Запустил:</b> {escape(os.environ.get('GITHUB_ACTOR', ''))}",
+          ]
 
-          if [ -n "$ARTIFACT_URL" ]; then
-            message="$message
-          Artifacts: $ARTIFACT_URL"
-          fi
+          try:
+              with open("target/pipeline/metrics.json", encoding="utf-8") as metrics_file:
+                  metrics = json.load(metrics_file)
+          except (OSError, ValueError):
+              metrics = None
+
+          if metrics:
+              tests = metrics.get("tests", {})
+              lines.extend([
+                  "",
+                  f"<b>Тесты:</b> ✅ {escape(tests.get('passed', 0))} пройдено · "
+                  f"❌ {escape(tests.get('failed', 0))} ошибок · "
+                  f"⏭ {escape(tests.get('skipped', 0))} пропущено / "
+                  f"{escape(tests.get('total', 0))}",
+                  f"<b>Успешность:</b> {escape(tests.get('successRatePercent', 0))}%",
+              ])
+              openapi = metrics.get("openApi", {})
+              if openapi:
+                  lines.append(
+                      f"<b>OpenAPI:</b> {escape(openapi.get('coveredOperations', 0))}/"
+                      f"{escape(openapi.get('totalOperations', 0))} операций "
+                      f"({escape(openapi.get('coveragePercent', 0))}%)"
+                  )
+              failures = tests.get("failures", [])[:5]
+              if failures:
+                  lines.extend(["", "<b>Ошибки тестов:</b>"])
+                  lines.extend(
+                      f"• {escape(failure.get('suite', ''))}.{escape(failure.get('test', ''))}"
+                      for failure in failures
+                  )
+          else:
+              lines.extend(["", "Метрики тестов недоступны."])
+
+          report_links = []
+          if os.environ.get("ALLURE_REPORT_READY") == "true":
+              report_links.append(f'<a href="{escape(report_root)}">📊 Allure</a>')
+          else:
+              report_links.append("📊 Allure: не опубликован")
+          if os.environ.get("SWAGGER_REPORT_READY") == "true":
+              swagger_url = f"{report_root}swagger-coverage-report.html"
+              report_links.append(f'<a href="{escape(swagger_url)}">📈 Swagger</a>')
+          else:
+              report_links.append("📈 Swagger: не опубликован")
+          lines.extend([
+              "",
+              " · ".join(report_links),
+              f'<a href="{escape(os.environ.get("GITHUB_RUN_URL", ""))}">Открыть запуск на GitHub</a>',
+          ])
+          print("\n".join(lines))
+          PY
+          )
 
           response_file=$(mktemp)
           trap 'rm -f "$response_file"' EXIT
           if curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --max-time 20 \
             --request POST \
             --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "parse_mode=HTML" \
             --data-urlencode "text=$message" \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --output "$response_file"; then
