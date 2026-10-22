@@ -1,0 +1,82 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/visit-queue-entry</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;visit&quot;: {
+        &quot;uuid&quot;: &quot;08e47222-ac97-4fa7-baad-dd64979f5fa8&quot;,
+        &quot;display&quot;: null,
+        &quot;links&quot;: null
+    },
+    &quot;queueEntry&quot;: {
+        &quot;status&quot;: {
+            &quot;uuid&quot;: &quot;51ae5e4d-b72b-4912-bf31-a17efb690aeb&quot;,
+            &quot;display&quot;: &quot;Waiting&quot;,
+            &quot;links&quot;: null
+        },
+        &quot;priority&quot;: {
+            &quot;uuid&quot;: &quot;f4620bfa-3625-4883-bd3f-84c2cce14470&quot;,
+            &quot;display&quot;: &quot;Not Urgent&quot;,
+            &quot;links&quot;: null
+        },
+        &quot;queue&quot;: {
+            &quot;uuid&quot;: &quot;13b656d3-e141-11ee-bad2-0242ac120002&quot;,
+            &quot;display&quot;: null,
+            &quot;links&quot;: null
+        },
+        &quot;patient&quot;: {
+            &quot;uuid&quot;: &quot;14ff4165-f348-4687-803d-a7ef37f1996e&quot;,
+            &quot;display&quot;: null,
+            &quot;links&quot;: null
+        },
+        &quot;startedAt&quot;: &quot;2026-10-22T15:34:27.000+0000&quot;,
+        &quot;sortWeight&quot;: 30
+    }
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/visit-queue-entry&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;visit&quot;: {
+        &quot;uuid&quot;: &quot;08e47222-ac97-4fa7-baad-dd64979f5fa8&quot;,
+        &quot;display&quot;: null,
+        &quot;links&quot;: null
+    },
+    &quot;queueEntry&quot;: {
+        &quot;status&quot;: {
+            &quot;uuid&quot;: &quot;51ae5e4d-b72b-4912-bf31-a17efb690aeb&quot;,
+            &quot;display&quot;: &quot;Waiting&quot;,
+            &quot;links&quot;: null
+        },
+        &quot;priority&quot;: {
+            &quot;uuid&quot;: &quot;f4620bfa-3625-4883-bd3f-84c2cce14470&quot;,
+            &quot;display&quot;: &quot;Not Urgent&quot;,
+            &quot;links&quot;: null
+        },
+        &quot;queue&quot;: {
+            &quot;uuid&quot;: &quot;13b656d3-e141-11ee-bad2-0242ac120002&quot;,
+            &quot;display&quot;: null,
+            &quot;links&quot;: null
+        },
+        &quot;patient&quot;: {
+            &quot;uuid&quot;: &quot;14ff4165-f348-4687-803d-a7ef37f1996e&quot;,
+            &quot;display&quot;: null,
+            &quot;links&quot;: null
+        },
+        &quot;startedAt&quot;: &quot;2026-10-22T15:34:27.000+0000&quot;,
+        &quot;sortWeight&quot;: 30
+    }
+}&#39;
+    </div>
+
