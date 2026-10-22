@@ -13,9 +13,9 @@ import static io.restassured.RestAssured.given;
 /**
  * Raw action requester. Returns the full response without assuming success,
  * so negative scenarios (unauthorised, unknown resource) live here.
- *
+ * <p>
  * URL assembly, using Endpoint.APPOINTMENT_CHANGE_STATUS ("/appointments/{resourceUuid}/status-change"):
- *   pathParam("resourceUuid", "abc-123")  ->  /appointments/abc-123/status-change
+ * pathParam("resourceUuid", "abc-123")  ->  /appointments/abc-123/status-change
  */
 public class ActionRequester extends HttpRequest implements ActionEndpoint<ValidatableResponse> {
 
@@ -29,13 +29,13 @@ public class ActionRequester extends HttpRequest implements ActionEndpoint<Valid
 
     @Override
     public ValidatableResponse perform(String resourceUuid, BaseModel body) {
-        return given()
+        return requestStep("POST", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .pathParam(RESOURCE_UUID, resourceUuid)
                 .body(body)
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 }

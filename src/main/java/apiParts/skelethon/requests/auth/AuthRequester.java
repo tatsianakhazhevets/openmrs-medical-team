@@ -19,7 +19,7 @@ public class AuthRequester extends HttpRequest implements AuthEndpoint {
 
     @Override
     public ValidatableResponse login(LoginAdminRequest loginAdminRequest) {
-        return given()
+        return requestStep("GET", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .auth()
                 .preemptive()
@@ -28,38 +28,38 @@ public class AuthRequester extends HttpRequest implements AuthEndpoint {
                 .get(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse logout() {
-        return given()
+        return requestStep("DELETE", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .delete(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse getSession() {
-        return given()
+        return requestStep("GET", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .get(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     // POST /session {"sessionLocation": uuid} - sets login location for current session
     @Override
     public ValidatableResponse setSessionLocation(String locationUuid) {
-        return given()
+        return requestStep("POST", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .body(Map.of("sessionLocation", locationUuid))
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 }

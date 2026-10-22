@@ -147,6 +147,65 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
 
+      - name: Evaluate Swagger Coverage Quality Gate
+        id: quality-gate
+        if: always()
+        run: |
+          GATE_THRESHOLD=2.0
+          METRICS_FILE=target/pipeline/metrics.json
+
+          if [ ! -s "$METRICS_FILE" ]; then
+            echo "::error::Swagger quality gate could not read $METRICS_FILE."
+            echo "Swagger quality gate failed: coverage metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if ! coverage_data=$(jq -er '
+            .swaggerConditions as $coverage
+            | select(($coverage | type) == "object")
+            | select(($coverage.coveredConditions | type) == "number")
+            | select(($coverage.totalConditions | type) == "number")
+            | select($coverage.totalConditions > 0)
+            | select($coverage.coveredConditions >= 0 and
+                     $coverage.coveredConditions <= $coverage.totalConditions)
+            | {
+                covered: $coverage.coveredConditions,
+                total: $coverage.totalConditions,
+                percent: ($coverage.coveredConditions / $coverage.totalConditions * 100)
+              }' "$METRICS_FILE"); then
+            echo "::error::Swagger quality gate could not find valid condition-coverage metrics."
+            echo "Swagger quality gate failed: valid condition-coverage metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          COVERED_CONDITIONS=$(jq -r '.covered' <<< "$coverage_data")
+          ALL_CONDITIONS=$(jq -r '.total' <<< "$coverage_data")
+          ACTUAL_COVERAGE=$(jq -r '.percent' <<< "$coverage_data")
+          DISPLAY_COVERAGE=$(printf '%.2f' "$ACTUAL_COVERAGE")
+
+          {
+            echo "### Swagger Coverage Quality Gate"
+            echo
+            echo "| Metric | Result |"
+            echo "|---|---:|"
+            echo "| Required condition coverage | ${GATE_THRESHOLD}% |"
+            echo "| Actual condition coverage | ${DISPLAY_COVERAGE}% |"
+            echo "| Covered conditions | ${COVERED_CONDITIONS} / ${ALL_CONDITIONS} |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Required Swagger condition coverage: ${GATE_THRESHOLD}%"
+          echo "Actual Swagger condition coverage:   ${DISPLAY_COVERAGE}%"
+          echo "Covered conditions: ${COVERED_CONDITIONS} / ${ALL_CONDITIONS}"
+
+          if jq -e --argjson threshold "$GATE_THRESHOLD" \
+            '.percent >= $threshold' <<< "$coverage_data" >/dev/null; then
+            echo "Swagger Coverage Quality Gate passed."
+          else
+            echo "::error::Swagger condition coverage ${DISPLAY_COVERAGE}% is below the ${GATE_THRESHOLD}% threshold."
+            exit 1
+          fi
+
       - name: Add summary to workflow
         if: always()
         env:
@@ -229,9 +288,9 @@ jobs:
 
           status = os.environ.get("PIPELINE_STATUS", "unknown")
           status_labels = {
-              "success": "✅ Успешно",
-              "failure": "❌ Ошибка",
-              "cancelled": "⚠️ Отменено",
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "⚠️ Cancelled",
           }
           repository = os.environ.get("GITHUB_REPOSITORY", "")
           owner, _, name = repository.partition("/")
@@ -239,12 +298,12 @@ jobs:
           run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
           report_root = f"{pages_root}/{run_number}/"
           lines = [
-              "<b>🧪 OpenMRS · CI</b>",
-              f"<b>Результат:</b> {status_labels.get(status, escape(status))}",
-              f"<b>Репозиторий:</b> <code>{escape(repository)}</code>",
-              f"<b>Ветка:</b> <code>{escape(os.environ.get('GITHUB_REF_NAME', ''))}</code>",
-              f"<b>Коммит:</b> <code>{escape(os.environ.get('GITHUB_SHA', '')[:7])}</code>",
-              f"<b>Запустил:</b> {escape(os.environ.get('GITHUB_ACTOR', ''))}",
+              "<b>🧪 OpenMRS | CI Results</b>",
+              f"<b>Status:</b> {status_labels.get(status, escape(status))}",
+              f"<b>Repository:</b> <code>{escape(repository)}</code>",
+              f"<b>Branch:</b> <code>{escape(os.environ.get('GITHUB_REF_NAME', ''))}</code>",
+              f"<b>Commit:</b> <code>{escape(os.environ.get('GITHUB_SHA', '')[:7])}</code>",
+              f"<b>Triggered by:</b> {escape(os.environ.get('GITHUB_ACTOR', ''))}",
           ]
 
           try:
@@ -257,43 +316,43 @@ jobs:
               tests = metrics.get("tests", {})
               lines.extend([
                   "",
-                  f"<b>Тесты:</b> ✅ {escape(tests.get('passed', 0))} пройдено · "
-                  f"❌ {escape(tests.get('failed', 0))} ошибок · "
-                  f"⏭ {escape(tests.get('skipped', 0))} пропущено / "
-                  f"{escape(tests.get('total', 0))}",
-                  f"<b>Успешность:</b> {escape(tests.get('successRatePercent', 0))}%",
+                  f"<b>Tests:</b> ✅ {escape(tests.get('passed', 0))} passed · "
+                  f"❌ {escape(tests.get('failed', 0))} failed · "
+                  f"⏭ {escape(tests.get('skipped', 0))} skipped / "
+                  f"{escape(tests.get('total', 0))} total",
+                  f"<b>Success rate:</b> {escape(tests.get('successRatePercent', 0))}%",
               ])
               openapi = metrics.get("openApi", {})
               if openapi:
                   lines.append(
-                      f"<b>OpenAPI:</b> {escape(openapi.get('coveredOperations', 0))}/"
-                      f"{escape(openapi.get('totalOperations', 0))} операций "
+                      f"<b>OpenAPI coverage:</b> {escape(openapi.get('coveredOperations', 0))}/"
+                      f"{escape(openapi.get('totalOperations', 0))} operations "
                       f"({escape(openapi.get('coveragePercent', 0))}%)"
                   )
               failures = tests.get("failures", [])[:5]
               if failures:
-                  lines.extend(["", "<b>Ошибки тестов:</b>"])
+                  lines.extend(["", "<b>Failed tests:</b>"])
                   lines.extend(
                       f"• {escape(failure.get('suite', ''))}.{escape(failure.get('test', ''))}"
                       for failure in failures
                   )
           else:
-              lines.extend(["", "Метрики тестов недоступны."])
+              lines.extend(["", "Test metrics are unavailable."])
 
           report_links = []
           if os.environ.get("ALLURE_REPORT_READY") == "true":
               report_links.append(f'<a href="{escape(report_root)}">📊 Allure</a>')
           else:
-              report_links.append("📊 Allure: не опубликован")
+              report_links.append("📊 Allure: not published")
           if os.environ.get("SWAGGER_REPORT_READY") == "true":
               swagger_url = f"{report_root}swagger-coverage-report.html"
               report_links.append(f'<a href="{escape(swagger_url)}">📈 Swagger</a>')
           else:
-              report_links.append("📈 Swagger: не опубликован")
+              report_links.append("📈 Swagger: not published")
           lines.extend([
               "",
               " · ".join(report_links),
-              f'<a href="{escape(os.environ.get("GITHUB_RUN_URL", ""))}">Открыть запуск на GitHub</a>',
+              f'<a href="{escape(os.environ.get("GITHUB_RUN_URL", ""))}">View workflow run</a>',
           ])
           print("\n".join(lines))
           PY

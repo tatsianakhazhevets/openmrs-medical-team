@@ -25,7 +25,7 @@ public class BaseTest {
     protected SoftAssertions softly;
 
     // Allure:
-    // - API: every request / response is attached by AllureRestAssured filter (RequestSpecs.defaultRequestSpec)
+    // - API: each request has a method/endpoint step; AllureRestAssured attaches its request / response
     // - UI: Selenide actions and checks become Allure steps, failed step gets screenshot + page source.
     //   Added before each test (not in @BeforeAll) - parallel tests run in different threads;
     //   re-adding a listener with the same name replaces it. API tests have no Selenide events - no effect.

@@ -19,89 +19,88 @@ public class CrudRequester extends HttpRequest implements CrudEndpoint {
 
     @Override
     public ValidatableResponse create(BaseModel model) {
-//        var body = model == null ? "" : model;
-        return given()
+        return requestStep("POST", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .body(model)
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse create() {
-        return given()
+        return requestStep("POST", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .body("{}")
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse get(String uuid) {
-        return given()
+        return requestStep("GET", endpoint.getUrl() + "/{uuid}", () -> given()
                 .spec(requestSpecification)
                 .get(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse get(String uuid, Map<String, ?> queryParams) {
-        return given()
+        return requestStep("GET", endpoint.getUrl() + "/{uuid}", () -> given()
                 .spec(requestSpecification)
                 .queryParams(queryParams)
                 .get(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse get(Map<String, ?> queryParams) {
-        return given()
+        return requestStep("GET", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .queryParams(queryParams)
                 .get(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     //WITH POST METHOD
     @Override
     public ValidatableResponse update(String uuid, BaseModel model) {
-        return given()
+        return requestStep("POST", endpoint.getUrl() + "/{uuid}", () -> given()
                 .spec(requestSpecification)
                 .body(model)
                 .post(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse delete(String uuid) {
-        return given()
+        return requestStep("DELETE", endpoint.getUrl() + "/{uuid}", () -> given()
                 .spec(requestSpecification)
                 .delete(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse delete(String uuid, Map<String, ?> queryParams) {
-        return given()
+        return requestStep("DELETE", endpoint.getUrl() + "/{uuid}", () -> given()
                 .spec(requestSpecification)
                 .queryParams(queryParams)
                 .delete(endpoint.getUrl() + "/" + uuid)
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 }

@@ -25,23 +25,23 @@ public class SearchRequester extends HttpRequest implements SearchEndpoint<Valid
 
     @Override
     public ValidatableResponse search(SearchParams params) {
-        return given()
+        return requestStep("GET", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .queryParams(params.toQueryParams())
                 .get(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 
     @Override
     public ValidatableResponse searchByBody(BaseModel body) {
-        return given()
+        return requestStep("POST", endpoint.getUrl(), () -> given()
                 .spec(requestSpecification)
                 .body(body)
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
-                .spec(responseSpecification);
+                .spec(responseSpecification));
     }
 }
