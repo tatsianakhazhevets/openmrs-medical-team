@@ -141,7 +141,7 @@ public class HomeAppointmentsPage extends BasePage<HomeAppointmentsPage> {
     }
 
     public HomeAppointmentsPage clickCreateAppointment() {
-        createAppointmentButton.shouldBe(visible).click();
+        createAppointmentButton.shouldBe(visible, UiTimeouts.LONG).click();
         return this;
     }
 
