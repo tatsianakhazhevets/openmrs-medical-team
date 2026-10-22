@@ -1,0 +1,54 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/appointment</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;uuid&quot;: &quot;75e6f714-872c-4ee1-b824-7d2f9d419b94&quot;,
+    &quot;appointmentKind&quot;: &quot;Scheduled&quot;,
+    &quot;status&quot;: &quot;CheckedIn&quot;,
+    &quot;serviceUuid&quot;: &quot;7ba3aa21-cc56-47ca-bb4d-a60549f666c0&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-22T16:45:54.000+0000&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-22T17:15:54.000+0000&quot;,
+    &quot;locationUuid&quot;: &quot;44c3efb0-2583-4c80-a79e-1f756a03c0a1&quot;,
+    &quot;providers&quot;: [
+        {
+            &quot;uuid&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;
+        }
+    ],
+    &quot;patientUuid&quot;: &quot;7b711c92-a4f3-44cc-80ed-7734576e0128&quot;,
+    &quot;comments&quot;: &quot;tUi H&quot;,
+    &quot;dateAppointmentScheduled&quot;: &quot;2026-04-04T00:00:00.000+0000&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/appointment&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;uuid&quot;: &quot;75e6f714-872c-4ee1-b824-7d2f9d419b94&quot;,
+    &quot;appointmentKind&quot;: &quot;Scheduled&quot;,
+    &quot;status&quot;: &quot;CheckedIn&quot;,
+    &quot;serviceUuid&quot;: &quot;7ba3aa21-cc56-47ca-bb4d-a60549f666c0&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-22T16:45:54.000+0000&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-22T17:15:54.000+0000&quot;,
+    &quot;locationUuid&quot;: &quot;44c3efb0-2583-4c80-a79e-1f756a03c0a1&quot;,
+    &quot;providers&quot;: [
+        {
+            &quot;uuid&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;
+        }
+    ],
+    &quot;patientUuid&quot;: &quot;7b711c92-a4f3-44cc-80ed-7734576e0128&quot;,
+    &quot;comments&quot;: &quot;tUi H&quot;,
+    &quot;dateAppointmentScheduled&quot;: &quot;2026-04-04T00:00:00.000+0000&quot;
+}&#39;
+    </div>
+

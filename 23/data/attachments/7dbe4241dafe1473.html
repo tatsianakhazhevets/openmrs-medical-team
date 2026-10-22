@@ -1,0 +1,32 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/encounter</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;d964d6c8-cd0a-4e89-ac6e-0dfb7d448fca&quot;,
+    &quot;encounterType&quot;: null,
+    &quot;encounterDatetime&quot;: &quot;1992-01-20T00:00:00.000+0000&quot;,
+    &quot;location&quot;: &quot;a61a5145-8da1-4410-be23-479314814cc7&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/encounter&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;d964d6c8-cd0a-4e89-ac6e-0dfb7d448fca&quot;,
+    &quot;encounterType&quot;: null,
+    &quot;encounterDatetime&quot;: &quot;1992-01-20T00:00:00.000+0000&quot;,
+    &quot;location&quot;: &quot;a61a5145-8da1-4410-be23-479314814cc7&quot;
+}&#39;
+    </div>
+
