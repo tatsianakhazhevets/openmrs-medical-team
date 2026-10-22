@@ -1,0 +1,124 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/encounter</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;d0d3a6ec-474f-44ed-b575-03c97f55140d&quot;,
+    &quot;encounterType&quot;: &quot;67a71486-1a54-468f-ac3e-7091a9a79584&quot;,
+    &quot;visit&quot;: &quot;64f37c57-abad-411e-9cd2-5b7fb4f24624&quot;,
+    &quot;location&quot;: &quot;44c3efb0-2583-4c80-a79e-1f756a03c0a1&quot;,
+    &quot;obs&quot;: [
+        {
+            &quot;concept&quot;: &quot;5085AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 104.0
+        },
+        {
+            &quot;concept&quot;: &quot;5086AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 51.0
+        },
+        {
+            &quot;concept&quot;: &quot;5242AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 70.0
+        },
+        {
+            &quot;concept&quot;: &quot;5092AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 62.0
+        },
+        {
+            &quot;concept&quot;: &quot;5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 208.0
+        },
+        {
+            &quot;concept&quot;: &quot;5088AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 44.0
+        },
+        {
+            &quot;concept&quot;: &quot;165095AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: &quot;Dolorum expedita nihil eum exercitationem.&quot;
+        },
+        {
+            &quot;concept&quot;: &quot;5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 68.1
+        },
+        {
+            &quot;concept&quot;: &quot;5090AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 172.0
+        },
+        {
+            &quot;concept&quot;: &quot;1343AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 42.0
+        },
+        {
+            &quot;concept&quot;: &quot;1342AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 66.9
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/encounter&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;d0d3a6ec-474f-44ed-b575-03c97f55140d&quot;,
+    &quot;encounterType&quot;: &quot;67a71486-1a54-468f-ac3e-7091a9a79584&quot;,
+    &quot;visit&quot;: &quot;64f37c57-abad-411e-9cd2-5b7fb4f24624&quot;,
+    &quot;location&quot;: &quot;44c3efb0-2583-4c80-a79e-1f756a03c0a1&quot;,
+    &quot;obs&quot;: [
+        {
+            &quot;concept&quot;: &quot;5085AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 104.0
+        },
+        {
+            &quot;concept&quot;: &quot;5086AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 51.0
+        },
+        {
+            &quot;concept&quot;: &quot;5242AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 70.0
+        },
+        {
+            &quot;concept&quot;: &quot;5092AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 62.0
+        },
+        {
+            &quot;concept&quot;: &quot;5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 208.0
+        },
+        {
+            &quot;concept&quot;: &quot;5088AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 44.0
+        },
+        {
+            &quot;concept&quot;: &quot;165095AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: &quot;Dolorum expedita nihil eum exercitationem.&quot;
+        },
+        {
+            &quot;concept&quot;: &quot;5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 68.1
+        },
+        {
+            &quot;concept&quot;: &quot;5090AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 172.0
+        },
+        {
+            &quot;concept&quot;: &quot;1343AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 42.0
+        },
+        {
+            &quot;concept&quot;: &quot;1342AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;value&quot;: 66.9
+        }
+    ]
+}&#39;
+    </div>
+

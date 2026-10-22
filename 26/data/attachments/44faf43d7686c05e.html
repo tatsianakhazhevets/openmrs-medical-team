@@ -1,0 +1,80 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient/7530b710-2bff-49eb-af40-2c5a972d2e94</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;F&quot;,
+        &quot;birthdate&quot;: &quot;2017-12-14T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;XoawOaL&quot;,
+                &quot;familyName&quot;: &quot;coOjlca11ee05cb8944208b15d9704b1466a9&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            {
+                &quot;address1&quot;: &quot;g?:78&quot;,
+                &quot;cityVillage&quot;: &quot;B&quot;,
+                &quot;country&quot;: &quot; 5 0A 1.&quot;,
+                &quot;postalCode&quot;: &quot;Fn&quot;
+            }
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;10006R6&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;5c0ff819-e936-4e75-9c1d-4d001a6fd95e&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient/7530b710-2bff-49eb-af40-2c5a972d2e94&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;F&quot;,
+        &quot;birthdate&quot;: &quot;2017-12-14T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;XoawOaL&quot;,
+                &quot;familyName&quot;: &quot;coOjlca11ee05cb8944208b15d9704b1466a9&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            {
+                &quot;address1&quot;: &quot;g?:78&quot;,
+                &quot;cityVillage&quot;: &quot;B&quot;,
+                &quot;country&quot;: &quot; 5 0A 1.&quot;,
+                &quot;postalCode&quot;: &quot;Fn&quot;
+            }
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;10006R6&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;5c0ff819-e936-4e75-9c1d-4d001a6fd95e&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}&#39;
+    </div>
+
