@@ -1,0 +1,39 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/order</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;type&quot;: &quot;testorder&quot;,
+    &quot;action&quot;: &quot;DISCONTINUE&quot;,
+    &quot;previousOrder&quot;: &quot;41a10379-4588-408e-9947-14f531b84f00&quot;,
+    &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+    &quot;encounter&quot;: &quot;1f1f63d6-60a3-43c4-a8cb-c7caa92445a9&quot;,
+    &quot;patient&quot;: &quot;275e7d04-a2f6-4a84-b903-61d012983885&quot;,
+    &quot;concept&quot;: &quot;785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/order&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;type&quot;: &quot;testorder&quot;,
+    &quot;action&quot;: &quot;DISCONTINUE&quot;,
+    &quot;previousOrder&quot;: &quot;41a10379-4588-408e-9947-14f531b84f00&quot;,
+    &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+    &quot;encounter&quot;: &quot;1f1f63d6-60a3-43c4-a8cb-c7caa92445a9&quot;,
+    &quot;patient&quot;: &quot;275e7d04-a2f6-4a84-b903-61d012983885&quot;,
+    &quot;concept&quot;: &quot;785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;
+}&#39;
+    </div>
+
