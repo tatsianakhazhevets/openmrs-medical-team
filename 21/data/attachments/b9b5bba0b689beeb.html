@@ -1,0 +1,168 @@
+<div>Status code 200 </div>
+
+
+<h4>Body</h4>
+<div>
+    <pre class="preformated-text">
+{
+    &quot;results&quot;: [
+        {
+            &quot;uuid&quot;: &quot;5f2eaf33-ab8d-4a28-9808-4d557c27356a&quot;,
+            &quot;orderNumber&quot;: &quot;ORD-347&quot;,
+            &quot;accessionNumber&quot;: &quot;3895&quot;,
+            &quot;patient&quot;: {
+                &quot;uuid&quot;: &quot;787385ce-f651-4236-b8af-d1f90e91c1d2&quot;,
+                &quot;display&quot;: &quot;1000G54 - VBT orgaP&quot;,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/patient/787385ce-f651-4236-b8af-d1f90e91c1d2&quot;,
+                        &quot;resourceAlias&quot;: &quot;patient&quot;
+                    }
+                ]
+            },
+            &quot;concept&quot;: {
+                &quot;uuid&quot;: &quot;785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+                &quot;display&quot;: &quot;Alkaline phosphatase&quot;,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/concept/785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+                        &quot;resourceAlias&quot;: &quot;concept&quot;
+                    }
+                ]
+            },
+            &quot;action&quot;: &quot;NEW&quot;,
+            &quot;careSetting&quot;: {
+                &quot;uuid&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+                &quot;name&quot;: &quot;Outpatient&quot;,
+                &quot;description&quot;: &quot;Out-patient care setting&quot;,
+                &quot;retired&quot;: false,
+                &quot;careSettingType&quot;: &quot;OUTPATIENT&quot;,
+                &quot;display&quot;: &quot;Outpatient&quot;,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/caresetting/6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+                        &quot;resourceAlias&quot;: &quot;caresetting&quot;
+                    },
+                    {
+                        &quot;rel&quot;: &quot;full&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/caresetting/6f0c9a92-6f24-11e3-af88-005056821db0?v=full&quot;,
+                        &quot;resourceAlias&quot;: &quot;caresetting&quot;
+                    }
+                ],
+                &quot;resourceVersion&quot;: &quot;1.10&quot;
+            },
+            &quot;previousOrder&quot;: null,
+            &quot;dateActivated&quot;: &quot;2026-10-22T14:41:32.000+0000&quot;,
+            &quot;scheduledDate&quot;: null,
+            &quot;dateStopped&quot;: null,
+            &quot;autoExpireDate&quot;: null,
+            &quot;encounter&quot;: {
+                &quot;uuid&quot;: &quot;ce8a7dc1-701c-4f2c-b0b7-62eb2d320747&quot;,
+                &quot;display&quot;: &quot;Order 10/22/2026&quot;,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/encounter/ce8a7dc1-701c-4f2c-b0b7-62eb2d320747&quot;,
+                        &quot;resourceAlias&quot;: &quot;encounter&quot;
+                    }
+                ]
+            },
+            &quot;orderer&quot;: {
+                &quot;uuid&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+                &quot;display&quot;: &quot;admin - Super User&quot;,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/provider/8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+                        &quot;resourceAlias&quot;: &quot;provider&quot;
+                    }
+                ]
+            },
+            &quot;orderReason&quot;: null,
+            &quot;orderReasonNonCoded&quot;: null,
+            &quot;orderType&quot;: {
+                &quot;uuid&quot;: &quot;52a447d3-a64a-11e3-9aeb-50e549534c5e&quot;,
+                &quot;display&quot;: &quot;Test Order&quot;,
+                &quot;name&quot;: &quot;Test Order&quot;,
+                &quot;javaClassName&quot;: &quot;org.openmrs.TestOrder&quot;,
+                &quot;retired&quot;: false,
+                &quot;description&quot;: &quot;Order type for test orders&quot;,
+                &quot;conceptClasses&quot;: [
+                    
+                ],
+                &quot;parent&quot;: null,
+                &quot;links&quot;: [
+                    {
+                        &quot;rel&quot;: &quot;self&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/ordertype/52a447d3-a64a-11e3-9aeb-50e549534c5e&quot;,
+                        &quot;resourceAlias&quot;: &quot;ordertype&quot;
+                    },
+                    {
+                        &quot;rel&quot;: &quot;full&quot;,
+                        &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/ordertype/52a447d3-a64a-11e3-9aeb-50e549534c5e?v=full&quot;,
+                        &quot;resourceAlias&quot;: &quot;ordertype&quot;
+                    }
+                ],
+                &quot;resourceVersion&quot;: &quot;1.10&quot;
+            },
+            &quot;urgency&quot;: &quot;ROUTINE&quot;,
+            &quot;instructions&quot;: &quot;W  OX&quot;,
+            &quot;commentToFulfiller&quot;: null,
+            &quot;display&quot;: &quot;Alkaline phosphatase&quot;,
+            &quot;auditInfo&quot;: {
+                &quot;creator&quot;: {
+                    &quot;uuid&quot;: &quot;82f18b44-6814-11e8-923f-e9a88dcb533f&quot;,
+                    &quot;display&quot;: &quot;admin&quot;,
+                    &quot;links&quot;: [
+                        {
+                            &quot;rel&quot;: &quot;self&quot;,
+                            &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/user/82f18b44-6814-11e8-923f-e9a88dcb533f&quot;,
+                            &quot;resourceAlias&quot;: &quot;user&quot;
+                        }
+                    ]
+                },
+                &quot;dateCreated&quot;: &quot;2026-10-22T14:41:32.000+0000&quot;,
+                &quot;changedBy&quot;: null,
+                &quot;dateChanged&quot;: null
+            },
+            &quot;fulfillerStatus&quot;: null,
+            &quot;fulfillerComment&quot;: null,
+            &quot;specimenSource&quot;: null,
+            &quot;laterality&quot;: null,
+            &quot;clinicalHistory&quot;: null,
+            &quot;frequency&quot;: null,
+            &quot;numberOfRepeats&quot;: null,
+            &quot;links&quot;: [
+                {
+                    &quot;rel&quot;: &quot;self&quot;,
+                    &quot;uri&quot;: &quot;http://host.docker.internal/openmrs/ws/rest/v1/order/5f2eaf33-ab8d-4a28-9808-4d557c27356a&quot;,
+                    &quot;resourceAlias&quot;: &quot;order&quot;
+                }
+            ],
+            &quot;type&quot;: &quot;testorder&quot;,
+            &quot;resourceVersion&quot;: &quot;1.10&quot;
+        }
+    ]
+}    </pre>
+</div>
+
+<h4>Headers</h4>
+<div>
+        <div>Transfer-Encoding: chunked</div>
+        <div>Server: nginx/1.31.2</div>
+        <div>X-Content-Type-Options: nosniff</div>
+        <div>Connection: keep-alive</div>
+        <div>Date: Thu, 22 Oct 2026 14:41:32 GMT</div>
+        <div>ETag: W/&quot;0c8d69ad6633d6b5498c24c3795a5053a&quot;</div>
+        <div>Content-Security-Policy: default-src &#39;self&#39; &#39;unsafe-inline&#39; &#39;unsafe-eval&#39; localhost localhost:*; base-uri &#39;self&#39;; font-src &#39;self&#39;; img-src &#39;self&#39; data:; frame-ancestors &#39;self&#39; ;</div>
+        <div>Content-Encoding: gzip</div>
+        <div>Vary: Accept-Encoding</div>
+        <div>Set-Cookie: [ BLACKLISTED ]</div>
+        <div>X-XSS-Protection: 1; mode=block</div>
+        <div>Content-Type: application/json;charset=UTF-8</div>
+</div>
+
+
