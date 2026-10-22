@@ -49,6 +49,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml', 'infra/runner/Dockerfile') }}
 
       - name: Run Checkstyle
+        id: checkstyle
         run: mvn --batch-mode checkstyle:check
 
       - name: Create CI environment file
@@ -207,6 +208,89 @@ jobs:
             echo "Swagger Coverage Quality Gate passed."
           else
             echo "::error::Swagger condition coverage ${DISPLAY_COVERAGE}% is below the ${GATE_THRESHOLD}% threshold."
+            exit 1
+          fi
+
+      - name: Evaluate Test Success Rate Quality Gate
+        if: always()
+        run: |
+          GATE_THRESHOLD=90.0
+          METRICS_FILE=target/pipeline/metrics.json
+
+          if [ ! -s "$METRICS_FILE" ]; then
+            echo "::error::Test success-rate quality gate could not read $METRICS_FILE."
+            echo "Test success-rate quality gate failed: test metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if ! test_data=$(jq -er '
+            .tests as $tests
+            | select(($tests | type) == "object")
+            | select(($tests.total | type) == "number" and
+                     ($tests.passed | type) == "number" and
+                     ($tests.failed | type) == "number" and
+                     ($tests.skipped | type) == "number")
+            | select($tests.total > 0 and
+                     $tests.passed >= 0 and $tests.failed >= 0 and $tests.skipped >= 0 and
+                     $tests.passed + $tests.failed + $tests.skipped == $tests.total and
+                     $tests.skipped < $tests.total)
+            | {
+                passed: $tests.passed,
+                executed: ($tests.total - $tests.skipped),
+                percent: ($tests.passed / ($tests.total - $tests.skipped) * 100)
+              }' "$METRICS_FILE"); then
+            echo "::error::Test success-rate quality gate could not find valid JUnit test metrics."
+            echo "Test success-rate quality gate failed: valid JUnit test metrics are unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          PASSED_TESTS=$(jq -r '.passed' <<< "$test_data")
+          EXECUTED_TESTS=$(jq -r '.executed' <<< "$test_data")
+          ACTUAL_SUCCESS_RATE=$(jq -r '.percent' <<< "$test_data")
+          DISPLAY_SUCCESS_RATE=$(printf '%.2f' "$ACTUAL_SUCCESS_RATE")
+
+          {
+            echo "### Test Success Rate Quality Gate"
+            echo
+            echo "| Metric | Result |"
+            echo "|---|---:|"
+            echo "| Required success rate | ${GATE_THRESHOLD}% |"
+            echo "| Actual success rate | ${DISPLAY_SUCCESS_RATE}% |"
+            echo "| Passed / executed tests | ${PASSED_TESTS} / ${EXECUTED_TESTS} |"
+            echo "| Skipped tests | excluded |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Required test success rate: ${GATE_THRESHOLD}%"
+          echo "Actual test success rate:   ${DISPLAY_SUCCESS_RATE}%"
+          echo "Passed / executed tests:     ${PASSED_TESTS} / ${EXECUTED_TESTS}"
+
+          if jq -e --argjson threshold "$GATE_THRESHOLD" \
+            '.percent >= $threshold' <<< "$test_data" >/dev/null; then
+            echo "Test Success Rate Quality Gate passed."
+          else
+            echo "::error::Test success rate ${DISPLAY_SUCCESS_RATE}% is below the ${GATE_THRESHOLD}% threshold."
+            exit 1
+          fi
+
+      - name: Evaluate Checkstyle Quality Gate
+        if: always()
+        env:
+          CHECKSTYLE_OUTCOME: ${{ steps.checkstyle.outcome }}
+        run: |
+          {
+            echo "### Checkstyle Quality Gate"
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Checkstyle | ${CHECKSTYLE_OUTCOME} |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$CHECKSTYLE_OUTCOME" = "success" ]; then
+            echo "Checkstyle Quality Gate passed."
+          else
+            echo "::error::Checkstyle Quality Gate failed (Checkstyle outcome: ${CHECKSTYLE_OUTCOME})."
             exit 1
           fi
 
