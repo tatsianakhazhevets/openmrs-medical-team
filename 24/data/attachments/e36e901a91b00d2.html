@@ -1,0 +1,44 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/procedure</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;50c70f42-53b3-452b-a01f-ce6f137bff39&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;16c2b343-6bcf-49d2-967f-b1872011002d&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-07T22:35:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-08T03:13:00+03:00&quot;,
+    &quot;status&quot;: &quot;1118AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;bkzmGC&quot;,
+    &quot;duration&quot;: 2,
+    &quot;durationUnit&quot;: &quot;1733AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/procedure&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;50c70f42-53b3-452b-a01f-ce6f137bff39&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;16c2b343-6bcf-49d2-967f-b1872011002d&quot;,
+    &quot;bodySite&quot;: &quot;1349AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;startDateTime&quot;: &quot;2026-10-07T22:35:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-08T03:13:00+03:00&quot;,
+    &quot;status&quot;: &quot;1118AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;bkzmGC&quot;,
+    &quot;duration&quot;: 2,
+    &quot;durationUnit&quot;: &quot;1733AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}&#39;
+    </div>
+

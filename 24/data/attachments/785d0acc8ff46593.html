@@ -1,0 +1,70 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/encounter</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;2853391d-a4af-4a75-b914-3b2d1f75e6da&quot;,
+    &quot;encounterType&quot;: &quot;39da3525-afe4-45ff-8977-c53b7b359158&quot;,
+    &quot;location&quot;: &quot;ba685651-ed3b-4e63-9b35-78893060758a&quot;,
+    &quot;orders&quot;: [
+        {
+            &quot;type&quot;: &quot;drugorder&quot;,
+            &quot;action&quot;: &quot;NEW&quot;,
+            &quot;dosingType&quot;: &quot;org.openmrs.SimpleDosingInstructions&quot;,
+            &quot;patient&quot;: &quot;2853391d-a4af-4a75-b914-3b2d1f75e6da&quot;,
+            &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+            &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+            &quot;drug&quot;: &quot;dfd36a48-1946-454c-bc04-8dc7cada7120&quot;,
+            &quot;concept&quot;: &quot;70116AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;dose&quot;: -52.7,
+            &quot;doseUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;route&quot;: &quot;160240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;frequency&quot;: &quot;08c71152-c552-42e7-b094-f510ff44e9cb&quot;,
+            &quot;asNeeded&quot;: false,
+            &quot;numRefills&quot;: 5,
+            &quot;quantity&quot;: 6.0,
+            &quot;quantityUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/encounter&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;2853391d-a4af-4a75-b914-3b2d1f75e6da&quot;,
+    &quot;encounterType&quot;: &quot;39da3525-afe4-45ff-8977-c53b7b359158&quot;,
+    &quot;location&quot;: &quot;ba685651-ed3b-4e63-9b35-78893060758a&quot;,
+    &quot;orders&quot;: [
+        {
+            &quot;type&quot;: &quot;drugorder&quot;,
+            &quot;action&quot;: &quot;NEW&quot;,
+            &quot;dosingType&quot;: &quot;org.openmrs.SimpleDosingInstructions&quot;,
+            &quot;patient&quot;: &quot;2853391d-a4af-4a75-b914-3b2d1f75e6da&quot;,
+            &quot;careSetting&quot;: &quot;6f0c9a92-6f24-11e3-af88-005056821db0&quot;,
+            &quot;orderer&quot;: &quot;8e198104-93c5-43c5-a065-60d4415b209a&quot;,
+            &quot;drug&quot;: &quot;dfd36a48-1946-454c-bc04-8dc7cada7120&quot;,
+            &quot;concept&quot;: &quot;70116AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;dose&quot;: -52.7,
+            &quot;doseUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;route&quot;: &quot;160240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+            &quot;frequency&quot;: &quot;08c71152-c552-42e7-b094-f510ff44e9cb&quot;,
+            &quot;asNeeded&quot;: false,
+            &quot;numRefills&quot;: 5,
+            &quot;quantity&quot;: 6.0,
+            &quot;quantityUnits&quot;: &quot;1513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+        }
+    ]
+}&#39;
+    </div>
+
