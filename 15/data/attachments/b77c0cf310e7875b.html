@@ -1,0 +1,54 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/visit</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;e4fb06db-2359-4ebb-a023-0c7b125bbe39&quot;,
+    &quot;visitType&quot;: &quot;d66e9fe0-7d51-4801-a550-5d462ad1c944&quot;,
+    &quot;location&quot;: &quot;8d9045ad-50f0-45b8-93c8-3ed4bce19dbf&quot;,
+    &quot;startDatetime&quot;: &quot;2026-10-22T01:51:14.000+0000&quot;,
+    &quot;stopDatetime&quot;: &quot;2026-10-22T02:21:14.000+0000&quot;,
+    &quot;indication&quot;: &quot;Wk O k&quot;,
+    &quot;encounters&quot;: [
+        &quot;8de6e343-3302-4d28-aff2-34bacdf98fa7&quot;
+    ],
+    &quot;attributes&quot;: [
+        {
+            &quot;attributeType&quot;: &quot;aac48226-d143-4274-80e0-264db4e368ee&quot;,
+            &quot;value&quot;: &quot;POLICY-45001&quot;
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/visit&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;e4fb06db-2359-4ebb-a023-0c7b125bbe39&quot;,
+    &quot;visitType&quot;: &quot;d66e9fe0-7d51-4801-a550-5d462ad1c944&quot;,
+    &quot;location&quot;: &quot;8d9045ad-50f0-45b8-93c8-3ed4bce19dbf&quot;,
+    &quot;startDatetime&quot;: &quot;2026-10-22T01:51:14.000+0000&quot;,
+    &quot;stopDatetime&quot;: &quot;2026-10-22T02:21:14.000+0000&quot;,
+    &quot;indication&quot;: &quot;Wk O k&quot;,
+    &quot;encounters&quot;: [
+        &quot;8de6e343-3302-4d28-aff2-34bacdf98fa7&quot;
+    ],
+    &quot;attributes&quot;: [
+        {
+            &quot;attributeType&quot;: &quot;aac48226-d143-4274-80e0-264db4e368ee&quot;,
+            &quot;value&quot;: &quot;POLICY-45001&quot;
+        }
+    ]
+}&#39;
+    </div>
+
