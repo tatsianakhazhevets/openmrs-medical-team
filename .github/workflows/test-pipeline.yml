@@ -28,6 +28,10 @@ jobs:
       TEST_COMPOSE_PROJECT: openmrs-tests-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
+      - name: Record run start time
+        id: run-start
+        run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Check out source
         uses: actions/checkout@v4
 
@@ -271,6 +275,7 @@ jobs:
           PIPELINE_STATUS: ${{ job.status }}
           ALLURE_REPORT_READY: ${{ steps.allure-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
           SWAGGER_REPORT_READY: ${{ steps.swagger-report.outcome == 'success' && steps.publish-report.outcome == 'success' }}
+          RUN_STARTED_AT: ${{ steps.run-start.outputs.timestamp }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "::warning::Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Actions secrets/variables or inside ENV_FILE."
@@ -282,9 +287,19 @@ jobs:
           import html
           import json
           import os
+          import time
 
           def escape(value):
               return html.escape(str(value), quote=True)
+
+          duration_seconds = max(0, int(time.time()) - int(os.environ["RUN_STARTED_AT"]))
+          hours, remainder = divmod(duration_seconds, 3600)
+          minutes, seconds = divmod(remainder, 60)
+          duration = (
+              f"{hours}h {minutes}m {seconds}s"
+              if hours
+              else f"{minutes}m {seconds}s"
+          )
 
           status = os.environ.get("PIPELINE_STATUS", "unknown")
           status_labels = {
@@ -303,6 +318,7 @@ jobs:
               f"<b>Repository:</b> <code>{escape(repository)}</code>",
               f"<b>Branch:</b> <code>{escape(os.environ.get('GITHUB_REF_NAME', ''))}</code>",
               f"<b>Commit:</b> <code>{escape(os.environ.get('GITHUB_SHA', '')[:7])}</code>",
+              f"<b>Duration:</b> {escape(duration)}",
               f"<b>Triggered by:</b> {escape(os.environ.get('GITHUB_ACTOR', ''))}",
           ]
 
