@@ -1,0 +1,28 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/appointments/search</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patientUuid&quot;: &quot;abdfbb73-89c6-4b3e-8e7b-e4390bd514a2&quot;,
+    &quot;startDate&quot;: &quot;2026-04-22T03:00:00Z&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/appointments/search&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patientUuid&quot;: &quot;abdfbb73-89c6-4b3e-8e7b-e4390bd514a2&quot;,
+    &quot;startDate&quot;: &quot;2026-04-22T03:00:00Z&quot;
+}&#39;
+    </div>
+

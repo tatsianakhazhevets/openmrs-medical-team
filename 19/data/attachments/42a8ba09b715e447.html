@@ -1,0 +1,70 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;UNKNOWN&quot;,
+        &quot;birthdate&quot;: &quot;1961-12-18T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;zUYh&quot;,
+                &quot;familyName&quot;: &quot;Ff&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;100023N&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;aaf478f9-b3e2-4038-977b-56896a8060e2&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;person&quot;: {
+        &quot;gender&quot;: &quot;UNKNOWN&quot;,
+        &quot;birthdate&quot;: &quot;1961-12-18T00:00:00.000+0000&quot;,
+        &quot;birthdateEstimated&quot;: false,
+        &quot;dead&quot;: false,
+        &quot;names&quot;: [
+            {
+                &quot;givenName&quot;: &quot;zUYh&quot;,
+                &quot;familyName&quot;: &quot;Ff&quot;
+            }
+        ],
+        &quot;addresses&quot;: [
+            
+        ]
+    },
+    &quot;identifiers&quot;: [
+        {
+            &quot;identifier&quot;: &quot;100023N&quot;,
+            &quot;identifierType&quot;: &quot;05a29f94-c0ed-11e2-94be-8c13b969e334&quot;,
+            &quot;location&quot;: &quot;aaf478f9-b3e2-4038-977b-56896a8060e2&quot;,
+            &quot;preferred&quot;: true
+        }
+    ]
+}&#39;
+    </div>
+

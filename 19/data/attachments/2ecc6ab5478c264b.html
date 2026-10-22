@@ -1,0 +1,48 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/patient/031db5eb-2405-4770-b0b9-f689ba0354ef/allergy</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;allergen&quot;: null,
+    &quot;severity&quot;: {
+        &quot;uuid&quot;: &quot;1500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+    },
+    &quot;comment&quot;: &quot;ApAlLUU&quot;,
+    &quot;reactions&quot;: [
+        {
+            &quot;reaction&quot;: {
+                &quot;uuid&quot;: &quot;1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+            }
+        }
+    ]
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: [ BLACKLISTED ]</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/patient/031db5eb-2405-4770-b0b9-f689ba0354ef/allergy&#39; -H &#39;Authorization: [ BLACKLISTED ]&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;allergen&quot;: null,
+    &quot;severity&quot;: {
+        &quot;uuid&quot;: &quot;1500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+    },
+    &quot;comment&quot;: &quot;ApAlLUU&quot;,
+    &quot;reactions&quot;: [
+        {
+            &quot;reaction&quot;: {
+                &quot;uuid&quot;: &quot;1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+            }
+        }
+    ]
+}&#39;
+    </div>
+
