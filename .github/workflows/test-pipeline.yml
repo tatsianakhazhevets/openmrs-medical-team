@@ -265,5 +265,6 @@ jobs:
             error=${error//"$TELEGRAM_CHAT_ID"/[REDACTED]}
             printf '%s\n' "$error" >&2
             printf '\nTelegram notification failed: %s\n' "$error" >> "$GITHUB_STEP_SUMMARY"
-            exit "$result"
+            echo "::warning::Telegram notification failed; this does not change the test pipeline result."
+            exit 0
           fi
