@@ -1,0 +1,44 @@
+<div>POST to http://host.docker.internal/openmrs/ws/rest/v1/procedure</div>
+
+    <h4>Body</h4>
+    <div>
+    <pre class="preformated-text">
+{
+    &quot;patient&quot;: &quot;15f03898-7771-418a-91d0-52954a1b5210&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;720b7b8d-3a02-47cb-9653-5901cb99f65b&quot;,
+    &quot;bodySite&quot;: &quot;ec7f69e8-493b-4795-8b18-cba630d49b27&quot;,
+    &quot;startDateTime&quot;: &quot;2026-09-30T23:58:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-01T05:59:00+03:00&quot;,
+    &quot;status&quot;: &quot;167153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;BjqKFKPviAa&quot;,
+    &quot;duration&quot;: 8,
+    &quot;durationUnit&quot;: &quot;1072AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}    </pre>
+    </div>
+
+    <h4>Headers</h4>
+    <div>
+            <div>Authorization: Basic YWRtaW46QWRtaW4xMjM=</div>
+            <div>Accept: application/json, application/javascript, text/javascript, text/json</div>
+            <div>Content-Type: application/json</div>
+    </div>
+
+
+
+    <h4>Curl</h4>
+    <div>
+        curl -v -X POST &#39;http://host.docker.internal/openmrs/ws/rest/v1/procedure&#39; -H &#39;Authorization: Basic YWRtaW46QWRtaW4xMjM=&#39; -H &#39;Accept: application/json, application/javascript, text/javascript, text/json&#39; -H &#39;Content-Type: application/json&#39; -d &#39;{
+    &quot;patient&quot;: &quot;15f03898-7771-418a-91d0-52954a1b5210&quot;,
+    &quot;procedureCoded&quot;: &quot;2967590d-4fdb-4838-905d-edfc19a1c587&quot;,
+    &quot;procedureType&quot;: &quot;720b7b8d-3a02-47cb-9653-5901cb99f65b&quot;,
+    &quot;bodySite&quot;: &quot;ec7f69e8-493b-4795-8b18-cba630d49b27&quot;,
+    &quot;startDateTime&quot;: &quot;2026-09-30T23:58:00+03:00&quot;,
+    &quot;endDateTime&quot;: &quot;2026-10-01T05:59:00+03:00&quot;,
+    &quot;status&quot;: &quot;167153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;,
+    &quot;notes&quot;: &quot;BjqKFKPviAa&quot;,
+    &quot;duration&quot;: 8,
+    &quot;durationUnit&quot;: &quot;1072AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&quot;
+}&#39;
+    </div>
+
