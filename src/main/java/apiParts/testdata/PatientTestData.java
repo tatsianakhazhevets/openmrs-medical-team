@@ -2,6 +2,7 @@ package apiParts.testdata;
 
 import apiParts.generators.RandomModelGenerator;
 import apiParts.models.patient.CreatePatientRequest;
+import apiParts.models.patient.PersonAddress;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -28,12 +29,20 @@ public class PatientTestData {
 
     // gender: "M" / "F" / "UNKNOWN", empty - keep generated; adult: birthdate 20..80 years ago
     public static CreatePatientRequest createPatientRequest(String identifier, String gender, boolean adult) {
+        return createPatientRequest(identifier, gender, adult, false);
+    }
+
+    public static CreatePatientRequest createPatientRequest(
+            String identifier, String gender, boolean adult, boolean includeAddress) {
         CreatePatientRequest request = createPatientRequest(identifier);
         if (!gender.isBlank()) {
             request.getPerson().setGender(gender);
         }
         if (adult) {
             request.getPerson().setBirthdate(adultBirthdate());
+        }
+        if (includeAddress) {
+            request.getPerson().setAddresses(List.of(RandomModelGenerator.generate(PersonAddress.class)));
         }
         return request;
     }

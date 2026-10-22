@@ -41,6 +41,14 @@ public class AdminSteps {
 
     // gender: "M" / "F" / "UNKNOWN", empty - random; adult: 20..80 years old, false - random birthdate
     public static CreatePatientResponse createPatient(String gender, boolean adult) {
+        return createPatient(gender, adult, false);
+    }
+
+    public static CreatePatientResponse createPatientWithAddress() {
+        return createPatient("", false, true);
+    }
+
+    private static CreatePatientResponse createPatient(String gender, boolean adult, boolean includeAddress) {
         LoginAdminRequest loginAdminRequest =
                 RandomModelGenerator.generate(LoginAdminRequest.class);
 
@@ -54,7 +62,7 @@ public class AdminSteps {
                 RequestSpecs.adminSpec(),
                 Endpoint.PATIENT_POST,
                 ResponseSpecs.requestReturnsCreated())
-                .create(PatientTestData.createPatientRequest(getId(), gender, adult));
+                .create(PatientTestData.createPatientRequest(getId(), gender, adult, includeAddress));
     }
 
     public static CreatePatientResponse createPatientWithoutInvokedIdentifier() {
